@@ -420,14 +420,14 @@ public class FileImportService {
         return newUpload;
     }
 
-    private void processFile(String workflow, List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
+    private void processFile(String workflowId, List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
                              ImportUpload upload, User user, Boolean commit, BrAPIImportService importService,
                              AuthenticatedUser actingUser) {
         // Spin off new process for processing the file
         CompletableFuture.supplyAsync(() -> {
             try {
                 ImportServiceContext context = ImportServiceContext.builder()
-                        .workflow(workflow)
+                        .workflowId(workflowId)
                         .brAPIImports(finalBrAPIImportList)
                         .data(data)
                         .program(program)
@@ -580,6 +580,7 @@ public class FileImportService {
      */
     public List<ImportWorkflow> getWorkflowsForSystemMapping(UUID mappingId) throws DoesNotExistException {
         // Retrieve the import mapping configuration based on the provided mapping ID
+
         ImportMapping mappingConfig = importMappingDAO.getMapping(mappingId)
                 .orElseThrow(() -> new DoesNotExistException("Cannot find mapping config associated with upload."));
 

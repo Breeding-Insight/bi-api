@@ -23,7 +23,8 @@ import tech.tablesaw.columns.Column;
 import java.util.List;
 import java.util.Map;
 
-// TODO: move to common higher level location
+// TODO: move to common higher level location, could be used by both append and create workflows so being located
+// in the create namespace won't make sense if we decide to do that in the future.
 @Getter
 @Setter
 @Builder

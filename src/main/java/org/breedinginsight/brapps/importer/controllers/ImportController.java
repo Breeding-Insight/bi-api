@@ -214,7 +214,7 @@ public class ImportController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<DataResponse<ImportWorkflow>>> getWorkflowsForSystemMapping(@PathVariable UUID mappingId) {
+    public HttpResponse<Response<DataResponse<ImportWorkflow>>> getWorkflowsForSystemMapping(@PathVariable UUID mappingId) throws Exception {
 
         List<ImportWorkflow> workflows = null;
         try {

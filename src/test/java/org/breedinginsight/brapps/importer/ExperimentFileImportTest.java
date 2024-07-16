@@ -151,6 +151,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     private String newExperimentWorkflowId;
     private String appendOverwriteWorkflowId;
 
+
     @BeforeAll
     public void setup() {
         importTestUtils = new ImportTestUtils();
@@ -158,10 +159,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         mappingId = (String) setupObjects.get("mappingId");
         testUser = (BiUserEntity) setupObjects.get("testUser");
         securityFp = (FannyPack) setupObjects.get("securityFp");
-
-        /**
-         * Implicit test that the workflow ids are assigned in the following order
-         */
         newExperimentWorkflowId = importTestUtils.getExperimentWorkflowId(client, 0);
         appendOverwriteWorkflowId = importTestUtils.getExperimentWorkflowId(client, 1);
     }
@@ -297,7 +294,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newExp.put(Columns.ROW, "1");
         newExp.put(Columns.COLUMN, "1");
 
-        JsonObject expResult = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newExp), null), null, true, client, program, mappingId, newExperimentWorkflowId);
+        importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newExp), null), null, true, client, program, mappingId, newExperimentWorkflowId);
 
         Map<String, Object> dupExp = new HashMap<>();
         dupExp.put(Columns.GERMPLASM_GID, "1");
@@ -314,7 +311,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         dupExp.put(Columns.ROW, "1");
         dupExp.put(Columns.COLUMN, "1");
 
-        expResult = importTestUtils.uploadAndFetchWorkflowNoStatusCheck(importTestUtils.writeExperimentDataToFile(List.of(dupExp), null), null, true, client, program, mappingId, newExperimentWorkflowId);
+        JsonObject expResult = importTestUtils.uploadAndFetchWorkflowNoStatusCheck(importTestUtils.writeExperimentDataToFile(List.of(dupExp), null), null, true, client, program, mappingId, newExperimentWorkflowId);
 
         assertEquals(422, expResult.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + expResult);
         assertTrue(expResult.getAsJsonObject("progress").get("message").getAsString().startsWith("Experiment Title already exists"));
@@ -376,42 +373,52 @@ public class ExperimentFileImportTest extends BrAPITest {
 
         Map<String, Object> noGID = new HashMap<>(base);
         noGID.remove(Columns.GERMPLASM_GID);
+
         uploadAndVerifyWorkflowFailure(program, importTestUtils.writeExperimentDataToFile(List.of(noGID), null), Columns.GERMPLASM_GID, commit, newExperimentWorkflowId);
 
         Map<String, Object> noExpTitle = new HashMap<>(base);
         noExpTitle.remove(Columns.EXP_TITLE);
+
         uploadAndVerifyWorkflowFailure(program, importTestUtils.writeExperimentDataToFile(List.of(noExpTitle), null), Columns.EXP_TITLE, commit, newExperimentWorkflowId);
 
         Map<String, Object> noExpUnit = new HashMap<>(base);
         noExpUnit.remove(Columns.EXP_UNIT);
+
         uploadAndVerifyWorkflowFailure(program, importTestUtils.writeExperimentDataToFile(List.of(noExpUnit), null), Columns.EXP_UNIT, commit, newExperimentWorkflowId);
 
         Map<String, Object> noExpType = new HashMap<>(base);
         noExpType.remove(Columns.EXP_TYPE);
+
         uploadAndVerifyWorkflowFailure(program, importTestUtils.writeExperimentDataToFile(List.of(noExpType), null), Columns.EXP_TYPE, commit, newExperimentWorkflowId);
 
         Map<String, Object> noEnv = new HashMap<>(base);
         noEnv.remove(Columns.ENV);
+
         uploadAndVerifyWorkflowFailure(program, importTestUtils.writeExperimentDataToFile(List.of(noEnv), null), Columns.ENV, commit, newExperimentWorkflowId);
 
         Map<String, Object> noEnvLoc = new HashMap<>(base);
         noEnvLoc.remove(Columns.ENV_LOCATION);
+
         uploadAndVerifyWorkflowFailure(program, importTestUtils.writeExperimentDataToFile(List.of(noEnvLoc), null), Columns.ENV_LOCATION, commit, newExperimentWorkflowId);
 
         Map<String, Object> noExpUnitId = new HashMap<>(base);
         noExpUnitId.remove(Columns.EXP_UNIT_ID);
+
         uploadAndVerifyWorkflowFailure(program, importTestUtils.writeExperimentDataToFile(List.of(noExpUnitId), null), Columns.EXP_UNIT_ID, commit, newExperimentWorkflowId);
 
         Map<String, Object> noExpRep = new HashMap<>(base);
         noExpRep.remove(Columns.REP_NUM);
+
         uploadAndVerifyWorkflowFailure(program, importTestUtils.writeExperimentDataToFile(List.of(noExpRep), null), Columns.REP_NUM, commit, newExperimentWorkflowId);
 
         Map<String, Object> noExpBlock = new HashMap<>(base);
         noExpBlock.remove(Columns.BLOCK_NUM);
+
         uploadAndVerifyWorkflowFailure(program, importTestUtils.writeExperimentDataToFile(List.of(noExpBlock), null), Columns.BLOCK_NUM, commit, newExperimentWorkflowId);
 
         Map<String, Object> noEnvYear = new HashMap<>(base);
         noEnvYear.remove(Columns.ENV_YEAR);
+
         uploadAndVerifyWorkflowFailure(program, importTestUtils.writeExperimentDataToFile(List.of(noEnvYear), null), Columns.ENV_YEAR, commit, newExperimentWorkflowId);
     }
 
@@ -1027,6 +1034,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     - a new experiment is created after the first experiment
     - verify the second experiment gets created successfully
      */
+    //TODO: this one
     @Test
     @SneakyThrows
     public void importSecondExpAfterFirstExpWithObs() {
@@ -1348,10 +1356,10 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertEquals(expected.get(Columns.GERMPLASM_GID), germplasm.getAccessionNumber());
         if(expected.containsKey(Columns.TEST_CHECK) && StringUtils.isNotBlank((String)expected.get(Columns.TEST_CHECK))) {
             assertEquals(expected.get(Columns.TEST_CHECK),
-                         ou.getObservationUnitPosition()
-                           .getEntryType()
-                           .name()
-                           .substring(0, 1));
+                    ou.getObservationUnitPosition()
+                            .getEntryType()
+                            .name()
+                            .substring(0, 1));
         }
         assertEquals(expected.get(Columns.EXP_TITLE), Utilities.removeProgramKey(trial.getTrialName(), program.getKey()));
         assertEquals(expected.get(Columns.EXP_TITLE), Utilities.removeProgramKey(study.getTrialName(), program.getKey()));
@@ -1444,10 +1452,10 @@ public class ExperimentFileImportTest extends BrAPITest {
         if(traits != null) {
             assertNotNull(actual.get("observations"));
             observations = StreamSupport.stream(actual.getAsJsonArray("observations")
-                                                      .spliterator(), false)
-                                        .map(obs -> gson.fromJson(obs.getAsJsonObject()
-                                                                     .getAsJsonObject("brAPIObject"), BrAPIObservation.class))
-                                        .collect(Collectors.toList());
+                            .spliterator(), false)
+                    .map(obs -> gson.fromJson(obs.getAsJsonObject()
+                            .getAsJsonObject("brAPIObject"), BrAPIObservation.class))
+                    .collect(Collectors.toList());
             ret.put("observations", observations);
         }
 
@@ -1455,10 +1463,10 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertEquals(expected.get(Columns.GERMPLASM_GID), germplasm.getAccessionNumber());
         if(expected.containsKey(Columns.TEST_CHECK) && StringUtils.isNotBlank((String)expected.get(Columns.TEST_CHECK))) {
             assertEquals(expected.get(Columns.TEST_CHECK),
-                         ou.getObservationUnitPosition()
-                           .getEntryType()
-                           .name()
-                           .substring(0, 1));
+                    ou.getObservationUnitPosition()
+                            .getEntryType()
+                            .name()
+                            .substring(0, 1));
         }
         assertEquals(expected.get(Columns.EXP_TITLE), Utilities.removeProgramKey(trial.getTrialName(), program.getKey()));
         assertEquals(expected.get(Columns.EXP_TITLE), Utilities.removeProgramKey(study.getTrialName(), program.getKey()));
@@ -1529,8 +1537,8 @@ public class ExperimentFileImportTest extends BrAPITest {
 
         for (BrAPISeason season : seasons) {
             if (null == season.getSeasonName() || season.getSeasonName()
-                                                        .isBlank() || season.getSeasonName()
-                                                                            .equals(year)) {
+                    .isBlank() || season.getSeasonName()
+                    .equals(year)) {
                 return season.getSeasonDbId();
             }
         }
@@ -1541,17 +1549,17 @@ public class ExperimentFileImportTest extends BrAPITest {
     private Program createProgram(String name, String abbv, String key, String referenceSource, List<BrAPIGermplasm> germplasm, List<Trait> traits) throws ApiException, DoesNotExistException, ValidatorException, BadRequestException {
         SpeciesEntity validSpecies = speciesDAO.findAll().get(0);
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
-                                                      .commonName(validSpecies.getCommonName())
-                                                      .id(validSpecies.getId())
-                                                      .build();
+                .commonName(validSpecies.getCommonName())
+                .id(validSpecies.getId())
+                .build();
         ProgramRequest programRequest1 = ProgramRequest.builder()
-                                                       .name(name)
-                                                       .abbreviation(abbv)
-                                                       .documentationUrl("localhost:8080")
-                                                       .objective("To test things")
-                                                       .species(speciesRequest)
-                                                       .key(key)
-                                                       .build();
+                .name(name)
+                .abbreviation(abbv)
+                .documentationUrl("localhost:8080")
+                .objective("To test things")
+                .species(speciesRequest)
+                .key(key)
+                .build();
 
 
         TestUtils.insertAndFetchTestProgram(gson, client, programRequest1);

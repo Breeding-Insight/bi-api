@@ -75,9 +75,7 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 @Slf4j
 public class PopulateNewPendingImportObjectsStep {
 
-    private final ExperimentValidateService experimentValidateService;
     private final ExperimentSeasonService experimentSeasonService;
-    private final BrAPIObservationDAO brAPIObservationDAO;
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final DSLContext dsl;
     private final Gson gson;
@@ -86,31 +84,28 @@ public class PopulateNewPendingImportObjectsStep {
     private String BRAPI_REFERENCE_SOURCE;
 
     @Inject
-    public PopulateNewPendingImportObjectsStep(ExperimentValidateService experimentValidateService,
-                                               ExperimentSeasonService experimentSeasonService,
-                                               BrAPIObservationDAO brAPIObservationDAO,
+    public PopulateNewPendingImportObjectsStep(ExperimentSeasonService experimentSeasonService,
                                                BrAPIObservationUnitDAO brAPIObservationUnitDAO,
                                                DSLContext dsl) {
-        this.experimentValidateService = experimentValidateService;
         this.experimentSeasonService = experimentSeasonService;
-        this.brAPIObservationDAO = brAPIObservationDAO;
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.dsl = dsl;
         this.gson = new JSON().getGson();
     }
 
-    public ProcessedData process(ProcessContext context, ProcessedPhenotypeData phenotypeData)
+    /**
+     * TODO: in the future returning ProcessedData rather than modifying in-place would be preferrable.
+     *
+     * @param context (modified in-place)
+     * @param phenotypeData
+     * @return
+     * @throws MissingRequiredInfoException
+     * @throws UnprocessableEntityException
+     * @throws ApiException
+     */
+    public void process(ProcessContext context, ProcessedPhenotypeData phenotypeData)
             throws MissingRequiredInfoException, UnprocessableEntityException, ApiException {
-
-        Table data = context.getImportContext().getData();
-        ImportUpload upload = context.getImportContext().getUpload();
-        ImportContext importContext = context.getImportContext();
-
         populatePendingImportObjects(context, phenotypeData);
-
-
-        // TODO: implement
-        return new ProcessedData();
     }
 
 
@@ -576,7 +571,9 @@ public class PopulateNewPendingImportObjectsStep {
         key = getImportObservationHash(importRow, variableName);
 
         if (existingObsByObsHash.containsKey(key)) {
-            if (!isObservationMatched(phenotypeData, pendingData, key, value, column, rowNum)){
+            // NOTE: BI-2128 change added after refactor branch
+            // Update observation value only if it is changed and new value is not blank.
+            if (!isObservationMatched(phenotypeData, pendingData, key, value, column, rowNum) && StringUtils.isNotBlank(value)){
 
                 // prior observation with updated value
                 newObservation = gson.fromJson(gson.toJson(existingObsByObsHash.get(key)), BrAPIObservation.class);

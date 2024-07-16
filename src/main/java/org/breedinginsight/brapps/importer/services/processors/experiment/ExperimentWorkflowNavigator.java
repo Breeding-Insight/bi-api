@@ -96,6 +96,7 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
          */
         NEW_OBSERVATION("new-experiment","Create new experiment"),
 
+
         /**
          * Represents an append or overwrite workflow where experimental dataset is appended.
          * ID: "append-dataset"

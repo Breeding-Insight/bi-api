@@ -28,9 +28,5 @@ import java.util.Map;
 @ToString
 @NoArgsConstructor
 public class ProcessedData {
-    // TODO: remove this, already in ImportPreviewResponse
-    //private Map<String, ImportPreviewStatistics> statistics;
-    // TODO
     private Map<Integer, PendingImport> mappedBrAPIImport;
-    private ImportPreviewResponse importPreviewResponse;
 }
