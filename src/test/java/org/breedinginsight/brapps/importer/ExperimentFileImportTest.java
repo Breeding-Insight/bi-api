@@ -1034,7 +1034,6 @@ public class ExperimentFileImportTest extends BrAPITest {
     - a new experiment is created after the first experiment
     - verify the second experiment gets created successfully
      */
-    //TODO: this one
     @Test
     @SneakyThrows
     public void importSecondExpAfterFirstExpWithObs() {
@@ -1057,7 +1056,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         newExpA.put(Columns.COLUMN, "1");
         newExpA.put(traits.get(0).getObservationVariableName(), "1");
 
-        //JsonObject resultA = importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newExpA), traits), null, true, client, program, mappingId);
         JsonObject resultA = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newExpA), traits), null, true, client, program, mappingId, newExperimentWorkflowId);
 
         JsonArray previewRowsA = resultA.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
@@ -1086,7 +1084,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         newExpB.put(Columns.COLUMN, "1");
         newExpB.put(traits.get(0).getObservationVariableName(), "1");
 
-        //JsonObject resultB = importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newExpB), traits), null, true, client, program, mappingId);
         JsonObject resultB = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newExpB), traits), null, true, client, program, mappingId, newExperimentWorkflowId);
 
         JsonArray previewRowsB = resultB.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
