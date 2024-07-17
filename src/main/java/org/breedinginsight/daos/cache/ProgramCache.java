@@ -174,16 +174,26 @@ public class ProgramCache<R> {
         Map<String, R> response = null;
         try {
             response = postMethod.call();
+            return postThese(key, response);
+        } catch (Exception e) {
+            log.error("Error posting data and populating the cache", e);
+            invalidate(key);
+            throw e;
+        }
+    }
 
+    public List<R> postThese(UUID key, Map<String, R> toBePosted) throws Exception {
+        log.debug("posting for key: " + generateCacheKey(key));
+        try {
             String cacheKey = generateCacheKey(key);
             RMap<String, String> map = connection.getMap(cacheKey);
             //temporarily populate the cache with the returned objects from the postMethod so they show in immediate cache requests
-            for(Map.Entry<String, R> obj : response.entrySet()) {
+            for(Map.Entry<String, R> obj : toBePosted.entrySet()) {
                 map.put(obj.getKey(), gson.toJson(obj.getValue()));
             }
             populate(key);
 
-            return new ArrayList<>(response.values());
+            return new ArrayList<>(toBePosted.values());
         } catch (Exception e) {
             log.error("Error posting data and populating the cache", e);
             invalidate(key);
