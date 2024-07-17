@@ -187,7 +187,7 @@ public class ProgramCache<R> {
         try {
             String cacheKey = generateCacheKey(key);
             RMap<String, String> map = connection.getMap(cacheKey);
-            //temporarily populate the cache with the returned objects from the postMethod so they show in immediate cache requests
+            //temporarily populate the cache with the returned objects from the postMethod, so they show in immediate cache requests
             for(Map.Entry<String, R> obj : toBePosted.entrySet()) {
                 map.put(obj.getKey(), gson.toJson(obj.getValue()));
             }

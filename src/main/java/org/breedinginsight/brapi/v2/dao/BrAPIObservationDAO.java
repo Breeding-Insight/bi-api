@@ -305,7 +305,6 @@ public class BrAPIObservationDAO {
 
         List <BrAPIObservation> updatedObservations = new ArrayList<>();
         try {
-            Map<String, BrAPIObservation> updatedObservationsByDbId = new HashMap<>();
             for (Map.Entry<String, BrAPIObservation> entry : mutatedObservationByDbId.entrySet()) {
                 String dbId = entry.getKey();
                 BrAPIObservation observation = entry.getValue();
@@ -347,7 +346,7 @@ public class BrAPIObservationDAO {
             return programObservationCache.postThese(programId,processedObservations);
         } catch (ApiException e) {
             log.error("Error updating observation: " + Utilities.generateApiExceptionLogMessage(e), e);
-            throw new InternalServerException("Error saving experiment import", e);
+            throw e;
         } catch (Exception e) {
             log.error("Error updating observation: ", e);
             throw new InternalServerException(e.getMessage(), e);
