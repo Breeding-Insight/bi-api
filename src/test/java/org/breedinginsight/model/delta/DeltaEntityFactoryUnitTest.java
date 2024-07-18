@@ -8,6 +8,7 @@ import org.brapi.v2.model.*;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.germ.*;
 import org.brapi.v2.model.pheno.*;
+import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
@@ -23,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class DeltaEntityFactoryUnitTest {
+public class DeltaEntityFactoryUnitTest extends DatabaseTest {
 
     @Inject
     private DeltaEntityFactory entityFactory;
