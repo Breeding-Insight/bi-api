@@ -1,6 +1,5 @@
 package org.breedinginsight.model.delta;
 
-import com.github.filosganga.geogson.model.Point;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
