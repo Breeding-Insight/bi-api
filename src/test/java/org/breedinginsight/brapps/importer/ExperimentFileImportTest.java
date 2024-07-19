@@ -1024,8 +1024,8 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.COLUMN, "1");
         newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
         newObservation.put(traits.get(0).getObservationVariableName(), "2");
-
-        uploadAndVerifyWorkflowFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), traits.get(0).getObservationVariableName(), commit, newExperimentWorkflowId);
+        
+        uploadAndVerifyWorkflowFailureNonTabular(program, importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), traits.get(0).getObservationVariableName(), commit, newExperimentWorkflowId);
     }
 
     /*
@@ -1638,19 +1638,8 @@ public class ExperimentFileImportTest extends BrAPITest {
 
     private JsonObject uploadAndVerifyWorkflowFailure(Program program, File file, String expectedColumnError, boolean commit, String workflowId) throws InterruptedException, IOException {
 
-        //Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(file, null, true, client, program, mappingId);
-        //HttpResponse<String> response = call.blockingFirst();
-        //assertEquals(HttpStatus.ACCEPTED, response.getStatus());
-
-        //String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
-
-        //HttpResponse<String> upload = importTestUtils.getUploadedFile(importId, client, program, mappingId);
-
         JsonObject result = importTestUtils.uploadAndFetchWorkflowNoStatusCheck(file, null, true, client, program, mappingId, newExperimentWorkflowId);
-        //JsonObject result = JsonParser.parseString(upload).getAsJsonObject().getAsJsonObject("result");
         assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
-
-
 
         JsonArray rowErrors = result.getAsJsonObject("progress").getAsJsonArray("rowErrors");
         assertEquals(1, rowErrors.size());
@@ -1659,6 +1648,14 @@ public class ExperimentFileImportTest extends BrAPITest {
         JsonObject error = fieldErrors.get(0).getAsJsonObject();
         assertEquals(expectedColumnError, error.get("field").getAsString());
         assertEquals(422, error.get("httpStatusCode").getAsInt());
+
+        return result;
+    }
+
+    private JsonObject uploadAndVerifyWorkflowFailureNonTabular(Program program, File file, String expectedColumnError, boolean commit, String workflowId) throws InterruptedException, IOException {
+
+        JsonObject result = importTestUtils.uploadAndFetchWorkflowNoStatusCheck(file, null, true, client, program, mappingId, newExperimentWorkflowId);
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
 
         return result;
     }
