@@ -41,7 +41,7 @@ select
 ?::uuid, ?::uuid, role.id, bi_user.id, bi_user.id
 from
 bi_user
-join role on role.domain = 'member';
+join role on role.domain = 'Read Only';
 
 -- name: InsertProgramRolesBreeder
 
@@ -50,7 +50,7 @@ select
 ?::uuid, ?::uuid, role.id, bi_user.id, bi_user.id
 from
 bi_user
-join role on role.domain = 'breeder'
+join role on role.domain = 'Program Administrator'
 where bi_user.name = 'system';
 
 -- name: InsertSystemRoleAdmin
@@ -60,6 +60,6 @@ select ?::uuid, system_role.id, bi_user.id, bi_user.id
 from
 bi_user
 join
-system_role on system_role.domain = 'admin'
+system_role on system_role.domain = 'System Administrator'
 where bi_user.name = 'system';
 
