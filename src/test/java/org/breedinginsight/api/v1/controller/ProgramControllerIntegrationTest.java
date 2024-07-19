@@ -289,7 +289,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
     public Role getTestRole() {
         List<Role> roles = roleService.getAll();
-        return roles.stream().filter(role -> role.getDomain().equals("breeder")).collect(Collectors.toList()).get(0);
+        return roles.stream().filter(role -> role.getDomain().equals("Program Administrator")).collect(Collectors.toList()).get(0);
     }
 
     public Country getTestCountry() {
