@@ -56,7 +56,7 @@ public class UploadController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                              @Part("file") CompletedFileUpload file) {
         try {
@@ -88,7 +88,7 @@ public class UploadController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> getUploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                              @PathVariable UUID uploadId, @QueryValue(defaultValue = "false") Boolean mapping) {
         try {
@@ -109,7 +109,7 @@ public class UploadController {
     @Put("programs/{programId}/import/mappings/{mappingId}/data/{uploadId}/commit")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> commitData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                              @PathVariable UUID uploadId, @Body @Nullable Map<String, Object> userInput) {
         try {
@@ -135,7 +135,7 @@ public class UploadController {
     @Put("programs/{programId}/import/mappings/{mappingId}/data/{uploadId}/preview")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> previewData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                               @PathVariable UUID uploadId) {
         try {
@@ -161,7 +161,7 @@ public class UploadController {
     @Put("programs/{programId}/import/mappings/{mappingId}/workflows/{workflow}/data/{uploadId}/preview")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> previewData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                               @PathVariable String workflow, @PathVariable UUID uploadId) {
         try {
@@ -187,7 +187,7 @@ public class UploadController {
     @Put("programs/{programId}/import/mappings/{mappingId}/workflows/{workflow}/data/{uploadId}/commit")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> commitData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                              @PathVariable String workflow, @PathVariable UUID uploadId,
                                                              @Body @Nullable Map<String, Object> userInput) {
