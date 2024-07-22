@@ -25,16 +25,17 @@ BEGIN
 
 user_id := (SELECT id FROM bi_user WHERE name = 'system');
 
+-- just putting blank strings in for descriptions until later date, can update if needed
 INSERT INTO species (common_name, description, created_by, updated_by)
 VALUES
-    ('Hydrangea', 'TODO', user_id, user_id),
-    ('Red Clover', 'TODO', user_id, user_id),
-    ('Potato', 'TODO', user_id, user_id),
-    ('Blackberry', 'TODO', user_id, user_id),
-    ('Raspberry', 'TODO', user_id, user_id),
-    ('Sugar beet', 'TODO', user_id, user_id),
-    ('Strawberry', 'TODO', user_id, user_id),
-    ('Coffee', 'TODO', user_id, user_id),
-    ('Hop', 'TODO', user_id, user_id) ON CONFLICT DO NOTHING;
+    ('Hydrangea', '', user_id, user_id),
+    ('Red Clover', '', user_id, user_id),
+    ('Potato', '', user_id, user_id),
+    ('Blackberry', '', user_id, user_id),
+    ('Raspberry', '', user_id, user_id),
+    ('Sugar Beet', '', user_id, user_id),
+    ('Strawberry', '', user_id, user_id),
+    ('Coffee', '', user_id, user_id),
+    ('Hop', '', user_id, user_id) ON CONFLICT DO NOTHING;
 
 END $$;
