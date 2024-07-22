@@ -28,6 +28,7 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.reactivex.Flowable;
+import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
@@ -57,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  *
  * To use, instantiate a new instance of this class, then use it like a regular static utility class
  */
+@Slf4j
 public class ImportTestUtils {
 
     Pattern UUID_REGEX = Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
@@ -97,6 +99,38 @@ public class ImportTestUtils {
         return processCall;
     }
 
+    public Flowable<HttpResponse<String>> uploadWorkflowDataFile(File file,
+                                                                 Map<String, String> userData,
+                                                                 Boolean commit,
+                                                                 RxHttpClient client,
+                                                                 Program program,
+                                                                 String mappingId,
+                                                                 String workflowId) {
+
+        MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
+
+        // Upload file
+        String uploadUrl = String.format("/programs/%s/import/mappings/%s/data", program.getId(), mappingId);
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(uploadUrl, requestBody)
+                        .contentType(MediaType.MULTIPART_FORM_DATA_TYPE)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String importId = result.get("importId").getAsString();
+
+        // Process data
+        String url = String.format("/programs/%s/import/mappings/%s/workflows/%s/data/%s/%s", program.getId(), mappingId, workflowId, importId, commit ? "commit" : "preview");
+        Flowable<HttpResponse<String>> processCall = client.exchange(
+                PUT(url, userData)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        return processCall;
+
+    }
+
     public HttpResponse<String> getUploadedFile(String importId, RxHttpClient client, Program program, String mappingId) throws InterruptedException {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/import/mappings/%s/data/%s?mapping=true", program.getId(), mappingId, importId))
@@ -107,6 +141,7 @@ public class ImportTestUtils {
 
         if (response.getStatus().equals(HttpStatus.ACCEPTED)) {
             Thread.sleep(1000);
+            log.debug("202 Accepted response. Sleeping for 1000ms.");
             return getUploadedFile(importId, client, program, mappingId);
         } else {
             return response;
@@ -155,7 +190,34 @@ public class ImportTestUtils {
                       "securityFp", securityFp);
     }
 
+    /**
+     * TODO: assumes new workflow is first in list, doesn't look at position property, would be more robust to
+     * look at that instead of assuming order
+     * @return
+     */
+    public String getExperimentWorkflowId(RxHttpClient client, int workflowIndex) {
+        // Get the mapping id for experiment imports
+        Flowable<HttpResponse<String>> mappingCall = client.exchange(
+                GET("/import/mappings?importName=ExperimentsTemplateMap").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class);
+        HttpResponse<String> mappingResponse = mappingCall.blockingFirst();
+        String mappingId = JsonParser.parseString(mappingResponse.body()).getAsJsonObject()
+                .getAsJsonObject("result")
+                .getAsJsonArray("data")
+                .get(0).getAsJsonObject().get("id").getAsString();
 
+        // Get the workflow id for the workflow at position workflowIndex in the collection of all available experiment workflows
+        // GET /import/mappings{?importName}
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/import/mappings/"+mappingId+"/workflows").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        return JsonParser.parseString(response.body()).getAsJsonObject()
+                .getAsJsonObject("result")
+                .getAsJsonArray("data")
+                .get(workflowIndex).getAsJsonObject().get("id").getAsString();
+    }
 
     public JsonObject uploadAndFetch(File file, Map<String, String> userData, Boolean commit, RxHttpClient client, Program program, String mappingId) throws InterruptedException {
         Flowable<HttpResponse<String>> call = uploadDataFile(file, userData, commit, client, program, mappingId);
@@ -167,6 +229,43 @@ public class ImportTestUtils {
         HttpResponse<String> upload = getUploadedFile(importId, client, program, mappingId);
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
+        return result;
+    }
+
+    public JsonObject uploadAndFetchWorkflow(File file,
+                                             Map<String, String> userData,
+                                             Boolean commit,
+                                             RxHttpClient client,
+                                             Program program,
+                                             String mappingId,
+                                             String workflowId) throws InterruptedException {
+        Flowable<HttpResponse<String>> call = uploadWorkflowDataFile(file, userData, commit, client, program, mappingId, workflowId);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId, client, program, mappingId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
+        return result;
+    }
+
+    public JsonObject uploadAndFetchWorkflowNoStatusCheck(File file,
+                                             Map<String, String> userData,
+                                             Boolean commit,
+                                             RxHttpClient client,
+                                             Program program,
+                                             String mappingId,
+                                             String workflowId) throws InterruptedException {
+        Flowable<HttpResponse<String>> call = uploadWorkflowDataFile(file, userData, commit, client, program, mappingId, workflowId);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId, client, program, mappingId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         return result;
     }
 

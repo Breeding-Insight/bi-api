@@ -96,6 +96,7 @@ public class BrAPIStudiesControllerIntegrationTest extends BrAPITest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
+    private String newExperimentWorkflowId;
     private final Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
                     (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
@@ -104,6 +105,7 @@ public class BrAPIStudiesControllerIntegrationTest extends BrAPITest {
     void setup() throws Exception {
         FannyPack fp = FannyPack.fill("src/test/resources/sql/ImportControllerIntegrationTest.sql");
         ImportTestUtils importTestUtils = new ImportTestUtils();
+        newExperimentWorkflowId = importTestUtils.getExperimentWorkflowId(client, 0);
         FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
         FannyPack brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
@@ -185,13 +187,14 @@ public class BrAPIStudiesControllerIntegrationTest extends BrAPITest {
         rows.add(row2);
 
         // Import test experiment, environments, and any observations
-        JsonObject importResult = importTestUtils.uploadAndFetch(
+        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
                 writeDataToFile(rows, traits),
                 null,
                 true,
                 client,
                 program,
-                mappingId);
+                mappingId,
+                newExperimentWorkflowId);
         experimentId = importResult
                 .get("preview").getAsJsonObject()
                 .get("rows").getAsJsonArray()
@@ -335,7 +338,7 @@ public class BrAPIStudiesControllerIntegrationTest extends BrAPITest {
                 .get("brAPIObject").getAsJsonObject()
                 .get("externalReferences").getAsJsonArray()
                 .get(2).getAsJsonObject()
-                .get("referenceID").getAsString();
+                .get("referenceId").getAsString();
     }
 
     private List<BrAPIGermplasm> createGermplasm(int numToCreate) {

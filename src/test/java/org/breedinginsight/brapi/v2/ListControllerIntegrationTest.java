@@ -84,10 +84,13 @@ public class ListControllerIntegrationTest extends BrAPITest {
     @Inject
     private OntologyService ontologyService;
 
+    private String newExperimentWorkflowId;
+
     @BeforeAll
     @SneakyThrows
     public void setup() {
         importTestUtils = new ImportTestUtils();
+        newExperimentWorkflowId = importTestUtils.getExperimentWorkflowId(client, 0);
         Map<String, Object> setupObjects = importTestUtils.setup(client, gson, dsl, speciesService, userDAO, super.getBrapiDsl(), "ExperimentsTemplateMap");
         mappingId = (String) setupObjects.get("mappingId");
         program = (Program) setupObjects.get("program");
@@ -141,8 +144,8 @@ public class ListControllerIntegrationTest extends BrAPITest {
         newExp.put(ExperimentObservation.Columns.COLUMN, "1");
         newExp.put(traits.get(0).getObservationVariableName(), "1");
 
-        JsonObject result = importTestUtils.uploadAndFetch(
-                importTestUtils.writeExperimentDataToFile(List.of(newExp), traits), null, true, client, program, mappingId
+        JsonObject result = importTestUtils.uploadAndFetchWorkflow(
+                importTestUtils.writeExperimentDataToFile(List.of(newExp), traits), null, true, client, program, mappingId, newExperimentWorkflowId
         );
 
     }
