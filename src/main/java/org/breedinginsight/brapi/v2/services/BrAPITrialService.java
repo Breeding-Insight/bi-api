@@ -300,6 +300,23 @@ public class BrAPITrialService {
         log.debug("fetching dataset: " + datasetId + " for experiment: " + experimentId + ".  including stats: " + stats);
         log.debug("fetching observationUnits for dataset: " + datasetId);
         List<BrAPIObservationUnit> datasetOUs = ouDAO.getObservationUnitsForDataset(datasetId.toString(), program);
+
+        //Add years to addition_data elements
+        Map<String, Integer> studyDbId2Year = new HashMap<>();
+        for (BrAPIObservationUnit ou: datasetOUs
+                     ) {
+            String studyDbId = ou.getStudyDbId();
+            if( !studyDbId2Year.containsKey( studyDbId)) {
+
+                BrAPIStudy study = studyDAO.getStudyByDbId(studyDbId, program).orElseThrow(() -> new DoesNotExistException(String.format("Study Id '%s' not found.", studyDbId)));
+                String seasonId = study.getSeasons().get(0);
+                BrAPISeason season = seasonDAO.getSeasonById(seasonId, program.getId());
+                Integer year = season.getYear();
+                studyDbId2Year.put(studyDbId, year);
+            }
+            ou.putAdditionalInfoItem(BrAPIAdditionalInfoFields.ENV_YEAR, studyDbId2Year.get(studyDbId));
+        }
+
         log.debug("fetching dataset variables dataset: " + datasetId);
         List<Trait> datasetObsVars = getDatasetObsVars(datasetId.toString(), program);
         List<String> ouDbIds = datasetOUs.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
