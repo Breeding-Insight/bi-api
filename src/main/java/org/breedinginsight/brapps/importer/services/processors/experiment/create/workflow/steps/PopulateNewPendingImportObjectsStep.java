@@ -32,22 +32,18 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
-import org.breedinginsight.brapi.v2.dao.BrAPIObservationDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
-import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
-import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingImportObjectData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentSeasonService;
-import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentValidateService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.User;
@@ -55,8 +51,9 @@ import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.Utilities;
+import org.breedinginsight.model.DatasetMetadata;
+import org.breedinginsight.model.DatasetLevel;
 import org.jooq.DSLContext;
-import tech.tablesaw.api.Table;
 import org.breedinginsight.model.Trait;
 import tech.tablesaw.columns.Column;
 
@@ -75,9 +72,7 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 @Slf4j
 public class PopulateNewPendingImportObjectsStep {
 
-    private final ExperimentValidateService experimentValidateService;
     private final ExperimentSeasonService experimentSeasonService;
-    private final BrAPIObservationDAO brAPIObservationDAO;
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final DSLContext dsl;
     private final Gson gson;
@@ -86,31 +81,28 @@ public class PopulateNewPendingImportObjectsStep {
     private String BRAPI_REFERENCE_SOURCE;
 
     @Inject
-    public PopulateNewPendingImportObjectsStep(ExperimentValidateService experimentValidateService,
-                                               ExperimentSeasonService experimentSeasonService,
-                                               BrAPIObservationDAO brAPIObservationDAO,
+    public PopulateNewPendingImportObjectsStep(ExperimentSeasonService experimentSeasonService,
                                                BrAPIObservationUnitDAO brAPIObservationUnitDAO,
                                                DSLContext dsl) {
-        this.experimentValidateService = experimentValidateService;
         this.experimentSeasonService = experimentSeasonService;
-        this.brAPIObservationDAO = brAPIObservationDAO;
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.dsl = dsl;
         this.gson = new JSON().getGson();
     }
 
-    public ProcessedData process(ProcessContext context, ProcessedPhenotypeData phenotypeData)
+    /**
+     * TODO: in the future returning ProcessedData rather than modifying in-place would be preferrable.
+     *
+     * @param context (modified in-place)
+     * @param phenotypeData
+     * @return
+     * @throws MissingRequiredInfoException
+     * @throws UnprocessableEntityException
+     * @throws ApiException
+     */
+    public void process(ProcessContext context, ProcessedPhenotypeData phenotypeData)
             throws MissingRequiredInfoException, UnprocessableEntityException, ApiException {
-
-        Table data = context.getImportContext().getData();
-        ImportUpload upload = context.getImportContext().getUpload();
-        ImportContext importContext = context.getImportContext();
-
         populatePendingImportObjects(context, phenotypeData);
-
-
-        // TODO: implement
-        return new ProcessedData();
     }
 
 
@@ -376,7 +368,22 @@ public class PopulateNewPendingImportObjectsStep {
                     program,
                     trialPIO.getId().toString());
             pio = new PendingImportObject<BrAPIListDetails>(ImportObjectState.NEW, newDataset, id);
-            trialPIO.getBrAPIObject().putAdditionalInfoItem("observationDatasetId", id.toString());
+
+            JsonArray datasetsJson = trialPIO.getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
+            // If datasets property does not yet exist, create it
+            String datasetName = StringUtils.isNotBlank(importRow.getSubObsUnit()) ? importRow.getSubObsUnit() : importRow.getExpUnit();
+            List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(datasetsJson);
+            DatasetMetadata dataset = DatasetMetadata.builder()
+                    .name(datasetName)
+                    .id(id)
+                    .level(StringUtils.isNotBlank(importRow.getSubObsUnit()) ? DatasetLevel.SUB_OBS_UNIT : DatasetLevel.EXP_UNIT)
+                    .build();
+
+            log.debug(dataset.getName());
+            datasets.add(dataset);
+            datasetsJson = DatasetUtil.jsonArrayFromDatasets(datasets);
+            trialPIO.getBrAPIObject().getAdditionalInfo().add(BrAPIAdditionalInfoFields.DATASETS, datasetsJson);
+
             if (ImportObjectState.EXISTING == trialPIO.getState()) {
                 trialPIO.setState(ImportObjectState.MUTATED);
             }
@@ -576,7 +583,9 @@ public class PopulateNewPendingImportObjectsStep {
         key = getImportObservationHash(importRow, variableName);
 
         if (existingObsByObsHash.containsKey(key)) {
-            if (!isObservationMatched(phenotypeData, pendingData, key, value, column, rowNum)){
+            // NOTE: BI-2128 change added after refactor branch
+            // Update observation value only if it is changed and new value is not blank.
+            if (!isObservationMatched(phenotypeData, pendingData, key, value, column, rowNum) && StringUtils.isNotBlank(value)){
 
                 // prior observation with updated value
                 newObservation = gson.fromJson(gson.toJson(existingObsByObsHash.get(key)), BrAPIObservation.class);

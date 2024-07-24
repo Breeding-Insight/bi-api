@@ -158,16 +158,16 @@ public class ImportTestUtils {
         // Species
         Species validSpecies = speciesService.getAll().get(0);
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
-                                                      .commonName(validSpecies.getCommonName())
-                                                      .id(validSpecies.getId())
-                                                      .build();
+                .commonName(validSpecies.getCommonName())
+                .id(validSpecies.getId())
+                .build();
 
         // Insert program
         ProgramRequest program = ProgramRequest.builder()
-                                               .name("Test Program")
-                                               .species(speciesRequest)
-                                               .key("TEST")
-                                               .build();
+                .name("Test Program")
+                .species(speciesRequest)
+                .key("TEST")
+                .build();
         Program validProgram = this.insertAndFetchTestProgram(program, client, gson);
 
         // Get import
@@ -176,18 +176,18 @@ public class ImportTestUtils {
         );
         HttpResponse<String> response = call.blockingFirst();
         String mappingId = JsonParser.parseString(response.body()).getAsJsonObject()
-                                       .getAsJsonObject("result")
-                                       .getAsJsonArray("data")
-                                       .get(0).getAsJsonObject().get("id").getAsString();
+                .getAsJsonObject("result")
+                .getAsJsonArray("data")
+                .get(0).getAsJsonObject().get("id").getAsString();
 
         BiUserEntity testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId());
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         return Map.of("program", validProgram,
-                      "mappingId", mappingId,
-                      "testUser", testUser,
-                      "securityFp", securityFp);
+                "mappingId", mappingId,
+                "testUser", testUser,
+                "securityFp", securityFp);
     }
 
     /**
