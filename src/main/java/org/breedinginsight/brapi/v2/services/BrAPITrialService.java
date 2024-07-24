@@ -301,19 +301,26 @@ public class BrAPITrialService {
         log.debug("fetching observationUnits for dataset: " + datasetId);
         List<BrAPIObservationUnit> datasetOUs = ouDAO.getObservationUnitsForDataset(datasetId.toString(), program);
 
-        //Add years to the addition_data elements
+        //Add years to the addition_info elements
         Map<String, Integer> studyDbId2Year = new HashMap<>();  // used to prevent the same study from being fetched repeatedly.
-        for (BrAPIObservationUnit ou: datasetOUs
-                     ) {
+        for ( BrAPIObservationUnit ou: datasetOUs ) {
             String studyDbId = ou.getStudyDbId();
-            if( !studyDbId2Year.containsKey( studyDbId)) {
+
+            if( !studyDbId2Year.containsKey( studyDbId ))  {
                 // Get the Study and extract the year from its Season
-                BrAPIStudy study = studyDAO.getStudyByDbId(studyDbId, program).orElseThrow(() -> new DoesNotExistException(String.format("Study Id '%s' not found.", studyDbId)));
+                BrAPIStudy study = studyDAO.getStudyByDbId(studyDbId, program).orElseThrow( () -> new DoesNotExistException(String.format("Study Id '%s' not found.", studyDbId)) );
+                if(study.getSeasons().isEmpty()){
+                    throw new DoesNotExistException(String.format("No Seasons found in Study Id = '%s'.", studyDbId));
+                }
                 String seasonId = study.getSeasons().get(0);
                 BrAPISeason season = seasonDAO.getSeasonById(seasonId, program.getId());
+                if(season==null){
+                    throw new DoesNotExistException(String.format("Seasons not found for Id = '%s'.", seasonId));
+                }
                 Integer year = season.getYear();
                 studyDbId2Year.put(studyDbId, year);
             }
+            
             ou.putAdditionalInfoItem(BrAPIAdditionalInfoFields.ENV_YEAR, studyDbId2Year.get(studyDbId));
         }
 
