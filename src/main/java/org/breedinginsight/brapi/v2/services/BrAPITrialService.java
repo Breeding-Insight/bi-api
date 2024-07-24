@@ -301,13 +301,13 @@ public class BrAPITrialService {
         log.debug("fetching observationUnits for dataset: " + datasetId);
         List<BrAPIObservationUnit> datasetOUs = ouDAO.getObservationUnitsForDataset(datasetId.toString(), program);
 
-        //Add years to addition_data elements
-        Map<String, Integer> studyDbId2Year = new HashMap<>();
+        //Add years to the addition_data elements
+        Map<String, Integer> studyDbId2Year = new HashMap<>();  // used to prevent the same study from being fetched repeatedly.
         for (BrAPIObservationUnit ou: datasetOUs
                      ) {
             String studyDbId = ou.getStudyDbId();
             if( !studyDbId2Year.containsKey( studyDbId)) {
-
+                // Get the Study and extract the year from its Season
                 BrAPIStudy study = studyDAO.getStudyByDbId(studyDbId, program).orElseThrow(() -> new DoesNotExistException(String.format("Study Id '%s' not found.", studyDbId)));
                 String seasonId = study.getSeasons().get(0);
                 BrAPISeason season = seasonDAO.getSeasonById(seasonId, program.getId());
