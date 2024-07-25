@@ -122,7 +122,7 @@ public class ProgramController {
 
     @Post("/programs")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured({"SYSTEM_ADMIN"})
+    @Secured("SYSTEM ADMINISTRATOR")
     @AddMetadata
     public HttpResponse<Response<Program>> createProgram(@Valid @Body ProgramRequest programRequest) {
 
@@ -162,7 +162,7 @@ public class ProgramController {
 
     @Delete("/programs/archive/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured({"SYSTEM_ADMIN"})
+    @Secured("SYSTEM ADMINISTRATOR")
     @AddMetadata
     public HttpResponse archiveProgram(@PathVariable UUID programId) {
         /* Archive a program */

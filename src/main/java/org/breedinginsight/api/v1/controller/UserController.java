@@ -123,7 +123,7 @@ public class UserController {
     @Post("/users")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured({"SYSTEM_ADMIN"})
+    @Secured("SYSTEM ADMINISTRATOR")
     public HttpResponse<Response<User>> createUser(@Body @Valid UserRequest requestUser){
 
         try {
@@ -165,7 +165,7 @@ public class UserController {
 
     @Delete("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured({"SYSTEM_ADMIN"})
+    @Secured("SYSTEM ADMINISTRATOR")
     public HttpResponse archiveUser(@PathVariable UUID userId){
 
         try {
@@ -184,7 +184,7 @@ public class UserController {
     @Put("users/{userId}/roles")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured({"ADMIN"})
+    @Secured("SYSTEM ADMINISTRATOR")
     public HttpResponse<Response<User>> updateUserSystemRoles(@PathVariable UUID userId, @Body @Valid SystemRolesRequest requestUser) {
 
         try {
@@ -206,7 +206,7 @@ public class UserController {
 
     @Put("users/{userId}/resend-email")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured({"SYSTEM_ADMIN"})
+    @Secured("SYSTEM ADMINISTRATOR")
     public HttpResponse resendWelcomeEmail(@PathVariable UUID userId) {
         try {
             userService.createAndSendAccountToken(userId);
