@@ -112,16 +112,12 @@ public class PendingObservation implements ExperimentImportEntity<BrAPIObservati
         if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIObservation.class)) {
             return new ArrayList<U>();
         }
-
-        Map<String, BrAPIObservation> mutatedObservationByDbId = new HashMap<>();
-        List<BrAPIObservation> updatedObservations = new ArrayList<>();
-        for (U member : members) {
-            BrAPIObservation observation = (BrAPIObservation) member;
-            mutatedObservationByDbId.put(observation.getObservationDbId(), observation);
-//            Optional.ofNullable(brAPIObservationDAO.updateBrAPIObservation(observation.getObservationDbId(), observation, importContext.getProgram().getId())).ifPresent(updatedObservations::add);
-        }
-
+        Map<String, BrAPIObservation> mutatedObservationByDbId = members.stream().collect(Collectors.toMap(
+                m -> ((BrAPIObservation) m).getObservationDbId(),
+                m -> ((BrAPIObservation) m)
+        ));
         return (List<U>) brAPIObservationDAO.updateBrAPIObservation(mutatedObservationByDbId, importContext.getProgram().getId());
+
     }
 
     /**
