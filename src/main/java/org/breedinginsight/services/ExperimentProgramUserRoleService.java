@@ -21,4 +21,8 @@ public class ExperimentProgramUserRoleService {
         return experimentProgramUserRoleDAO.getProgramUserRoleExperimentIds(programUserRoleId);
     }
 
+    public ExperimentProgramUserRoleEntity createExperimentProgramUserRole(UUID experimentId, UUID programUserRoleId, UUID userId) {
+        return experimentProgramUserRoleDAO.createExperimentProgramUserRole(experimentId, programUserRoleId, userId);
+    }
+
 }
