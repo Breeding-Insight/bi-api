@@ -107,7 +107,7 @@ public class ProgramController {
 
     @Get("/programs/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @AddMetadata
     public HttpResponse<Response<Program>> getProgram(@PathVariable UUID programId) {
 
@@ -178,7 +178,7 @@ public class ProgramController {
 
     @Get("/programs/{programId}/users{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<ProgramUser>>> getProgramUsers(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using = ProgramUserQueryMapper.class) @Valid QueryParams queryParams) {
@@ -194,7 +194,7 @@ public class ProgramController {
 
     @Post("/programs/{programId}/users/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<ProgramUser>>> searchProgramUsers(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using = ProgramUserQueryMapper.class) @Valid QueryParams queryParams,
@@ -211,7 +211,7 @@ public class ProgramController {
 
     @Get("/programs/{programId}/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @AddMetadata
     public HttpResponse<Response<ProgramUser>> getProgramUser(@PathVariable UUID programId, @PathVariable UUID userId) {
 
@@ -292,7 +292,7 @@ public class ProgramController {
 
     @Get("/programs/{programId}/locations{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<ProgramLocation>>> getProgramLocations(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using= ProgramLocationQueryMapper.class) @Valid QueryParams queryParams) {
@@ -311,7 +311,7 @@ public class ProgramController {
 
     @Post("/programs/{programId}/locations/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<ProgramLocation>>> postProgramLocationsSearch(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using= ProgramLocationQueryMapper.class) @Valid QueryParams queryParams,
@@ -335,7 +335,7 @@ public class ProgramController {
     @Get("/programs/{programId}/locations/{locationId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<ProgramLocation>> getProgramLocations(@PathVariable UUID programId,
                                                                        @PathVariable UUID locationId) {
 
@@ -423,7 +423,7 @@ public class ProgramController {
 
     @Get("/programs/{programId}/observation-levels")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<ProgramObservationLevel>>> getProgramObservationLevels(@PathVariable UUID programId)
             throws DoesNotExistException {
         List<ProgramObservationLevel> programObservationLevels = programObservationLevelService.getByProgramId(programId);

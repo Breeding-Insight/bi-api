@@ -41,7 +41,7 @@ public class BrAPIImagesController {
     - PUT imagesImageDbIdPut
      */
     @Get("/images")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse imagesGet(@PathVariable("programId") UUID programId,
                                   @QueryValue("imageDbId") String imageDbId,
                                   @QueryValue("imageName") String imageName,
@@ -59,7 +59,7 @@ public class BrAPIImagesController {
     }
 
     @Get("/images/{imageDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse imagesImageDbIdGet(@PathVariable("programId") UUID programId,
                                            @PathVariable("imageDbId") String imageDbId) {
         return HttpResponse.notFound();
@@ -67,7 +67,7 @@ public class BrAPIImagesController {
 
     @Put("/images/{imageDbId}/imagecontent")
     @Consumes({"image/_*"})
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse imagesImageDbIdImagecontentPut(@PathVariable("programId") UUID programId,
                                                        @PathVariable("imageDbId") String imageDbId,
                                                        @Body Object body) {
@@ -75,7 +75,7 @@ public class BrAPIImagesController {
     }
 
     @Put("/images/{imageDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse imagesImageDbIdPut(@PathVariable("programId") UUID programId,
                                            @PathVariable("imageDbId") String imageDbId,
                                            @Body BrAPIImage body) {
@@ -83,7 +83,7 @@ public class BrAPIImagesController {
     }
 
     @Post("/images")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse imagesPost(@PathVariable("programId") UUID programId, @Body List<BrAPIImage> body) {
         return HttpResponse.notFound();
     }

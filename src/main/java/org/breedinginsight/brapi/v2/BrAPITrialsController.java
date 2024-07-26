@@ -50,7 +50,7 @@ public class BrAPITrialsController {
 
     @Get("/trials{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<List<BrAPITrial>>>> getExperiments(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = ExperimentQueryMapper.class) @Valid ExperimentQuery queryParams) {
@@ -71,7 +71,7 @@ public class BrAPITrialsController {
 
     @Get("/trials/{trialId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPITrialSingleResponse> getExperimentById(
             @PathVariable("programId") UUID programId,
             @PathVariable("trialId") UUID trialId,
@@ -92,7 +92,7 @@ public class BrAPITrialsController {
     }
 
     @Post("/trials")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> trialsPost(@PathVariable("programId") UUID programId, @Body List<BrAPITrial> body) {
         //DO NOT IMPLEMENT - Users are only able to create new trials via the DeltaBreed UI
         return HttpResponse.notFound();
@@ -100,7 +100,7 @@ public class BrAPITrialsController {
 
 
     @Put("/trials/{trialDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> trialsTrialDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("trialDbId") String trialDbId, @Body BrAPITrial body) {
         //DO NOT IMPLEMENT - Users are only able to update trials via the DeltaBreed UI
         return HttpResponse.notFound();

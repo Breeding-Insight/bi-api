@@ -75,7 +75,7 @@ public class BrAPIObservationVariableController {
     }
 
     @Get("/variables")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIObservationVariableListResponse> variablesGet(@PathVariable("programId") UUID programId,
                                                                            @Nullable  @QueryValue("observationVariableDbId") String observationVariableDbId,
                                                                            @Nullable @QueryValue("observationVariableName") String observationVariableName,
@@ -146,7 +146,7 @@ public class BrAPIObservationVariableController {
     }
 
     @Get("/variables/{observationVariableDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIObservationVariableSingleResponse> variablesObservationVariableDbIdGet(@PathVariable("programId") UUID programId,
                                                             @PathVariable("observationVariableDbId") String observationVariableDbId) {
         log.debug("fetching variable: " + observationVariableDbId);
@@ -175,7 +175,7 @@ public class BrAPIObservationVariableController {
     }
 
     @Put("/variables/{observationVariableDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> variablesObservationVariableDbIdPut(@PathVariable("programId") UUID programId,
                                                             @PathVariable("observationVariableDbId") String observationVariableDbId,
                                                                @Body BrAPIObservationVariable body) {
@@ -184,7 +184,7 @@ public class BrAPIObservationVariableController {
     }
 
     @Post("/variables")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> variablesPost(@PathVariable("programId") UUID programId, @Body List<BrAPIObservationVariable> body) {
         //DO NOT IMPLEMENT - Users are only able to create new traits via the DeltaBreed UI
         return HttpResponse.notFound();

@@ -60,7 +60,7 @@ public class ProgramController {
      */
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<org.breedinginsight.api.model.v1.response.Response<DataResponse<List<String>>>> getPrograms(
             @PathVariable("programId") UUID programId) {
 
