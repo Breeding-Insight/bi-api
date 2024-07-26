@@ -3,13 +3,8 @@ package org.breedinginsight.model.delta;
 import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Prototype;
-import org.breedinginsight.model.delta.DeltaGermplasm;
-import org.breedinginsight.model.delta.DeltaObservation;
-import org.breedinginsight.model.delta.DeltaObservationUnit;
-import org.breedinginsight.model.delta.DeltaObservationVariable;
-import org.breedinginsight.model.delta.Environment;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationUnitService;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
@@ -18,8 +13,17 @@ import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 
+import javax.inject.Inject;
+
 @Factory
 public class DeltaEntityFactory {
+
+    private final ObservationUnitService observationUnitService;
+
+    @Inject
+    public DeltaEntityFactory(ObservationUnitService observationUnitService) {
+        this.observationUnitService = observationUnitService;
+    }
 
     public static Experiment makeExperiment(BrAPITrial brAPIObject) {
         return new Experiment(brAPIObject);
@@ -41,8 +45,8 @@ public class DeltaEntityFactory {
         return new DeltaObservation(brAPIObject);
     }
 
-    public static DeltaObservationUnit makeDeltaObservationUnit(BrAPIObservationUnit brAPIObject) {
-        return new DeltaObservationUnit(brAPIObject);
+    public static DeltaObservationUnit makeDeltaObservationUnit(BrAPIObservationUnit brAPIObject, ObservationUnitService observationUnitService) {
+        return new DeltaObservationUnit(brAPIObject, observationUnitService);
     }
 
     public static DeltaObservationVariable makeDeltaObservationVariable(BrAPIObservationVariable brAPIObject) {
@@ -82,7 +86,7 @@ public class DeltaEntityFactory {
     @Bean
     @Prototype
     public DeltaObservationUnit makeDeltaObservationUnitBean(BrAPIObservationUnit brAPIObject) {
-        return makeDeltaObservationUnit(brAPIObject);
+        return makeDeltaObservationUnit(brAPIObject, observationUnitService);
     }
 
     @Bean
