@@ -30,9 +30,12 @@ public class Experiment extends DeltaEntity<BrAPITrial> {
 
     public List<DatasetMetadata> getDatasetsMetadata() {
         List<DatasetMetadata> datasetsMetadata = new ArrayList<>();
-        JsonArray datasetsJson = getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
-        if (datasetsJson != null) {
-            datasetsMetadata = DatasetUtil.datasetsFromJson(datasetsJson);
+        JsonObject additionalInfo = getBrAPIObject().getAdditionalInfo();
+        if (additionalInfo != null) {
+            JsonArray datasetsJson = additionalInfo.getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
+            if (datasetsJson != null) {
+                datasetsMetadata = DatasetUtil.datasetsFromJson(datasetsJson);
+            }
         }
         return datasetsMetadata;
     }
