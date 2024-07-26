@@ -28,25 +28,6 @@ public class Experiment extends DeltaEntity<BrAPITrial> {
         super(brAPIObject);
     }
 
-    @Override
-    public JsonObject getAdditionalInfo() {
-        JsonObject additionalInfo = getBrAPIObject().getAdditionalInfo();
-        if (additionalInfo == null) {
-            additionalInfo = new JsonObject();
-        }
-        return additionalInfo;
-    }
-
-    @Override
-    public void setAdditionalInfo(JsonObject additionalInfo) {
-        getBrAPIObject().setAdditionalInfo(additionalInfo);
-    }
-
-    @Override
-    public void putAdditionalInfoItem(String key, Object value) {
-        getBrAPIObject().putAdditionalInfoItem(key, value);
-    }
-
     public List<DatasetMetadata> getDatasetsMetadata() {
         List<DatasetMetadata> datasetsMetadata = new ArrayList<>();
         JsonArray datasetsJson = getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
@@ -68,4 +49,5 @@ public class Experiment extends DeltaEntity<BrAPITrial> {
         datasetsMetadata.add(datasetMetadata);
         setDatasetsMetadata(datasetsMetadata);
     }
+
 }

@@ -34,10 +34,4 @@ public abstract class DeltaEntity<T> {
         return (T) gson.fromJson(gson.toJson(getBrAPIObject()), brAPIObject.getClass());
     }
 
-    public abstract JsonObject getAdditionalInfo();
-
-    public abstract void setAdditionalInfo(JsonObject additionalInfo);
-
-    public abstract void putAdditionalInfoItem(String key, Object value);
-
 }

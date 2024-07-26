@@ -21,23 +21,4 @@ public class Environment extends DeltaEntity<BrAPIStudy> {
         super(brAPIObject);
     }
 
-    @Override
-    public JsonObject getAdditionalInfo() {
-        JsonObject additionalInfo = getBrAPIObject().getAdditionalInfo();
-        if (additionalInfo == null) {
-            additionalInfo = new JsonObject();
-        }
-        return additionalInfo;
-    }
-
-    @Override
-    public void setAdditionalInfo(JsonObject additionalInfo) {
-        getBrAPIObject().setAdditionalInfo(additionalInfo);
-    }
-
-    @Override
-    public void putAdditionalInfoItem(String key, Object value) {
-        getBrAPIObject().putAdditionalInfoItem(key, value);
-    }
-
 }
