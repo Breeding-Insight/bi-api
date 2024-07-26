@@ -31,9 +31,7 @@ import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Prototype
@@ -114,14 +112,12 @@ public class PendingObservation implements ExperimentImportEntity<BrAPIObservati
         if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIObservation.class)) {
             return new ArrayList<U>();
         }
+        Map<String, BrAPIObservation> mutatedObservationByDbId = members.stream().collect(Collectors.toMap(
+                m -> ((BrAPIObservation) m).getObservationDbId(),
+                m -> ((BrAPIObservation) m)
+        ));
+        return (List<U>) brAPIObservationDAO.updateBrAPIObservation(mutatedObservationByDbId, importContext.getProgram().getId());
 
-        List<BrAPIObservation> updatedObservations = new ArrayList<>();
-        for (U member : members) {
-            BrAPIObservation observation = (BrAPIObservation) member;
-            Optional.ofNullable(brAPIObservationDAO.updateBrAPIObservation(observation.getObservationDbId(), observation, importContext.getProgram().getId())).ifPresent(updatedObservations::add);
-        }
-
-        return (List<U>) updatedObservations;
     }
 
     /**
