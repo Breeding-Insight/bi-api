@@ -3,7 +3,6 @@ package org.breedinginsight.daos.impl;
 import org.breedinginsight.dao.db.tables.daos.BreedingMethodDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
-import org.jetbrains.annotations.NotNull;
 import org.jooq.*;
 
 import javax.inject.Inject;
