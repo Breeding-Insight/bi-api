@@ -32,3 +32,12 @@ INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '19', 'L
 INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '20', 'Cotton') ON CONFLICT DO NOTHING;
 INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '21', 'Sorghum') ON CONFLICT DO NOTHING;
 INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '22', 'Hemp') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '23', 'Hop') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '24', 'Hydrangea') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '25', 'Red Clover') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '26', 'Potato') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '27', 'Blackberry') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '28', 'Raspberry') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '29', 'Sugar Beet') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '30', 'Strawberry') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '31', 'Coffee') ON CONFLICT DO NOTHING;
