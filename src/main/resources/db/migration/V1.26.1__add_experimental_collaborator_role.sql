@@ -15,28 +15,17 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.auth;
+DO $$
+DECLARE
+    user_id UUID;
+BEGIN
 
-public enum ProgramSecuredRole {
+    user_id := (SELECT id FROM bi_user WHERE name = 'system');
 
-    READ_ONLY("Read Only"),
-    PROGRAM_ADMIN("Program Administrator"),
-    SYSTEM_ADMIN("System Administrator");
+    INSERT INTO role
+        (domain, created_by, updated_by)
+    VALUES
+        ('Experimental Collaborator', user_id, user_id)
+    ;
 
-    private String domain;
-
-    ProgramSecuredRole(String domain) {
-        this.domain = domain;
-    }
-
-    @Override
-    public String toString() {
-        return domain;
-    }
-
-    public static ProgramSecuredRole getEnum(String domain) {
-        for(ProgramSecuredRole v : values())
-            if(v.toString().equalsIgnoreCase(domain)) return v;
-        throw new IllegalArgumentException();
-    }
-}
+END $$;
