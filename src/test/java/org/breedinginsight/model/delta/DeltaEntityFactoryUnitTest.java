@@ -39,7 +39,10 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
 
         // Use the factory to create a DeltaGermplasm from the BrAPIGermplasm
         DeltaGermplasm deltaGermplasm = entityFactory.makeDeltaGermplasmBean(brAPIGermplasm);
+assertNotNull(deltaGermplasm);
 
+        // Assert that the DeltaEntity constructor cannot be called to directly instantiate
+        testConstructorNotAccessible(DeltaGermplasm.class);
         // Check that clone makes a correct copy
         BrAPIGermplasm clonedBrAPIGermplasm = deltaGermplasm.cloneEntity();
         assertNotNull(clonedBrAPIGermplasm);
@@ -54,7 +57,10 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
 
         // Use the factory to create a DeltaLocation from the BrAPILocation
         DeltaLocation deltaLocation = entityFactory.makeDeltaLocationBean(programLocation);
+assertNotNull(deltaLocation);
 
+        // Assert that the DeltaEntity constructor cannot be called to directly instantiate
+        testConstructorNotAccessible(DeltaLocation.class);
         // Check that clone makes a correct copy
         ProgramLocation clonedProgramLocation = deltaLocation.cloneEntity();
         assertNotNull(clonedProgramLocation);
@@ -69,7 +75,10 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
 
         // Use the factory to create a DeltaObservation from the BrAPIObservation
         DeltaObservation deltaObservation = entityFactory.makeDeltaObservationBean(brAPIObservation);
+assertNotNull(deltaObservation);
 
+        // Assert that the DeltaEntity constructor cannot be called to directly instantiate
+        testConstructorNotAccessible(DeltaObservation.class);
         // Check that clone makes a correct copy
         BrAPIObservation clonedBrAPIObservation = deltaObservation.cloneEntity();
         assertNotNull(clonedBrAPIObservation);
@@ -84,7 +93,11 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
 
         // Use the factory to create a DeltaObservationUnit from the BrAPIObservationUnit
         DeltaObservationUnit deltaObservationUnit = entityFactory.makeDeltaObservationUnitBean(brAPIObservationUnit);
+assertNotNull(deltaObservationUnit);
 
+        // Assert that the DeltaEntity constructor cannot be called to directly instantiate
+        testConstructorNotAccessible(DeltaObservationUnit.class);
+        
         // Check that clone makes a correct copy
         BrAPIObservationUnit clonedBrAPIObservationUnit = deltaObservationUnit.cloneEntity();
         assertNotNull(clonedBrAPIObservationUnit);
@@ -99,7 +112,10 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
 
         // Use the factory to create a DeltaObservationVariable from the BrAPIObservationVariable
         DeltaObservationVariable deltaObservationVariable = entityFactory.makeDeltaObservationVariableBean(brAPIObservationVariable);
+assertNotNull(deltaObservationVariable);
 
+        // Assert that the DeltaEntity constructor cannot be called to directly instantiate
+        testConstructorNotAccessible(DeltaObservationVariable.class);
         // Check that clone makes a correct copy
         BrAPIObservationVariable clonedBrAPIObservationVariable = deltaObservationVariable.cloneEntity();
         assertNotNull(clonedBrAPIObservationVariable);
@@ -114,7 +130,10 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
 
         // Use the factory to create a DeltaEnvironment from the BrAPIStudy
         Environment environment = entityFactory.makeEnvironmentBean(brAPIStudy);
+assertNotNull(Environment);
 
+        // Assert that the DeltaEntity constructor cannot be called to directly instantiate
+        testConstructorNotAccessible(Environment.class);
         // Check that clone makes a correct copy
         BrAPIStudy clonedBrAPIStudy = environment.cloneEntity();
         assertNotNull(clonedBrAPIStudy);
@@ -129,13 +148,66 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
 
         // Use the factory to create a DeltaExperiment from the BrAPITrial
         Experiment experiment = entityFactory.makeExperimentBean(brAPITrial);
+assertNotNull(Experiment);
 
+        // Assert that the DeltaEntity constructor cannot be called to directly instantiate
+        testConstructorNotAccessible(Experiment.class);
         // Check that clone makes a correct copy
         BrAPITrial clonedBrAPITrial = experiment.cloneEntity();
         assertNotNull(clonedBrAPITrial);
         assertEquals(clonedBrAPITrial, brAPITrial);
     }
+private void testConstructorNotAccessible(Class<?> clazz) {
+        Constructor<?>[] constructors = clazz.getDeclaredConstructors();
+        for (Constructor<?> constructor : constructors) {
+            constructor.setAccessible(true);
+            Class<?>[] parameterTypes = constructor.getParameterTypes();
+            Object[] args = new Object[parameterTypes.length];
 
+            try {
+                // Attempt to create default values for each parameter
+                for (int i = 0; i < parameterTypes.length; i++) {
+                    args[i] = getDefaultValue(parameterTypes[i]);
+                }
+
+                // Attempt to create an instance
+                Object instance = constructor.newInstance(args);
+                fail("Expected constructor to be inaccessible, but was able to create an instance: " + instance);
+            } catch (IllegalAccessException e) {
+                // This is the expected exception for inaccessible constructor
+                return;
+            } catch (InstantiationException e) {
+                // This can happen if the class is abstract or an interface
+                log.error("Cannot instantiate " + clazz.getSimpleName() + ": " + e.getMessage());
+                return;
+            } catch (InvocationTargetException e) {
+                // This can happen if the constructor throws an exception
+                log.error("Constructor threw an exception: " + e.getCause().getMessage());
+                return;
+            } catch (IllegalArgumentException e) {
+                // This is likely due to argument type mismatch
+                log.error("Argument type mismatch for " + clazz.getSimpleName() + ": " + e.getMessage());
+                log.error("Expected types: " + Arrays.toString(parameterTypes));
+                log.error("Provided args: " + Arrays.toString(args));
+                return;
+            }
+        }
+        fail("No constructors found or all constructors are accessible for " + clazz.getSimpleName());
+    }
+
+    private Object getDefaultValue(Class<?> type) {
+        if (type.isPrimitive()) {
+            if (type == boolean.class) return false;
+            if (type == char.class) return '\u0000';
+            if (type == byte.class) return (byte) 0;
+            if (type == short.class) return (short) 0;
+            if (type == int.class) return 0;
+            if (type == long.class) return 0L;
+            if (type == float.class) return 0.0f;
+            if (type == double.class) return 0.0d;
+        }
+        return null; // For reference types
+    }
     private BrAPIGermplasm createBrAPIGermplasm() {
         String additionalInfoString = "{\"additionalInfo\":{\"createdBy\":{\"userId\":\"101e7314-ba2c-466b-a1e0-f02409ab0d3d\",\"userName\":\"BI-DEV Admin\"},\"createdDate\":\"14/06/2024 19:17:40\",\"femaleParentUUID\":\"2927a4a5-c204-4255-850b-a1eb2c291263\",\"listEntryNumbers\":{\"fa0f1715-84b8-4ca7-8abc-ff191f221048\":\"38356\"},\"importEntryNumber\":\"38356\",\"maleParentUnknown\":false}}";
 
