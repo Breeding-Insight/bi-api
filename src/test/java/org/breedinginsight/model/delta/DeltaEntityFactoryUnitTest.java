@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.v2.model.*;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.germ.*;
@@ -14,16 +15,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 import javax.inject.Inject;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
 import static org.breedinginsight.utilities.DatasetUtil.gson;
 import static org.junit.jupiter.api.Assertions.*;
 
+@Slf4j
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class DeltaEntityFactoryUnitTest extends DatabaseTest {
@@ -39,7 +44,7 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
 
         // Use the factory to create a DeltaGermplasm from the BrAPIGermplasm
         DeltaGermplasm deltaGermplasm = entityFactory.makeDeltaGermplasmBean(brAPIGermplasm);
-assertNotNull(deltaGermplasm);
+        assertNotNull(deltaGermplasm);
 
         // Assert that the DeltaEntity constructor cannot be called to directly instantiate
         testConstructorNotAccessible(DeltaGermplasm.class);
@@ -57,7 +62,7 @@ assertNotNull(deltaGermplasm);
 
         // Use the factory to create a DeltaLocation from the BrAPILocation
         DeltaLocation deltaLocation = entityFactory.makeDeltaLocationBean(programLocation);
-assertNotNull(deltaLocation);
+        assertNotNull(deltaLocation);
 
         // Assert that the DeltaEntity constructor cannot be called to directly instantiate
         testConstructorNotAccessible(DeltaLocation.class);
@@ -75,7 +80,7 @@ assertNotNull(deltaLocation);
 
         // Use the factory to create a DeltaObservation from the BrAPIObservation
         DeltaObservation deltaObservation = entityFactory.makeDeltaObservationBean(brAPIObservation);
-assertNotNull(deltaObservation);
+        assertNotNull(deltaObservation);
 
         // Assert that the DeltaEntity constructor cannot be called to directly instantiate
         testConstructorNotAccessible(DeltaObservation.class);
@@ -93,7 +98,7 @@ assertNotNull(deltaObservation);
 
         // Use the factory to create a DeltaObservationUnit from the BrAPIObservationUnit
         DeltaObservationUnit deltaObservationUnit = entityFactory.makeDeltaObservationUnitBean(brAPIObservationUnit);
-assertNotNull(deltaObservationUnit);
+        assertNotNull(deltaObservationUnit);
 
         // Assert that the DeltaEntity constructor cannot be called to directly instantiate
         testConstructorNotAccessible(DeltaObservationUnit.class);
@@ -112,7 +117,7 @@ assertNotNull(deltaObservationUnit);
 
         // Use the factory to create a DeltaObservationVariable from the BrAPIObservationVariable
         DeltaObservationVariable deltaObservationVariable = entityFactory.makeDeltaObservationVariableBean(brAPIObservationVariable);
-assertNotNull(deltaObservationVariable);
+        assertNotNull(deltaObservationVariable);
 
         // Assert that the DeltaEntity constructor cannot be called to directly instantiate
         testConstructorNotAccessible(DeltaObservationVariable.class);
@@ -130,7 +135,7 @@ assertNotNull(deltaObservationVariable);
 
         // Use the factory to create a DeltaEnvironment from the BrAPIStudy
         Environment environment = entityFactory.makeEnvironmentBean(brAPIStudy);
-assertNotNull(Environment);
+        assertNotNull(environment);
 
         // Assert that the DeltaEntity constructor cannot be called to directly instantiate
         testConstructorNotAccessible(Environment.class);
@@ -148,7 +153,7 @@ assertNotNull(Environment);
 
         // Use the factory to create a DeltaExperiment from the BrAPITrial
         Experiment experiment = entityFactory.makeExperimentBean(brAPITrial);
-assertNotNull(Experiment);
+        assertNotNull(experiment);
 
         // Assert that the DeltaEntity constructor cannot be called to directly instantiate
         testConstructorNotAccessible(Experiment.class);
@@ -157,7 +162,8 @@ assertNotNull(Experiment);
         assertNotNull(clonedBrAPITrial);
         assertEquals(clonedBrAPITrial, brAPITrial);
     }
-private void testConstructorNotAccessible(Class<?> clazz) {
+
+    private void testConstructorNotAccessible(Class<?> clazz) {
         Constructor<?>[] constructors = clazz.getDeclaredConstructors();
         for (Constructor<?> constructor : constructors) {
             constructor.setAccessible(true);
