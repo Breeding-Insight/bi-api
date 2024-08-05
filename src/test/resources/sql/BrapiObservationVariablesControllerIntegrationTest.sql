@@ -42,7 +42,7 @@ where bi_user.name = 'Test User'
 insert into program_user_role (program_id, user_id, role_id, created_by, updated_by)
 select program.id, bi_user.id, role.id, bi_user.id, bi_user.id from bi_user
 join program on program.name = 'Test Program'
-join role on role.domain = 'Read only'
+join role on role.domain = 'Read Only'
 where bi_user.name = 'Other Test User'
 
 -- name: InsertOtherProgram
