@@ -18,7 +18,6 @@ import java.util.List;
 @Prototype
 public class Experiment extends DeltaEntity<BrAPITrial> {
 
-    @NonNull
     @Getter
     @Setter
     private ImportObjectState state;
@@ -30,7 +29,7 @@ public class Experiment extends DeltaEntity<BrAPITrial> {
 
     public List<DatasetMetadata> getDatasetsMetadata() {
         List<DatasetMetadata> datasetsMetadata = new ArrayList<>();
-        JsonObject additionalInfo = getBrAPIObject().getAdditionalInfo();
+        JsonObject additionalInfo = getEntity().getAdditionalInfo();
         if (additionalInfo != null) {
             JsonArray datasetsJson = additionalInfo.getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
             if (datasetsJson != null) {
@@ -43,7 +42,7 @@ public class Experiment extends DeltaEntity<BrAPITrial> {
     public void setDatasetsMetadata(List<DatasetMetadata> datasetsMetadata) {
         if (datasetsMetadata != null) {
             JsonArray datasetsJson = DatasetUtil.jsonArrayFromDatasets(datasetsMetadata);
-            getBrAPIObject().putAdditionalInfoItem(BrAPIAdditionalInfoFields.DATASETS, datasetsJson);
+            getEntity().putAdditionalInfoItem(BrAPIAdditionalInfoFields.DATASETS, datasetsJson);
         }
     }
 

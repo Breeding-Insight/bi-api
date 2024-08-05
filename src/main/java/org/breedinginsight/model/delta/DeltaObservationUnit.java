@@ -1,9 +1,7 @@
 package org.breedinginsight.model.delta;
 
-import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Prototype;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
@@ -13,7 +11,6 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.servic
 @Prototype
 public class DeltaObservationUnit extends DeltaEntity<BrAPIObservationUnit> {
 
-    @NonNull
     @Getter
     @Setter
     private ImportObjectState state;
@@ -27,7 +24,7 @@ public class DeltaObservationUnit extends DeltaEntity<BrAPIObservationUnit> {
     }
 
     public PendingImportObject<BrAPIObservationUnit> constructPIO() {
-        return observationUnitService.constructPIOFromBrapiUnit(getBrAPIObject());
+        return observationUnitService.constructPIOFromBrapiUnit(getEntity());
     }
 
 }

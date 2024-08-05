@@ -11,7 +11,6 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 @Prototype
 public class Environment extends DeltaEntity<BrAPIStudy> {
 
-    @NonNull
     @Getter
     @Setter
     private ImportObjectState state;

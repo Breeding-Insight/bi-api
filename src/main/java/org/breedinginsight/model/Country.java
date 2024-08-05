@@ -27,6 +27,8 @@ import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.CountryEntity;
 import org.jooq.Record;
 
+import java.util.Objects;
+
 import static org.breedinginsight.dao.db.Tables.COUNTRY;
 
 @Getter
@@ -70,5 +72,13 @@ public class Country extends CountryEntity {
                 .alpha_2Code(record.getValue(COUNTRY.ALPHA_2_CODE))
                 .alpha_3Code(record.getValue(COUNTRY.ALPHA_3_CODE))
                 .build();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Country that = (Country) o;
+        return Objects.equals(getId(), that.getId()) && Objects.equals(getName(), that.getName());
     }
 }

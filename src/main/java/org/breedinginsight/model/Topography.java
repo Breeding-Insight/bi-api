@@ -26,6 +26,8 @@ import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.TopographyOptionEntity;
 import org.jooq.Record;
 
+import java.util.Objects;
+
 import static org.breedinginsight.dao.db.Tables.TOPOGRAPHY_OPTION;
 
 @Getter
@@ -45,5 +47,18 @@ public class Topography extends TopographyOptionEntity {
                 .id(record.getValue(TOPOGRAPHY_OPTION.ID))
                 .name(record.getValue(TOPOGRAPHY_OPTION.NAME))
                 .build();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Topography that = (Topography) o;
+        return Objects.equals(getId(), that.getId()) && Objects.equals(getName(), that.getName());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), getName());
     }
 }

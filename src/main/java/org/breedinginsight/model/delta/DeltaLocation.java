@@ -1,15 +1,14 @@
 package org.breedinginsight.model.delta;
 
-import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Prototype;
-import org.brapi.v2.model.core.BrAPILocation;
+import org.breedinginsight.model.ProgramLocation;
 
 @Prototype
-public class DeltaLocation extends DeltaEntity<BrAPILocation> {
+public class DeltaLocation extends DeltaEntity<ProgramLocation> {
 
     // Note: do not use @Inject, DeltaEntity<T> are always constructed by DeltaEntityFactory.
-    DeltaLocation(BrAPILocation brAPIObject) {
-        super(brAPIObject);
+    DeltaLocation(ProgramLocation entity) {
+        super(entity);
     }
 
 }

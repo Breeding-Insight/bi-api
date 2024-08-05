@@ -12,6 +12,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
+import org.breedinginsight.model.ProgramLocation;
 
 import javax.inject.Inject;
 
@@ -25,31 +26,31 @@ public class DeltaEntityFactory {
         this.observationUnitService = observationUnitService;
     }
 
-    public static Experiment makeExperiment(BrAPITrial brAPIObject) {
+    private Experiment makeExperiment(BrAPITrial brAPIObject) {
         return new Experiment(brAPIObject);
     }
 
-    public static Environment makeEnvironment(BrAPIStudy brAPIObject) {
+    private Environment makeEnvironment(BrAPIStudy brAPIObject) {
         return new Environment(brAPIObject);
     }
 
-    public static DeltaGermplasm makeDeltaGermplasm(BrAPIGermplasm brAPIObject) {
+    private DeltaGermplasm makeDeltaGermplasm(BrAPIGermplasm brAPIObject) {
         return new DeltaGermplasm(brAPIObject);
     }
 
-    public static DeltaLocation makeDeltaLocation(BrAPILocation brAPIObject) {
-        return new DeltaLocation(brAPIObject);
+    private DeltaLocation makeDeltaLocation(ProgramLocation entity) {
+        return new DeltaLocation(entity);
     }
 
-    public static DeltaObservation makeDeltaObservation(BrAPIObservation brAPIObject) {
+    private DeltaObservation makeDeltaObservation(BrAPIObservation brAPIObject) {
         return new DeltaObservation(brAPIObject);
     }
 
-    public static DeltaObservationUnit makeDeltaObservationUnit(BrAPIObservationUnit brAPIObject, ObservationUnitService observationUnitService) {
+    private DeltaObservationUnit makeDeltaObservationUnit(BrAPIObservationUnit brAPIObject, ObservationUnitService observationUnitService) {
         return new DeltaObservationUnit(brAPIObject, observationUnitService);
     }
 
-    public static DeltaObservationVariable makeDeltaObservationVariable(BrAPIObservationVariable brAPIObject) {
+    private DeltaObservationVariable makeDeltaObservationVariable(BrAPIObservationVariable brAPIObject) {
         return new DeltaObservationVariable(brAPIObject);
     }
 
@@ -73,8 +74,8 @@ public class DeltaEntityFactory {
 
     @Bean
     @Prototype
-    public DeltaLocation makeDeltaLocationBean(BrAPILocation brAPIObject) {
-        return makeDeltaLocation(brAPIObject);
+    public DeltaLocation makeDeltaLocationBean(ProgramLocation entity) {
+        return makeDeltaLocation(entity);
     }
 
     @Bean

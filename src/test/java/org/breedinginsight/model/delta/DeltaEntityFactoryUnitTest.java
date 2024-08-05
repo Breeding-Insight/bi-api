@@ -9,6 +9,7 @@ import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.germ.*;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.model.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
@@ -18,6 +19,7 @@ import java.time.Month;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.breedinginsight.utilities.DatasetUtil.gson;
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,7 +41,7 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
         DeltaGermplasm deltaGermplasm = entityFactory.makeDeltaGermplasmBean(brAPIGermplasm);
 
         // Check that clone makes a correct copy
-        BrAPIGermplasm clonedBrAPIGermplasm = deltaGermplasm.cloneBrAPIObject();
+        BrAPIGermplasm clonedBrAPIGermplasm = deltaGermplasm.cloneEntity();
         assertNotNull(clonedBrAPIGermplasm);
         assertEquals(clonedBrAPIGermplasm, brAPIGermplasm);
     }
@@ -48,15 +50,15 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
     @SneakyThrows
     void deltaLocationTest() {
         // Create BrAPILocation
-       BrAPILocation brAPILocation = createBrAPILocation();
+       ProgramLocation programLocation = createProgramLocation();
 
         // Use the factory to create a DeltaLocation from the BrAPILocation
-        DeltaLocation deltaLocation = entityFactory.makeDeltaLocationBean(brAPILocation);
+        DeltaLocation deltaLocation = entityFactory.makeDeltaLocationBean(programLocation);
 
         // Check that clone makes a correct copy
-        BrAPILocation clonedBrAPILocation = deltaLocation.cloneBrAPIObject();
-        assertNotNull(clonedBrAPILocation);
-        assertEquals(clonedBrAPILocation, brAPILocation);
+        ProgramLocation clonedProgramLocation = deltaLocation.cloneEntity();
+        assertNotNull(clonedProgramLocation);
+        assertEquals(clonedProgramLocation, programLocation);
     }
 
     @Test
@@ -69,7 +71,7 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
         DeltaObservation deltaObservation = entityFactory.makeDeltaObservationBean(brAPIObservation);
 
         // Check that clone makes a correct copy
-        BrAPIObservation clonedBrAPIObservation = deltaObservation.cloneBrAPIObject();
+        BrAPIObservation clonedBrAPIObservation = deltaObservation.cloneEntity();
         assertNotNull(clonedBrAPIObservation);
         assertEquals(clonedBrAPIObservation, brAPIObservation);
     }
@@ -84,7 +86,7 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
         DeltaObservationUnit deltaObservationUnit = entityFactory.makeDeltaObservationUnitBean(brAPIObservationUnit);
 
         // Check that clone makes a correct copy
-        BrAPIObservationUnit clonedBrAPIObservationUnit = deltaObservationUnit.cloneBrAPIObject();
+        BrAPIObservationUnit clonedBrAPIObservationUnit = deltaObservationUnit.cloneEntity();
         assertNotNull(clonedBrAPIObservationUnit);
         assertEquals(clonedBrAPIObservationUnit, brAPIObservationUnit);
     }
@@ -99,7 +101,7 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
         DeltaObservationVariable deltaObservationVariable = entityFactory.makeDeltaObservationVariableBean(brAPIObservationVariable);
 
         // Check that clone makes a correct copy
-        BrAPIObservationVariable clonedBrAPIObservationVariable = deltaObservationVariable.cloneBrAPIObject();
+        BrAPIObservationVariable clonedBrAPIObservationVariable = deltaObservationVariable.cloneEntity();
         assertNotNull(clonedBrAPIObservationVariable);
         assertEquals(clonedBrAPIObservationVariable, brAPIObservationVariable);
     }
@@ -114,7 +116,7 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
         Environment environment = entityFactory.makeEnvironmentBean(brAPIStudy);
 
         // Check that clone makes a correct copy
-        BrAPIStudy clonedBrAPIStudy = environment.cloneBrAPIObject();
+        BrAPIStudy clonedBrAPIStudy = environment.cloneEntity();
         assertNotNull(clonedBrAPIStudy);
         assertEquals(clonedBrAPIStudy, brAPIStudy);
     }
@@ -129,7 +131,7 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
         Experiment experiment = entityFactory.makeExperimentBean(brAPITrial);
 
         // Check that clone makes a correct copy
-        BrAPITrial clonedBrAPITrial = experiment.cloneBrAPIObject();
+        BrAPITrial clonedBrAPITrial = experiment.cloneEntity();
         assertNotNull(clonedBrAPITrial);
         assertEquals(clonedBrAPITrial, brAPITrial);
     }
@@ -187,6 +189,17 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
                 .subtaxaAuthority("subtaxa authority")
                 .synonyms(synonyms)
                 .taxonIds(taxonIds);
+    }
+
+
+    private ProgramLocation createProgramLocation() {
+        return ProgramLocation.builder()
+                .locationDbId("522bcd9c-2b75-4c88-89d3-5059d5ac713b")
+                .country(Country.builder().id(UUID.fromString("970303d1-90be-41e8-a605-7b65d29076cb")).name("USA").build())
+                .accessibility(Accessibility.builder().id(UUID.fromString("1921ab25-1596-4058-8a7a-77b4c932b67f")).name("private").build())
+                .environmentType(EnvironmentType.builder().id(UUID.fromString("e8dff19f-d3bc-45af-b218-a68199e39feb")).name("forest").build())
+                .topography(Topography.builder().id(UUID.fromString("3841a576-0765-455d-954a-07ab350983ff")).name("hill").build())
+                .build();
     }
 
     private BrAPILocation createBrAPILocation() {
