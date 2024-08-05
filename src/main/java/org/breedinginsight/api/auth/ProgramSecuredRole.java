@@ -21,7 +21,8 @@ public enum ProgramSecuredRole {
 
     READ_ONLY("Read Only"),
     PROGRAM_ADMIN("Program Administrator"),
-    SYSTEM_ADMIN("System Administrator");
+    SYSTEM_ADMIN("System Administrator"),
+    EXPERIMENTAL_COLLABORATOR("Experimental Collaborator");
 
     private String domain;
 
