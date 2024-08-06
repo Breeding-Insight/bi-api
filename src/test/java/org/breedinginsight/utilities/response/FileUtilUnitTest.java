@@ -3,8 +3,6 @@ package org.breedinginsight.utilities.response;
 import lombok.SneakyThrows;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.Column;
-import org.breedinginsight.services.parsers.ParsingException;
-import org.breedinginsight.services.parsers.ParsingExceptionType;
 import org.breedinginsight.services.writers.ExcelWriter;
 import org.breedinginsight.utilities.FileUtil;
 import org.junit.jupiter.api.Test;
@@ -18,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class FileUtilUnitTest {

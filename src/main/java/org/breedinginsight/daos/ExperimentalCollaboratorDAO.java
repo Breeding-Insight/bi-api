@@ -15,28 +15,25 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.auth;
+package org.breedinginsight.daos;
 
-public enum ProgramSecuredRole {
-    MEMBER("member"),
-    BREEDER("breeder"),
-    SYSTEM_ADMIN("admin"),
-    EXPERIMENTAL_COLLABORATOR("Experimental Collaborator");
+import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.dao.db.tables.daos.ExperimentProgramUserRoleDao;
+import org.jooq.Configuration;
+import org.jooq.DSLContext;
 
-    private String domain;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
-    ProgramSecuredRole(String domain) {
-        this.domain = domain;
-    }
+@Slf4j
+@Singleton
+public class ExperimentalCollaboratorDAO extends ExperimentProgramUserRoleDao {
 
-    @Override
-    public String toString() {
-        return domain;
-    }
+    private DSLContext dsl;
 
-    public static ProgramSecuredRole getEnum(String domain) {
-        for(ProgramSecuredRole v : values())
-            if(v.toString().equalsIgnoreCase(domain)) return v;
-        throw new IllegalArgumentException();
+    @Inject
+    public ExperimentalCollaboratorDAO(Configuration config, DSLContext dsl) {
+        super(config);
+        this.dsl = dsl;
     }
 }

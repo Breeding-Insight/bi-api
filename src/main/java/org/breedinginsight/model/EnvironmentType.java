@@ -26,6 +26,8 @@ import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.EnvironmentTypeEntity;
 import org.jooq.Record;
 
+import java.util.Objects;
+
 import static org.breedinginsight.dao.db.Tables.ENVIRONMENT_TYPE;
 
 @Getter
@@ -46,5 +48,18 @@ public class EnvironmentType extends EnvironmentTypeEntity {
                 .id(record.getValue(ENVIRONMENT_TYPE.ID))
                 .name(record.getValue(ENVIRONMENT_TYPE.NAME))
                 .build();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        EnvironmentType that = (EnvironmentType) o;
+        return Objects.equals(getId(), that.getId()) && Objects.equals(getName(), that.getName());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), getName());
     }
 }
