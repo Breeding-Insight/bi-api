@@ -22,10 +22,12 @@ import org.breedinginsight.dao.db.tables.pojos.ExperimentProgramUserRoleEntity;
 import org.breedinginsight.daos.ExperimentalCollaboratorDAO;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
 
 @Slf4j
+@Singleton
 public class ExperimentalCollaboratorService {
 
     private final ExperimentalCollaboratorDAO experimentalCollaboratorDAO;
