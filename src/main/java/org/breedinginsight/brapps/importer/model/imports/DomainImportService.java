@@ -51,7 +51,7 @@ public abstract class DomainImportService implements BrAPIImportService {
     public ImportPreviewResponse process(ImportServiceContext context)
             throws Exception {
 
-        Optional.ofNullable(context.getWorkflow())
+        Optional.ofNullable(context.getWorkflowId())
                 .filter(workflow -> !workflow.isEmpty())
                 .ifPresent(workflow -> log.info("Workflow: " + workflow));
 

@@ -15,28 +15,25 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports;
+package org.breedinginsight.daos;
 
-import lombok.*;
-import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.User;
-import tech.tablesaw.api.Table;
+import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.dao.db.tables.daos.ExperimentProgramUserRoleDao;
+import org.jooq.Configuration;
+import org.jooq.DSLContext;
 
-import java.util.List;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
-@Getter
-@Setter
-@Builder
-@ToString
-@AllArgsConstructor
-@NoArgsConstructor
-public class ImportServiceContext {
-    private String workflowId;
-    private List<BrAPIImport> brAPIImports;
-    private Table data;
-    private Program program;
-    private ImportUpload upload;
-    private User user;
-    private boolean commit;
+@Slf4j
+@Singleton
+public class ExperimentalCollaboratorDAO extends ExperimentProgramUserRoleDao {
+
+    private DSLContext dsl;
+
+    @Inject
+    public ExperimentalCollaboratorDAO(Configuration config, DSLContext dsl) {
+        super(config);
+        this.dsl = dsl;
+    }
 }

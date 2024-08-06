@@ -20,6 +20,7 @@ package org.breedinginsight.brapps.importer.model.workflow;
 import lombok.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
+import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
@@ -39,10 +40,19 @@ public class ImportContext {
     private UUID workflowId;
     private ImportUpload upload;
     private List<BrAPIImport> importRows;
-    // TODO: move this out potentially
-    //private Map<Integer, PendingImport> mappedBrAPIImport;
     private Table data;
     private Program program;
     private User user;
     private boolean commit;
+
+    public static ImportContext from(ImportServiceContext importServiceContext) {
+        return ImportContext.builder()
+                .program(importServiceContext.getProgram())
+                .user(importServiceContext.getUser())
+                .commit(importServiceContext.isCommit())
+                .data(importServiceContext.getData())
+                .importRows(importServiceContext.getBrAPIImports())
+                .upload(importServiceContext.getUpload())
+                .build();
+    }
 }

@@ -15,28 +15,17 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports;
+DO $$
+DECLARE
+    user_id UUID;
+BEGIN
 
-import lombok.*;
-import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.User;
-import tech.tablesaw.api.Table;
+    user_id := (SELECT id FROM bi_user WHERE name = 'system');
 
-import java.util.List;
+    INSERT INTO role
+        (domain, created_by, updated_by)
+    VALUES
+        ('Experimental Collaborator', user_id, user_id)
+    ;
 
-@Getter
-@Setter
-@Builder
-@ToString
-@AllArgsConstructor
-@NoArgsConstructor
-public class ImportServiceContext {
-    private String workflowId;
-    private List<BrAPIImport> brAPIImports;
-    private Table data;
-    private Program program;
-    private ImportUpload upload;
-    private User user;
-    private boolean commit;
-}
+END $$;

@@ -20,7 +20,8 @@ package org.breedinginsight.api.auth;
 public enum ProgramSecuredRole {
     MEMBER("member"),
     BREEDER("breeder"),
-    SYSTEM_ADMIN("admin");
+    SYSTEM_ADMIN("admin"),
+    EXPERIMENTAL_COLLABORATOR("Experimental Collaborator");
 
     private String domain;
 
