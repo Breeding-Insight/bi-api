@@ -31,12 +31,10 @@ import java.util.UUID;
 public class ExperimentalCollaboratorService {
 
     private final ExperimentalCollaboratorDAO experimentalCollaboratorDAO;
-    private final ProgramUserService programUserService;
 
     @Inject
-    public ExperimentalCollaboratorService(ExperimentalCollaboratorDAO experimentalCollaboratorDAO, ProgramUserService programUserService) {
+    public ExperimentalCollaboratorService(ExperimentalCollaboratorDAO experimentalCollaboratorDAO) {
         this.experimentalCollaboratorDAO = experimentalCollaboratorDAO;
-        this.programUserService = programUserService;
     }
 
     public ExperimentProgramUserRoleEntity createExperimentalCollaborator(UUID programUserRoleId, UUID experimentId, UUID userId) {
