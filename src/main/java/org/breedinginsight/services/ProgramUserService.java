@@ -274,4 +274,11 @@ public class ProgramUserService {
         return programUserDao.existsAndActive(programId, userId);
     }
 
+    public List<ProgramUser> getProgramUsersByRole(UUID programId, UUID roleId) throws DoesNotExistException {
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
+        return programUserDao.getProgramUsersByRole(programId, roleId);
+    }
 }
