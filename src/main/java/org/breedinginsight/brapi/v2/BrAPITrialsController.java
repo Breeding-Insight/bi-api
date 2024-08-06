@@ -11,8 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPITrialSingleResponse;
-import org.breedinginsight.api.auth.ProgramSecured;
-import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
+import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -21,6 +20,8 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.model.ProgramUser;
+import org.breedinginsight.model.Role;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.ResponseUtils;
@@ -38,11 +39,13 @@ import java.util.stream.Collectors;
 public class BrAPITrialsController {
 
     private final String referenceSource;
+    private final SecurityService securityService;
     private final BrAPITrialService experimentService;
     private final ExperimentQueryMapper experimentQueryMapper;
 
     @Inject
-    public BrAPITrialsController(BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, @Property(name = "brapi.server.reference-source") String referenceSource) {
+    public BrAPITrialsController(SecurityService securityService, BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, @Property(name = "brapi.server.reference-source") String referenceSource) {
+        this.securityService = securityService;
         this.experimentService = experimentService;
         this.experimentQueryMapper = experimentQueryMapper;
         this.referenceSource = referenceSource;
@@ -50,14 +53,22 @@ public class BrAPITrialsController {
 
     @Get("/trials{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<List<BrAPITrial>>>> getExperiments(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = ExperimentQueryMapper.class) @Valid ExperimentQuery queryParams) {
         try {
             log.debug("fetching trials for program: " + programId);
+            AuthenticatedUser authenticatedUser = securityService.getUser();
+            ProgramUser programUser = authenticatedUser.extractProgramUser(programId);
 
-            List<BrAPITrial> experiments = experimentService.getExperiments(programId).stream().peek(this::setDbIds).collect(Collectors.toList());
+            List<BrAPITrial> experiments = null;
+            if( this.isExperimentCoordinator(programUser)) {
+                experiments = experimentService.getExperimentsForCoordinator(programId, programUser);
+            }
+            else{
+                experiments = experimentService.getExperiments(programId);
+            }
+            experiments = experiments.stream().peek(this::setDbIds).collect(Collectors.toList());
             SearchRequest searchRequest = queryParams.constructSearchRequest();
             return ResponseUtils.getBrapiQueryResponse(experiments, experimentQueryMapper, queryParams, searchRequest);
         } catch (ApiException e) {
@@ -71,7 +82,7 @@ public class BrAPITrialsController {
 
     @Get("/trials/{trialId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ExperimentSecured(roles = {ExperimentSecuredRole.SYSTEM_ADMIN, ExperimentSecuredRole.BREEDER})
     public HttpResponse<BrAPITrialSingleResponse> getExperimentById(
             @PathVariable("programId") UUID programId,
             @PathVariable("trialId") UUID trialId,
@@ -115,6 +126,13 @@ public class BrAPITrialsController {
                                  .getReferenceID());
 
         //TODO update locationDbId
+    }
+
+    private boolean isExperimentCoordinator(ProgramUser programUser){
+        List<Role> roles = programUser.getRoles();
+        return (roles.size()==1 &&
+                ProgramSecuredRole.getEnum(roles.get(0).getDomain())==ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR);
+
     }
 
 }

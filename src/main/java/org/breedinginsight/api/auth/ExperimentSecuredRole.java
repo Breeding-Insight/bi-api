@@ -17,18 +17,25 @@
 
 package org.breedinginsight.api.auth;
 
-import java.util.List;
+public enum ExperimentSecuredRole {
+    MEMBER("member"),
+    BREEDER("breeder"),
+    SYSTEM_ADMIN("admin");
 
-public enum ProgramSecuredRoleGroup {
-    PROGRAM_SCOPED_ROLES(List.of(ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.MEMBER, ProgramSecuredRole.BREEDER, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR));
+    private String domain;
 
-    private List<ProgramSecuredRole> programRoles;
-
-    ProgramSecuredRoleGroup(List<ProgramSecuredRole> programRoles) {
-        this.programRoles = programRoles;
+    ExperimentSecuredRole(String domain) {
+        this.domain = domain;
     }
 
-    public List<ProgramSecuredRole> getProgramRoles() {
-        return programRoles;
+    @Override
+    public String toString() {
+        return domain;
+    }
+
+    public static ExperimentSecuredRole getEnum(String domain) {
+        for(ExperimentSecuredRole v : values())
+            if(v.toString().equalsIgnoreCase(domain)) return v;
+        throw new IllegalArgumentException();
     }
 }

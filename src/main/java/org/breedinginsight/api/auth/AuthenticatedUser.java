@@ -21,6 +21,7 @@ import io.micronaut.security.authentication.UserDetails;
 import lombok.Getter;
 import lombok.Setter;
 import org.breedinginsight.model.ProgramUser;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import java.util.Collection;
 import java.util.List;
@@ -37,5 +38,9 @@ public class AuthenticatedUser extends UserDetails {
         super(username, roles);
         this.id = id;
         this.programRoles = programRoles;
+    }
+
+    public ProgramUser extractProgramUser() throws DoesNotExistException {
+        return this.programRoles.stream().filter(pu -> this.id.equals( pu.getProgramId() ) ).findFirst().orElseThrow( () -> new DoesNotExistException( String.format("No program user found for program %s", this.id) ) );
     }
 }

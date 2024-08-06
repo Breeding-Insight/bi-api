@@ -26,9 +26,14 @@ import io.micronaut.security.rules.SecurityRuleResult;
 import io.micronaut.security.token.RolesFinder;
 import io.micronaut.web.router.MethodBasedRouteMatch;
 import io.micronaut.web.router.RouteMatch;
+import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.api.auth.*;
+import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.ProgramUser;
+import org.breedinginsight.model.Role;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
@@ -37,12 +42,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Singleton
-public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
+public class ExperimentSecuredAnnotationRule extends SecuredAnnotationRule {
 
-    // Excecutes before the SecuredAnnotationRule, and if the annotation exists, will return before the SecuredAnnotationRule can execute
+    // Executes before the SecuredAnnotationRule, and if the annotation exists, will return before the SecuredAnnotationRule can execute
     public static final Integer ORDER = SecuredAnnotationRule.ORDER - 1;
 
-    public ProgramSecuredAnnotationRule(RolesFinder rolesFinder) {
+    public ExperimentSecuredAnnotationRule(RolesFinder rolesFinder) {
         super(rolesFinder);
     }
 
@@ -50,6 +55,8 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
     private SecurityService securityService;
     @Inject
     private ProgramDAO programDAO;
+    @Inject
+    private BrAPITrialDAO brAPITrialDAO;
 
     @Override
     public SecurityRuleResult check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Map<String, Object> claims) {
@@ -60,14 +67,30 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
         Map<String, Object> tmp = routeMatch.getVariableValues();
             String programId = (String) routeMatch.getVariableValues()
                     .get("programId");
+            String experimentId = (String) routeMatch.getVariableValues()
+                    .get("trialId");
 
-            if (methodRoute.hasAnnotation(ProgramSecured.class)) {
+            if (methodRoute.hasAnnotation(ExperimentSecured.class)) {
                 if (programId == null) {
                     throw new HttpServerException("Endpoint does not have program id to check roles against");
+                }
+                if (experimentId == null) {
+                    throw new HttpServerException("Endpoint does not have experiment id to check roles against");
                 }
 
                 if (!programDAO.existsById(UUID.fromString(programId))) {
                     throw new HttpStatusException(HttpStatus.NOT_FOUND, "Program does not exist");
+                }
+                Optional<BrAPITrial> trial = null;
+                try {
+                    trial = brAPITrialDAO.getTrialById(UUID.fromString(programId), UUID.fromString(experimentId));
+                } catch (ApiException e) {
+                    throw new RuntimeException(e);
+                } catch (DoesNotExistException e) {
+                    throw new HttpStatusException(HttpStatus.NOT_FOUND, "Experiment does not exist");
+                }
+                if( trial.isEmpty()) {
+                    throw new HttpStatusException(HttpStatus.NOT_FOUND, "Experiment does not exist");
                 }
 
                 if (claims != null){
@@ -86,7 +109,9 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
 
                     List<String> userRolesString = userRoles.stream()
                             .map(ProgramSecuredRole::toString).collect(Collectors.toList());
-
+                    if (userRoles.size()==1 && userRoles.get(0)==ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR){
+                        return processExperiment(user, experimentId);
+                    }
                     SecurityRuleResult securityRuleResult = compareRoles(allowedRolesString, userRolesString);
                     return securityRuleResult;
                 }
@@ -97,6 +122,23 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
         }
 
         return SecurityRuleResult.UNKNOWN;
+    }
+
+    private SecurityRuleResult processExperiment(AuthenticatedUser authenticatedUser, String experimentId) throws DoesNotExistException{
+        ProgramUser programUser = authenticatedUser.extractProgramUser();
+        if(this.isExperimentCoordinator(programUser)){
+            return SecurityRuleResult.ALLOWED;
+        }
+        else{
+            return SecurityRuleResult.REJECTED;
+        }
+    }
+
+    private boolean isExperimentCoordinator(ProgramUser programUser){
+        List<Role> roles = programUser.getRoles();
+        return (roles.size()==1 &&
+                ProgramSecuredRole.getEnum(roles.get(0).getDomain())==ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR);
+
     }
 
     public List<ProgramSecuredRole> processRoles(List<ProgramUser> allProgramRoles, List<String> systemRoles, String programId) {
@@ -119,22 +161,18 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
 
     public List<ProgramSecuredRole> getAllowedRoles(MethodBasedRouteMatch methodRoute) {
 
-        Optional<ProgramSecuredRole[]> programSecuredRoles = methodRoute.getValue(ProgramSecured.class, "roles", ProgramSecuredRole[].class);
-        Optional<ProgramSecuredRoleGroup[]> programSecuredRoleGroups = methodRoute.getValue(ProgramSecured.class, "roleGroups", ProgramSecuredRoleGroup[].class);
+        Optional<ProgramSecuredRole[]> programSecuredRoles = methodRoute.getValue(ExperimentSecured.class, "roles", ProgramSecuredRole[].class);
         List<ProgramSecuredRole> allowedRoles = new ArrayList<>();
         if (programSecuredRoles.isPresent()) {
+            // TODO could this be allowedRoles=Arrays.asList(programSecuredRoles.get());
             allowedRoles.addAll(Arrays.asList(programSecuredRoles.get()));
         }
 
-        if (programSecuredRoleGroups.isPresent()) {
-            Arrays.asList(programSecuredRoleGroups.get())
-                    .stream().forEach(programSecuredRoleGroup -> allowedRoles.addAll(programSecuredRoleGroup.getProgramRoles()));
-        }
         return allowedRoles;
     }
-
     @Override
     public int getOrder() {
         return ORDER;
     }
+
 }
