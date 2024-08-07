@@ -201,6 +201,7 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
 
         Result<Record> records = getProgramUsersQuery(createdByUser, updatedByUser)
                 .where(PROGRAM.ACTIVE.eq(true))
+                .and(PROGRAM_USER_ROLE.ACTIVE.eq(true))
                 .and(PROGRAM.ID.eq(programId))
                 .and(ROLE.ID.eq(roleId))
                 .fetch();
