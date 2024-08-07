@@ -306,7 +306,7 @@ public class ExperimentUtilities {
      * @throws IllegalStateException if any ObsUnit ID is repeated in the import rows
      * @throws HttpStatusException if there is a mix of ObsUnit IDs for some but not all rows
      */
-    public static Set<String> collateReferenceOUIds(AppendOverwriteMiddlewareContext context) {
+    public static Set<String> collateReferenceOUIds(AppendOverwriteMiddlewareContext context) throws HttpStatusException, IllegalStateException {
         // Initialize variables to track the presence of ObsUnit IDs
         Set<String> referenceOUIds = new HashSet<>();
         boolean hasNoReferenceUnitIds = true;
@@ -333,7 +333,7 @@ public class ExperimentUtilities {
 
         if (!hasNoReferenceUnitIds && !hasAllReferenceUnitIds) {
             // Throw exception if there is a mix of ObsUnit IDs for some but not all rows
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, ExpImportProcessConstants.ErrMessage.MISSING_OBS_UNIT_ID_ERROR);
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, ExpImportProcessConstants.ErrMessage.MISSING_OBS_UNIT_ID_ERROR.getValue());
         }
 
         return referenceOUIds;
