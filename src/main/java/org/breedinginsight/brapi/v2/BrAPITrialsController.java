@@ -53,6 +53,7 @@ public class BrAPITrialsController {
 
     @Get("/trials{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.MEMBER, ProgramSecuredRole.BREEDER, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR})
     public HttpResponse<Response<DataResponse<List<BrAPITrial>>>> getExperiments(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = ExperimentQueryMapper.class) @Valid ExperimentQuery queryParams) {
