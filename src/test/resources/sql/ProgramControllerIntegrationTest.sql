@@ -82,7 +82,7 @@ select
 bi_user.id, ?::uuid, role.id, bi_user.id, bi_user.id
 from
 bi_user
-join role on role.domain = 'member'
+join role on role.domain = 'Read Only'
 where
 bi_user.name like 'user1%';
 
@@ -91,7 +91,7 @@ select
 bi_user.id, ?::uuid, role.id, bi_user.id, bi_user.id
 from
 bi_user
-join role on role.domain = 'breeder'
+join role on role.domain = 'Program Administrator'
 where
 bi_user.name like 'user2%';
 
@@ -100,7 +100,7 @@ select
 bi_user.id, ?::uuid, role.id, bi_user.id, bi_user.id
 from
 bi_user
-join role on role.domain = 'member'
+join role on role.domain = 'Read Only'
 where
 bi_user.name like 'user2%';
 
@@ -109,6 +109,6 @@ select
 bi_user.id, ?::uuid, role.id, bi_user.id, bi_user.id
 from
 bi_user
-join role on role.domain = 'breeder'
+join role on role.domain = 'Program Administrator'
 where
 bi_user.name like 'user9';
