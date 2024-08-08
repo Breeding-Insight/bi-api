@@ -17,6 +17,7 @@
 
 package org.breedinginsight.api.auth;
 
+//TODO Delete this Class if not used.
 public enum ExperimentSecuredRole {
     MEMBER("member"),
     BREEDER("breeder"),

@@ -64,7 +64,7 @@ public class ExperimentSecuredAnnotationRule extends SecuredAnnotationRule {
 
         if (routeMatch instanceof MethodBasedRouteMatch) {
             MethodBasedRouteMatch methodRoute = ((MethodBasedRouteMatch) routeMatch);
-        Map<String, Object> tmp = routeMatch.getVariableValues();
+//        Map<String, Object> tmp = routeMatch.getVariableValues();
             String programId = (String) routeMatch.getVariableValues()
                     .get("programId");
             String experimentId = (String) routeMatch.getVariableValues()
@@ -95,28 +95,28 @@ public class ExperimentSecuredAnnotationRule extends SecuredAnnotationRule {
 
                 if (claims != null){
                     AuthenticatedUser user = securityService.getUser();
-                    List<ProgramUser> allProgramRoles = user.getProgramRoles();
-                    List<String> systemRoles = (List<String>) user.getRoles();
-
-                    // Get program roles for given program and system roles into single list
-                    List<ProgramSecuredRole> userRoles = processRoles(allProgramRoles, systemRoles, programId);
-
-                    // Get route allowed roles
-                    List<ProgramSecuredRole> allowedRoles = getAllowedRoles(methodRoute);
-
-                    List<String> allowedRolesString = allowedRoles
-                            .stream().map(ProgramSecuredRole::toString).collect(Collectors.toList());
-
-                    List<String> userRolesString = userRoles.stream()
-                            .map(ProgramSecuredRole::toString).collect(Collectors.toList());
-                    if (userRoles.size()==1 && userRoles.get(0)==ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR){
+//                    List<ProgramUser> allProgramRoles = user.getProgramRoles();
+//                    List<String> systemRoles = (List<String>) user.getRoles();
+//
+//                    // Get program roles for given program and system roles into single list
+//                    List<ProgramSecuredRole> userRoles = processRoles(allProgramRoles, systemRoles, programId);
+//
+//                    // Get route allowed roles
+//                    List<ProgramSecuredRole> allowedRoles = getAllowedRoles(methodRoute);
+//
+//                    List<String> allowedRolesString = allowedRoles
+//                            .stream().map(ProgramSecuredRole::toString).collect(Collectors.toList());
+//
+//                    List<String> userRolesString = userRoles.stream()
+//                            .map(ProgramSecuredRole::toString).collect(Collectors.toList());
+//                    if (userRoles.size()==1 && userRoles.get(0)==ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR){
                         return processExperiment(user, experimentId);
-                    }
-                    SecurityRuleResult securityRuleResult = compareRoles(allowedRolesString, userRolesString);
-                    return securityRuleResult;
+//                    }
+//                    SecurityRuleResult securityRuleResult = compareRoles(allowedRolesString, userRolesString);
+//                    return securityRuleResult;
                 }
 
-                // Rejects if no claims, or does not have correct roles
+                // Rejects if no claims
                 return SecurityRuleResult.REJECTED;
             }
         }
