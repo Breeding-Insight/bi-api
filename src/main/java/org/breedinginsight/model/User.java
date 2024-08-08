@@ -32,7 +32,7 @@ import javax.validation.constraints.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.Objects;
 
 import static org.breedinginsight.dao.db.Tables.BI_USER;
 
@@ -91,4 +91,26 @@ public class User extends BiUserEntity {
     }
 
     public void addProgramUser(ProgramUser programUser) {programRoles.add(programUser); }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(getId(), user.getId()) &&
+                Objects.equals(getOrcid(), user.getOrcid()) &&
+                Objects.equals(getName(), user.getName()) &&
+                Objects.equals(getEmail(), user.getEmail()) &&
+                Objects.equals(getCreatedAt(), user.getCreatedAt()) &&
+                Objects.equals(getUpdatedAt(), user.getUpdatedAt()) &&
+                Objects.equals(getCreatedBy(), user.getCreatedBy()) &&
+                Objects.equals(getUpdatedBy(), user.getUpdatedBy()) &&
+                Objects.equals(getActive(), user.getActive()) &&
+                Objects.equals(getAccountToken(), user.getAccountToken());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), getOrcid(), getName(), getEmail(), getCreatedAt(), getUpdatedAt(), getCreatedBy(), getUpdatedBy(), getActive(), getAccountToken());
+    }
 }
