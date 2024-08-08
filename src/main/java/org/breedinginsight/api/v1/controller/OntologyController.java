@@ -65,7 +65,7 @@ public class OntologyController {
     @Get("/programs/{programId}/ontology/shared/programs{?shared}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse<Response<DataResponse<SharedOntology>>> getAvailablePrograms(
             @PathVariable UUID programId, @QueryValue(defaultValue = "false") Boolean shared) {
         try {
@@ -97,7 +97,7 @@ public class OntologyController {
      */
     @Post("/programs/{programId}/ontology/shared/programs")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse<Response<DataResponse<SharedOntology>>> shareOntology(
             @PathVariable UUID programId, @Body List<SharedOntologyProgramRequest> request) {
         try {
@@ -131,7 +131,7 @@ public class OntologyController {
      */
     @Delete("/programs/{programId}/ontology/shared/programs/{sharedProgramId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse revokeOntology(
             @PathVariable UUID programId, @PathVariable UUID sharedProgramId) {
         try {
@@ -156,7 +156,7 @@ public class OntologyController {
     @Put("/programs/{programId}/ontology/subscribe/{sharingProgramId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse<Response<SubscribedOntology>> subscribeOntology(
             @PathVariable UUID programId, @PathVariable UUID sharingProgramId) {
         try {
@@ -181,7 +181,7 @@ public class OntologyController {
      */
     @Delete("/programs/{programId}/ontology/subscribe/{sharingProgramId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse unsubscribeOntology(
             @PathVariable UUID programId, @PathVariable UUID sharingProgramId) {
         try {
