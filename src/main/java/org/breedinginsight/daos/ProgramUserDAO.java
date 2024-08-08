@@ -194,4 +194,18 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
 
         return resultProgramsUsers;
     }
+
+    public List<ProgramUser> getProgramUsersByRole(UUID programId, UUID roleId) {
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+
+        Result<Record> records = getProgramUsersQuery(createdByUser, updatedByUser)
+                .where(PROGRAM.ACTIVE.eq(true))
+                .and(PROGRAM_USER_ROLE.ACTIVE.eq(true))
+                .and(PROGRAM.ID.eq(programId))
+                .and(ROLE.ID.eq(roleId))
+                .fetch();
+
+        return parseRecords(records, createdByUser, updatedByUser);
+    }
 }

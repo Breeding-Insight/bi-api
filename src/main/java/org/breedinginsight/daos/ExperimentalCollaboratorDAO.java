@@ -25,11 +25,13 @@ import org.jooq.DSLContext;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.EXPERIMENT_PROGRAM_USER_ROLE;
 import static org.breedinginsight.dao.db.Tables.PROGRAM_USER_ROLE;
+
 
 @Slf4j
 @Singleton
@@ -41,6 +43,24 @@ public class ExperimentalCollaboratorDAO extends ExperimentProgramUserRoleDao {
     public ExperimentalCollaboratorDAO(Configuration config, DSLContext dsl) {
         super(config);
         this.dsl = dsl;
+    }
+
+    public ExperimentProgramUserRoleEntity create(UUID experimentId, UUID programUserRoleId, UUID userId) {
+        return dsl.insertInto(EXPERIMENT_PROGRAM_USER_ROLE)
+                .columns(EXPERIMENT_PROGRAM_USER_ROLE.EXPERIMENT_ID,
+                        EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID,
+                        EXPERIMENT_PROGRAM_USER_ROLE.CREATED_BY,
+                        EXPERIMENT_PROGRAM_USER_ROLE.CREATED_AT,
+                        EXPERIMENT_PROGRAM_USER_ROLE.UPDATED_BY,
+                        EXPERIMENT_PROGRAM_USER_ROLE.UPDATED_AT)
+                .values(experimentId,
+                        programUserRoleId,
+                        userId,
+                        OffsetDateTime.now(),
+                        userId,
+                        OffsetDateTime.now())
+                .returning(EXPERIMENT_PROGRAM_USER_ROLE.fields())
+                .fetchOneInto(ExperimentProgramUserRoleEntity.class);
     }
 
     public List<ExperimentProgramUserRoleEntity> fetchByProgramUserIdAndExperimentId(UUID programUserRoleId, UUID experimentId) {
