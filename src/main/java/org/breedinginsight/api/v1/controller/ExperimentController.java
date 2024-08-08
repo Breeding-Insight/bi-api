@@ -10,19 +10,16 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.breedinginsight.api.auth.ProgramSecured;
-import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
+import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.SubEntityDatasetRequest;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
-import org.breedinginsight.model.Dataset;
-import org.breedinginsight.model.DatasetMetadata;
-import org.breedinginsight.model.DownloadFile;
-import org.breedinginsight.model.Program;
+import org.breedinginsight.model.*;
+import org.breedinginsight.services.ExperimentalCollaboratorService;
 import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
 import javax.inject.Inject;
@@ -38,12 +35,23 @@ public class ExperimentController {
     private final BrAPITrialService experimentService;
     private final ExperimentQueryMapper experimentQueryMapper;
     private final ProgramService programService;
+    private final SecurityService securityService;
+    private final ProgramUserService programUserService;
+    private final ExperimentalCollaboratorService experimentalCollaboratorService;
 
     @Inject
-    public ExperimentController(BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, ProgramService programService) {
+    public ExperimentController(BrAPITrialService experimentService,
+                                ExperimentQueryMapper experimentQueryMapper,
+                                ProgramService programService,
+                                SecurityService securityService,
+                                ProgramUserService programUserService,
+                                ExperimentalCollaboratorService experimentalCollaboratorService) {
         this.experimentService = experimentService;
         this.experimentQueryMapper = experimentQueryMapper;
         this.programService = programService;
+        this.securityService = securityService;
+        this.programUserService = programUserService;
+        this.experimentalCollaboratorService = experimentalCollaboratorService;
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/export{?queryParams*}")
@@ -57,6 +65,21 @@ public class ExperimentController {
             Optional<Program> program = programService.getById(programId);
             if(program.isEmpty()) {
                 return HttpResponse.notFound();
+            }
+
+            AuthenticatedUser user = securityService.getUser();
+            Optional<ProgramUser> programUser = programUserService.getProgramUserbyId(programId, user.getId());
+            if (programUser.isEmpty()) {
+                return HttpResponse.notFound();
+            }
+            boolean isExperimentalCollaborator = programUser.get().getRoles().stream().anyMatch(x -> ProgramSecuredRole.getEnum(x.getDomain()).equals(ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR));
+            // If the programUser is an experimental collaborator, ensure they're authorized to access the experiment.
+            if (isExperimentalCollaborator) {
+                if (!experimentalCollaboratorService.isAuthorized(programUser.get().getId(), experimentId)){
+                    log.debug("Experimental Collaborator {} tried to access experiment {} - FORBIDDEN.", programUser.get().getId(), experimentId);
+                    return HttpResponse.status(HttpStatus.FORBIDDEN);
+                }
+                log.debug("Experimental Collaborator {} tried to access experiment {} - OK.", programUser.get().getId(), experimentId);
             }
 
             // if a list of environmentIds are sent, return multiple files (zipped),

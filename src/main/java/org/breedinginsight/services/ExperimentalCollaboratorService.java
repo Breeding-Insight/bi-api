@@ -21,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.daos.ExperimentalCollaboratorDAO;
 
 import javax.inject.Inject;
+import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 public class ExperimentalCollaboratorService {
@@ -30,5 +32,16 @@ public class ExperimentalCollaboratorService {
     @Inject
     public ExperimentalCollaboratorService(ExperimentalCollaboratorDAO experimentalCollaboratorDAO) {
         this.experimentalCollaboratorDAO = experimentalCollaboratorDAO;
+    }
+
+    public boolean isAuthorized(UUID programUserRoleId, UUID experimentId) {
+        return !experimentalCollaboratorDAO
+                .fetchByProgramUserIdAndExperimentId(programUserRoleId, experimentId)
+                .isEmpty();
+    }
+
+    public List<UUID> getAuthorizedExperimentIds(UUID programUserRoleId) {
+        // Get the list of experimentIds associated with the programUserRoleId, empty if the programUserRole is active.
+        return experimentalCollaboratorDAO.getExperimentIds(programUserRoleId, true);
     }
 }
