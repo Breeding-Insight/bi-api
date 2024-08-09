@@ -17,6 +17,7 @@
 
 package org.breedinginsight.api.auth;
 
+import com.drew.lang.annotations.NotNull;
 import io.micronaut.security.authentication.UserDetails;
 import lombok.Getter;
 import lombok.Setter;
@@ -40,7 +41,12 @@ public class AuthenticatedUser extends UserDetails {
         this.programRoles = programRoles;
     }
 
-    public ProgramUser extractProgramUser() throws DoesNotExistException {
-        return this.programRoles.stream().filter(pu -> this.id.equals( pu.getProgramId() ) ).findFirst().orElseThrow( () -> new DoesNotExistException( String.format("No program user found for program %s", this.id) ) );
+    public ProgramUser extractProgramUser(UUID programId) throws DoesNotExistException {
+//        ;
+//        if (programRoles != null && !programRoles.isEmpty()){
+//            ProgramUser firstUserRole = programRoles.get(0);
+//            programId = firstUserRole.getProgramId();
+//        }
+        return this.programRoles.stream().filter(pu -> programId.equals( pu.getProgramId() ) ).findFirst().orElseThrow( () -> new DoesNotExistException( String.format("No program user found for program %s", this.id) ) );
     }
 }

@@ -18,12 +18,19 @@
 package org.breedinginsight.daos;
 
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.dao.db.tables.ExperimentProgramUserRoleTable;
+import org.breedinginsight.dao.db.tables.ProgramUserRoleTable;
 import org.breedinginsight.dao.db.tables.daos.ExperimentProgramUserRoleDao;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.Result;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Singleton
@@ -35,5 +42,23 @@ public class ExperimentalCollaboratorDAO extends ExperimentProgramUserRoleDao {
     public ExperimentalCollaboratorDAO(Configuration config, DSLContext dsl) {
         super(config);
         this.dsl = dsl;
+    }
+    public List<UUID> fetchExperimentIds(UUID userId, UUID programId){
+        ExperimentProgramUserRoleTable EXPERIMENT_PROGRAM_USER_ROLE = ExperimentProgramUserRoleTable.EXPERIMENT_PROGRAM_USER_ROLE;
+        ProgramUserRoleTable PROGRAM_USER_ROLE = ProgramUserRoleTable.PROGRAM_USER_ROLE;
+
+        Result<Record> queryResult =
+                dsl.select().from(EXPERIMENT_PROGRAM_USER_ROLE)
+                .join(PROGRAM_USER_ROLE)
+                .on(EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID.eq(PROGRAM_USER_ROLE.ID))
+                .where(PROGRAM_USER_ROLE.USER_ID.eq(userId)).and(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId))
+                .fetch();
+
+        List<UUID> experimentIds = new ArrayList<>(queryResult.size());
+        for (Record record: queryResult) {
+            experimentIds.add(record.getValue(EXPERIMENT_PROGRAM_USER_ROLE.EXPERIMENT_ID));
+        }
+
+        return experimentIds;
     }
 }
