@@ -48,4 +48,8 @@ public class BrAPIStudyService {
         return studyDAO.getStudyByEnvironmentId(environmentId, program);
     }
 
+    public List<BrAPIStudy> getStudiesByExperimentIds(Program program, List<UUID> experimentIds) throws ApiException {
+        return studyDAO.getStudiesByExperimentIds(experimentIds, program);
+    }
+
 }
