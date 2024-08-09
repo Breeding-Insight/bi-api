@@ -306,6 +306,32 @@ public class BrAPITrialService {
         log.debug("fetching dataset: " + datasetId + " for experiment: " + experimentId + ".  including stats: " + stats);
         log.debug("fetching observationUnits for dataset: " + datasetId);
         List<BrAPIObservationUnit> datasetOUs = ouDAO.getObservationUnitsForDataset(datasetId.toString(), program);
+
+        //Add years to the addition_info elements
+        //TODO yearByStudyDbId will no longer be needed, and should be removed, once the seasonDAO uses the redis cache (BI-2261).
+        Map<String, Integer> yearByStudyDbId = new HashMap<>();  // used to prevent the same season from being fetched repeatedly.
+        for ( BrAPIObservationUnit ou: datasetOUs ) {
+            String environmentId = Utilities.getExternalReference(ou.getExternalReferences(), this.referenceSource, ExternalReferenceSource.STUDIES)
+                    .orElseThrow( ()-> new DoesNotExistException("No BI external reference for STUDIES was found"))
+                    .getReferenceId();
+            if( !yearByStudyDbId.containsKey( environmentId ))  {
+                // Get the Study and extract the year from its Season
+                BrAPIStudy study = studyDAO.getStudyByEnvironmentId(UUID.fromString(environmentId), program).orElseThrow( () -> new DoesNotExistException(String.format("Study Id '%s' not found.", environmentId)) );
+                if(study.getSeasons().isEmpty()){
+                    throw new DoesNotExistException(String.format("No Seasons found in Study Id = '%s'.", environmentId));
+                }
+                String seasonId = study.getSeasons().get(0);
+                BrAPISeason season = seasonDAO.getSeasonById(seasonId, program.getId());
+                if(season==null){
+                    throw new DoesNotExistException(String.format("Seasons not found for Id = '%s'.", seasonId));
+                }
+                Integer year = season.getYear();
+                yearByStudyDbId.put(environmentId, year);
+            }
+            
+            ou.putAdditionalInfoItem(BrAPIAdditionalInfoFields.ENV_YEAR, yearByStudyDbId.get(environmentId));
+        }
+
         log.debug("fetching dataset variables dataset: " + datasetId);
         List<Trait> datasetObsVars = getDatasetObsVars(datasetId.toString(), program);
         List<String> ouDbIds = datasetOUs.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());

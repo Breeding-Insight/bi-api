@@ -18,11 +18,16 @@
 package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.dao.db.tables.pojos.ExperimentProgramUserRoleEntity;
 import org.breedinginsight.daos.ExperimentalCollaboratorDAO;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.List;
+import java.util.UUID;
 
 @Slf4j
+@Singleton
 public class ExperimentalCollaboratorService {
 
     private final ExperimentalCollaboratorDAO experimentalCollaboratorDAO;
@@ -30,5 +35,19 @@ public class ExperimentalCollaboratorService {
     @Inject
     public ExperimentalCollaboratorService(ExperimentalCollaboratorDAO experimentalCollaboratorDAO) {
         this.experimentalCollaboratorDAO = experimentalCollaboratorDAO;
+    }
+
+    public ExperimentProgramUserRoleEntity createExperimentalCollaborator(UUID programUserRoleId, UUID experimentId, UUID userId) {
+        return this.experimentalCollaboratorDAO.create(experimentId, programUserRoleId, userId);
+    }
+
+    public List<ExperimentProgramUserRoleEntity> getExperimentalCollaborators(UUID experimentId) {
+        // Get all collaborators for an experiment.
+        return this.experimentalCollaboratorDAO.fetchByExperimentId(experimentId);
+    }
+
+    public void deleteExperimentalCollaborator(UUID collaboratorId) {
+        // Note: collaboratorId is the PK of the experiment_program_user_role table.
+        this.experimentalCollaboratorDAO.deleteById(collaboratorId);
     }
 }

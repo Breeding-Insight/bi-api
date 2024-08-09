@@ -84,7 +84,7 @@ public class ImportController {
     @Get("/programs/{programId}/import/mappings{?draft}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR})
     public HttpResponse<Response<DataResponse<ImportMapping>>> getMappings(@PathVariable UUID programId,
                                                                            @QueryValue(defaultValue = "false") Boolean draft) {
 
@@ -191,7 +191,7 @@ public class ImportController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<DataResponse<ImportMapping>>> getSystemMappings(@Nullable @QueryValue String importName) {
 
         AuthenticatedUser actingUser = securityService.getUser();

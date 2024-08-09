@@ -18,7 +18,7 @@ public class ExpImportProcessConstants {
 
     public enum ErrMessage {
         MULTIPLE_EXP_TITLES("File contains more than one Experiment Title"),
-        MISSING_OBS_UNIT_ID_ERROR("Experimental entities are missing ObsUnitIDs"),
+        MISSING_OBS_UNIT_ID_ERROR("Required field is blank"),
         PREEXISTING_EXPERIMENT_TITLE("Experiment Title already exists");
 
         private String value;

@@ -110,7 +110,12 @@ public class ExperimentSecuredAnnotationRule extends SecuredAnnotationRule {
     }
 
     private SecurityRuleResult processExperiment(AuthenticatedUser authenticatedUser, String experimentId, String programId) {
-        ProgramUser programUser = authenticatedUser.extractProgramUser(UUID.fromString(programId));
+        ProgramUser programUser = null;
+        try {
+            programUser = authenticatedUser.extractProgramUser(UUID.fromString(programId));
+        } catch (DoesNotExistException e) {
+            return SecurityRuleResult.UNKNOWN;
+        }
         if(this.isExperimentCoordinator(programUser)){
             List<UUID> colaboratableExperimentIds = experimentalCollaboratorDAO.fetchExperimentIds(authenticatedUser.getId(), UUID.fromString(programId));
             if(colaboratableExperimentIds.contains( UUID.fromString(experimentId)) ){

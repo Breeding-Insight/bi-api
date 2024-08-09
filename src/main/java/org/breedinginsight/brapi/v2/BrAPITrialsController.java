@@ -53,7 +53,7 @@ public class BrAPITrialsController {
 
     @Get("/trials{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.MEMBER, ProgramSecuredRole.BREEDER, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR})
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR})
     public HttpResponse<Response<DataResponse<List<BrAPITrial>>>> getExperiments(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = ExperimentQueryMapper.class) @Valid ExperimentQuery queryParams) {
@@ -83,7 +83,7 @@ public class BrAPITrialsController {
 
     @Get("/trials/{trialId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.BREEDER, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR})
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR})
     @ExperimentSecured()
     public HttpResponse<BrAPITrialSingleResponse> getExperimentById(
             @PathVariable("programId") UUID programId,

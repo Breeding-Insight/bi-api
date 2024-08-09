@@ -35,14 +35,14 @@ join bi_user on bi_user.name = 'system' and program.name = 'Test Program' limit 
 insert into program_user_role (program_id, user_id, role_id, created_by, updated_by)
 select program.id, bi_user.id, role.id, bi_user.id, bi_user.id from bi_user
 join program on program.name = 'Test Program'
-join role on role.domain = 'member'
+join role on role.domain = 'Read Only'
 where bi_user.name = 'Test User'
 
 -- name: InsertOtherTestProgramUser
 insert into program_user_role (program_id, user_id, role_id, created_by, updated_by)
 select program.id, bi_user.id, role.id, bi_user.id, bi_user.id from bi_user
 join program on program.name = 'Test Program'
-join role on role.domain = 'member'
+join role on role.domain = 'Read Only'
 where bi_user.name = 'Other Test User'
 
 -- name: InsertOtherProgram
@@ -64,6 +64,6 @@ join bi_user on bi_user.name = 'system' and program.name = 'Other Test Program' 
 insert into program_user_role (program_id, user_id, role_id, created_by, updated_by)
 select program.id, bi_user.id, role.id, bi_user.id, bi_user.id from bi_user
 join program on program.name = 'Other Test Program'
-join role on role.domain = 'member'
+join role on role.domain = 'Read Only'
 where bi_user.name = 'Other Test User'
 

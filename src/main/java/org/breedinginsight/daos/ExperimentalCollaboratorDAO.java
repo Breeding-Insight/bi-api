@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.dao.db.tables.ExperimentProgramUserRoleTable;
 import org.breedinginsight.dao.db.tables.ProgramUserRoleTable;
 import org.breedinginsight.dao.db.tables.daos.ExperimentProgramUserRoleDao;
+import org.breedinginsight.dao.db.tables.pojos.ExperimentProgramUserRoleEntity;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.Record;
@@ -31,6 +32,11 @@ import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+import static org.breedinginsight.dao.db.Tables.EXPERIMENT_PROGRAM_USER_ROLE;
 
 @Slf4j
 @Singleton
@@ -43,22 +49,41 @@ public class ExperimentalCollaboratorDAO extends ExperimentProgramUserRoleDao {
         super(config);
         this.dsl = dsl;
     }
-    public List<UUID> fetchExperimentIds(UUID userId, UUID programId){
+
+    public List<UUID> fetchExperimentIds(UUID userId, UUID programId) {
         ExperimentProgramUserRoleTable EXPERIMENT_PROGRAM_USER_ROLE = ExperimentProgramUserRoleTable.EXPERIMENT_PROGRAM_USER_ROLE;
         ProgramUserRoleTable PROGRAM_USER_ROLE = ProgramUserRoleTable.PROGRAM_USER_ROLE;
 
         Result<Record> queryResult =
                 dsl.select().from(EXPERIMENT_PROGRAM_USER_ROLE)
-                .join(PROGRAM_USER_ROLE)
-                .on(EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID.eq(PROGRAM_USER_ROLE.ID))
-                .where(PROGRAM_USER_ROLE.USER_ID.eq(userId)).and(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId))
-                .fetch();
+                        .join(PROGRAM_USER_ROLE)
+                        .on(EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID.eq(PROGRAM_USER_ROLE.ID))
+                        .where(PROGRAM_USER_ROLE.USER_ID.eq(userId)).and(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId))
+                        .fetch();
 
         List<UUID> experimentIds = new ArrayList<>(queryResult.size());
-        for (Record record: queryResult) {
+        for (Record record : queryResult) {
             experimentIds.add(record.getValue(EXPERIMENT_PROGRAM_USER_ROLE.EXPERIMENT_ID));
         }
 
         return experimentIds;
+    }
+
+    public ExperimentProgramUserRoleEntity create(UUID experimentId, UUID programUserRoleId, UUID userId) {
+        return dsl.insertInto(EXPERIMENT_PROGRAM_USER_ROLE)
+                .columns(EXPERIMENT_PROGRAM_USER_ROLE.EXPERIMENT_ID,
+                        EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID,
+                        EXPERIMENT_PROGRAM_USER_ROLE.CREATED_BY,
+                        EXPERIMENT_PROGRAM_USER_ROLE.CREATED_AT,
+                        EXPERIMENT_PROGRAM_USER_ROLE.UPDATED_BY,
+                        EXPERIMENT_PROGRAM_USER_ROLE.UPDATED_AT)
+                .values(experimentId,
+                        programUserRoleId,
+                        userId,
+                        OffsetDateTime.now(),
+                        userId,
+                        OffsetDateTime.now())
+                .returning(EXPERIMENT_PROGRAM_USER_ROLE.fields())
+                .fetchOneInto(ExperimentProgramUserRoleEntity.class);
     }
 }

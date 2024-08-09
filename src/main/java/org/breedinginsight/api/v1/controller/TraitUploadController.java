@@ -65,7 +65,7 @@ public class TraitUploadController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse<Response<ProgramUpload>> putTraitUpload(@PathVariable UUID programId, @Part CompletedFileUpload file) {
 
         try {
@@ -94,7 +94,7 @@ public class TraitUploadController {
 
     @Get("/programs/{programId}/trait-upload{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse<Response<ProgramUpload>> getTraitUpload(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid QueryParams queryParams) {
@@ -112,7 +112,7 @@ public class TraitUploadController {
 
     @Post("/programs/{programId}/trait-upload/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse<Response<ProgramUpload>> searchTraitUpload(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid QueryParams queryParams,
@@ -131,7 +131,7 @@ public class TraitUploadController {
 
     @Delete("/programs/{programId}/trait-upload")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse deleteTraitUpload(@PathVariable UUID programId) {
 
         try {
@@ -147,7 +147,7 @@ public class TraitUploadController {
 
     @Post("/programs/{programId}/trait-upload/{traitUploadId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse confirmTraitUpload(@PathVariable UUID programId,
                                            @PathVariable UUID traitUploadId) {
         try {

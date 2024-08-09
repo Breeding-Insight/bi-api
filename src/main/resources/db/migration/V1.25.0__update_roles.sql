@@ -15,20 +15,14 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.auth;
+UPDATE system_role
+SET domain = 'System Administrator'
+WHERE domain = 'admin';
 
-import java.util.List;
+UPDATE role
+SET domain = 'Program Administrator'
+WHERE domain = 'breeder';
 
-public enum ProgramSecuredRoleGroup {
-    PROGRAM_SCOPED_ROLES(List.of(ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN));
-
-    private List<ProgramSecuredRole> programRoles;
-
-    ProgramSecuredRoleGroup(List<ProgramSecuredRole> programRoles) {
-        this.programRoles = programRoles;
-    }
-
-    public List<ProgramSecuredRole> getProgramRoles() {
-        return programRoles;
-    }
-}
+UPDATE role
+SET domain = 'Read Only'
+WHERE domain = 'member';
