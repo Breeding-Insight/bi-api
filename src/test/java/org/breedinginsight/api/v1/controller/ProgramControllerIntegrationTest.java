@@ -289,7 +289,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
     public Role getTestRole() {
         List<Role> roles = roleService.getAll();
-        return roles.stream().filter(role -> role.getDomain().equals("breeder")).collect(Collectors.toList()).get(0);
+        return roles.stream().filter(role -> role.getDomain().equals("Program Administrator")).collect(Collectors.toList()).get(0);
     }
 
     public Country getTestCountry() {
@@ -2474,7 +2474,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         SearchRequest searchRequest = new SearchRequest();
 
         searchRequest.setFilters(new ArrayList<>());
-        searchRequest.getFilters().add(new FilterRequest("roles", "breed"));
+        searchRequest.getFilters().add(new FilterRequest("roles", "Program Administrator"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/users/search?page=1&pageSize=20&sortField=roles&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
