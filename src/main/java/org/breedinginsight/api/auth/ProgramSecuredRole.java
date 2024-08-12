@@ -18,9 +18,10 @@
 package org.breedinginsight.api.auth;
 
 public enum ProgramSecuredRole {
-    MEMBER("member"),
-    BREEDER("breeder"),
-    SYSTEM_ADMIN("admin"),
+
+    READ_ONLY("Read Only"),
+    PROGRAM_ADMIN("Program Administrator"),
+    SYSTEM_ADMIN("System Administrator"),
     EXPERIMENTAL_COLLABORATOR("Experimental Collaborator");
 
     private String domain;

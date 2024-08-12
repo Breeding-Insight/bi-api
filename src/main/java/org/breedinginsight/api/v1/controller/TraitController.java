@@ -162,7 +162,7 @@ public class TraitController {
 
     @Post("/programs/{programId}/traits")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse createTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
@@ -190,7 +190,7 @@ public class TraitController {
 
     @Put("/programs/{programId}/traits")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse updateTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
@@ -219,7 +219,7 @@ public class TraitController {
     @Put("/programs/{programId}/traits/{traitId}/archive{?active}")
     @AddMetadata
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse<Response<Trait>> archiveTrait(@PathVariable UUID programId, @PathVariable UUID traitId, @QueryValue(defaultValue = "false") Boolean active) {
 
         AuthenticatedUser actingUser = securityService.getUser();

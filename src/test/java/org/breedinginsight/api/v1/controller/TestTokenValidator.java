@@ -56,7 +56,7 @@ public class TestTokenValidator extends JwtTokenValidator {
             Optional<User> testUser = userService.getByOrcid(TEST_USER_ORCID);
             Map<String, Object> adminClaims = new HashMap<>();
             List<String> roles = new ArrayList<>();
-            roles.add("ADMIN");
+            roles.add("SYSTEM ADMINISTRATOR");
             adminClaims.put("roles", roles);
             adminClaims.put("id", testUser.get().getId().toString());
             return Flowable.just(new DefaultAuthentication(TEST_USER_ORCID, adminClaims));
@@ -77,7 +77,7 @@ public class TestTokenValidator extends JwtTokenValidator {
         } else if (token.equals("non-existent-user")){
             Map<String, Object> adminClaims = new HashMap<>();
             List<String> roles = new ArrayList<>();
-            roles.add("ADMIN");
+            roles.add("SYSTEM ADMINISTRATOR");
             adminClaims.put("roles", roles);
             adminClaims.put("id", NON_EXISTENT_USER_ID);
             return Flowable.just(new DefaultAuthentication(NON_EXISTENT_USER_ID, adminClaims));
@@ -85,7 +85,7 @@ public class TestTokenValidator extends JwtTokenValidator {
             Optional<User> inactiveUser = userService.getByOrcid(INACTIVE_USER_ORCID);
             Map<String, Object> adminClaims = new HashMap<>();
             List<String> roles = new ArrayList<>();
-            roles.add("ADMIN");
+            roles.add("SYSTEM ADMINISTRATOR");
             adminClaims.put("roles", roles);
             adminClaims.put("id", inactiveUser.get().getId().toString());
             return Flowable.just(new DefaultAuthentication(INACTIVE_USER_ORCID, adminClaims));

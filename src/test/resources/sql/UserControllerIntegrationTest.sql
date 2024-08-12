@@ -30,7 +30,7 @@ insert into program_user_role (program_id, user_id, role_id, created_by, updated
 select program.id, bi_user.id, role.id, system_user.id, system_user.id
 from program
 join bi_user on bi_user.name = 'Test User' or bi_user.name = 'Other Test User'
-join role on role.domain = 'member'
+join role on role.domain = 'Read Only'
 join bi_user as system_user on system_user.name = 'system'
 where program.name = 'Test Program';
 
@@ -38,7 +38,7 @@ insert into program_user_role (program_id, user_id, role_id, active, created_by,
 select program.id, bi_user.id, role.id, false, system_user.id, system_user.id
 from program
 join bi_user on bi_user.name = 'Test User' or bi_user.name = 'Other Test User'
-join role on role.domain = 'member'
+join role on role.domain = 'Read Only'
 join bi_user as system_user on system_user.name = 'system'
 where program.name = 'Test Program1';
 
@@ -98,7 +98,7 @@ values
 
 insert into system_user_role (bi_user_id, system_role_id, created_by, updated_by)
 select bi_user.id, system_role.id, user_id, user_id from bi_user
-join system_role on system_role.domain = 'admin' where bi_user.name like 'user1%';
+join system_role on system_role.domain = 'System Administrator' where bi_user.name like 'user1%';
 
 
 insert into program_user_role (user_id, program_id, role_id, created_by, updated_by)
@@ -106,7 +106,7 @@ select
 bi_user.id, program1, role.id, bi_user.id, bi_user.id
 from
 bi_user
-join role on role.domain = 'member'
+join role on role.domain = 'Read Only'
 where
 bi_user.name like 'user%';
 
@@ -115,7 +115,7 @@ select
 bi_user.id, program2, role.id, bi_user.id, bi_user.id
 from
 bi_user
-join role on role.domain = 'breeder'
+join role on role.domain = 'Program Administrator'
 where
 bi_user.name like 'user2%';
 
@@ -132,5 +132,5 @@ select ?::uuid, system_role.id, bi_user.id, bi_user.id
 from
 bi_user
 join
-system_role on system_role.domain = 'admin'
+system_role on system_role.domain = 'System Administrator'
 where bi_user.name = 'system';

@@ -36,7 +36,7 @@ public class GenotypeDataUploadController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID experimentId, @Part("file") CompletedFileUpload upload) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
