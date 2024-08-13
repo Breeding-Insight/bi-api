@@ -40,13 +40,12 @@ import org.jetbrains.annotations.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Singleton
 public class ExperimentSecuredAnnotationRule extends SecuredAnnotationRule {
 
-    // Executes before the SecuredAnnotationRule, and if the annotation exists, will return before the SecuredAnnotationRule can execute
-    public static final Integer ORDER = SecuredAnnotationRule.ORDER - 1;
+    // Executes before the ProgramSecuredAnnotationRule, and if the annotation exists, will return before the ProgramSecuredAnnotationRule can execute
+    public static final Integer ORDER = ProgramSecuredAnnotationRule.ORDER -2;
 
     public ExperimentSecuredAnnotationRule(RolesFinder rolesFinder) {
         super(rolesFinder);
@@ -83,7 +82,7 @@ public class ExperimentSecuredAnnotationRule extends SecuredAnnotationRule {
                 if (!programDAO.existsById(UUID.fromString(programId))) {
                     throw new HttpStatusException(HttpStatus.NOT_FOUND, "Program does not exist");
                 }
-                Optional<BrAPITrial> trial = null;
+                Optional<BrAPITrial> trial;
                 try {
                     trial = brAPITrialDAO.getTrialById(UUID.fromString(programId), UUID.fromString(experimentId));
                 } catch (ApiException e) {
@@ -110,17 +109,21 @@ public class ExperimentSecuredAnnotationRule extends SecuredAnnotationRule {
     }
 
     private SecurityRuleResult processExperiment(AuthenticatedUser authenticatedUser, String experimentId, String programId) {
-        ProgramUser programUser = null;
+        ProgramUser programUserRole;
         try {
-            programUser = authenticatedUser.extractProgramUser(UUID.fromString(programId));
+            programUserRole = authenticatedUser.extractProgramUser(UUID.fromString(programId));
         } catch (DoesNotExistException e) {
             return SecurityRuleResult.UNKNOWN;
         }
-        if(this.isExperimentCoordinator(programUser)){
-            List<UUID> colaboratableExperimentIds = experimentalCollaboratorDAO.fetchExperimentIds(authenticatedUser.getId(), UUID.fromString(programId));
-            if(colaboratableExperimentIds.contains( UUID.fromString(experimentId)) ){
+        if(this.isExperimentCoordinator(programUserRole)){
+            List<UUID> collaborativeExperimentIds = experimentalCollaboratorDAO.getExperimentIds(programUserRole.getId(), true);
+            if(collaborativeExperimentIds.contains( UUID.fromString(experimentId)) ){
                 return SecurityRuleResult.ALLOWED;
             }
+        }
+        else {
+            //Allow the next Secured Annotation to be run
+            return SecurityRuleResult.UNKNOWN;
         }
         return SecurityRuleResult.REJECTED;
     }
@@ -128,8 +131,7 @@ public class ExperimentSecuredAnnotationRule extends SecuredAnnotationRule {
     private boolean isExperimentCoordinator(ProgramUser programUser){
         List<Role> roles = programUser.getRoles();
         return (roles.size()==1 &&
-                ProgramSecuredRole.getEnum(roles.get(0).getDomain())==ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR);
-
+                ExperimentSecuredRole.getEnum( roles.get(0).getDomain() )==ExperimentSecuredRole.EXPERIMENTAL_COLLABORATOR);
     }
 
     @Override

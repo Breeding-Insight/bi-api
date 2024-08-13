@@ -10,8 +10,7 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.breedinginsight.api.auth.ProgramSecured;
-import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
+import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.SubEntityDatasetRequest;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
@@ -46,7 +45,8 @@ public class ExperimentController {
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/export{?queryParams*}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ExperimentSecured( roles = {ExperimentSecuredRole.EXPERIMENTAL_COLLABORATOR} )
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN})
     @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"})
     public HttpResponse<StreamedFile> datasetExport(
             @PathVariable("programId") UUID programId, @PathVariable("experimentId") UUID experimentId,
@@ -74,7 +74,8 @@ public class ExperimentController {
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/dataset/{datasetId}{?stats}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ExperimentSecured( roles = {ExperimentSecuredRole.EXPERIMENTAL_COLLABORATOR} )
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<Dataset>> getDatasetData(
             @PathVariable("programId") UUID programId,
@@ -131,7 +132,8 @@ public class ExperimentController {
      * @throws ApiException if an error occurs while retrieving the datasets.
      */
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/datasets")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ExperimentSecured( roles = {ExperimentSecuredRole.EXPERIMENTAL_COLLABORATOR} )
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<List<DatasetMetadata>>> getDatasets(
             @PathVariable("programId") UUID programId,

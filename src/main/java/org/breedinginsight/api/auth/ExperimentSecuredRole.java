@@ -17,11 +17,8 @@
 
 package org.breedinginsight.api.auth;
 
-//TODO Delete this Class if not used.
 public enum ExperimentSecuredRole {
-    READ_ONLY("member"),
-    PROGRAM_ADMIN("breeder"),
-    SYSTEM_ADMIN("admin");
+    EXPERIMENTAL_COLLABORATOR("Experimental Collaborator");
 
     private String domain;
 

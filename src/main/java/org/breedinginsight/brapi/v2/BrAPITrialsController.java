@@ -83,8 +83,8 @@ public class BrAPITrialsController {
 
     @Get("/trials/{trialId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR})
-    @ExperimentSecured()
+    @ExperimentSecured(roles = {ExperimentSecuredRole.EXPERIMENTAL_COLLABORATOR})
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse<BrAPITrialSingleResponse> getExperimentById(
             @PathVariable("programId") UUID programId,
             @PathVariable("trialId") UUID trialId,

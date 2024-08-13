@@ -20,7 +20,7 @@ package org.breedinginsight.api.auth;
 import java.util.List;
 
 public enum ProgramSecuredRoleGroup {
-    PROGRAM_SCOPED_ROLES(List.of(ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN));
+    PROGRAM_SCOPED_ROLES(List.of(ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR));
 
     private List<ProgramSecuredRole> programRoles;
 

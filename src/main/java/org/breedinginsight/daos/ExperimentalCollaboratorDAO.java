@@ -18,25 +18,20 @@
 package org.breedinginsight.daos;
 
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.dao.db.tables.ExperimentProgramUserRoleTable;
-import org.breedinginsight.dao.db.tables.ProgramUserRoleTable;
 import org.breedinginsight.dao.db.tables.daos.ExperimentProgramUserRoleDao;
 import org.breedinginsight.dao.db.tables.pojos.ExperimentProgramUserRoleEntity;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
-import org.jooq.Record;
-import org.jooq.Result;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import java.time.OffsetDateTime;
-import java.util.UUID;
-
 import static org.breedinginsight.dao.db.Tables.EXPERIMENT_PROGRAM_USER_ROLE;
+import static org.breedinginsight.dao.db.Tables.PROGRAM_USER_ROLE;
+
 
 @Slf4j
 @Singleton
@@ -48,25 +43,6 @@ public class ExperimentalCollaboratorDAO extends ExperimentProgramUserRoleDao {
     public ExperimentalCollaboratorDAO(Configuration config, DSLContext dsl) {
         super(config);
         this.dsl = dsl;
-    }
-
-    public List<UUID> fetchExperimentIds(UUID userId, UUID programId) {
-        ExperimentProgramUserRoleTable EXPERIMENT_PROGRAM_USER_ROLE = ExperimentProgramUserRoleTable.EXPERIMENT_PROGRAM_USER_ROLE;
-        ProgramUserRoleTable PROGRAM_USER_ROLE = ProgramUserRoleTable.PROGRAM_USER_ROLE;
-
-        Result<Record> queryResult =
-                dsl.select().from(EXPERIMENT_PROGRAM_USER_ROLE)
-                        .join(PROGRAM_USER_ROLE)
-                        .on(EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID.eq(PROGRAM_USER_ROLE.ID))
-                        .where(PROGRAM_USER_ROLE.USER_ID.eq(userId)).and(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId))
-                        .fetch();
-
-        List<UUID> experimentIds = new ArrayList<>(queryResult.size());
-        for (Record record : queryResult) {
-            experimentIds.add(record.getValue(EXPERIMENT_PROGRAM_USER_ROLE.EXPERIMENT_ID));
-        }
-
-        return experimentIds;
     }
 
     public ExperimentProgramUserRoleEntity create(UUID experimentId, UUID programUserRoleId, UUID userId) {
@@ -85,5 +61,41 @@ public class ExperimentalCollaboratorDAO extends ExperimentProgramUserRoleDao {
                         OffsetDateTime.now())
                 .returning(EXPERIMENT_PROGRAM_USER_ROLE.fields())
                 .fetchOneInto(ExperimentProgramUserRoleEntity.class);
+    }
+
+    public List<ExperimentProgramUserRoleEntity> fetchByProgramUserIdAndExperimentId(UUID programUserRoleId, UUID experimentId) {
+        // Only returns results for active program_user_role rows.
+        return dsl.select(EXPERIMENT_PROGRAM_USER_ROLE.fields())
+                .from(EXPERIMENT_PROGRAM_USER_ROLE)
+                .innerJoin(PROGRAM_USER_ROLE).on(EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID.eq(PROGRAM_USER_ROLE.ID))
+                .where(EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID.eq(programUserRoleId))
+                .and(EXPERIMENT_PROGRAM_USER_ROLE.EXPERIMENT_ID.eq(experimentId))
+                .and(PROGRAM_USER_ROLE.ACTIVE.eq(true))
+                .fetchInto(ExperimentProgramUserRoleEntity.class);
+    }
+
+    public List<UUID> getExperimentIds(UUID programUserRoleId, boolean activeOnly) {
+        // If activeOnly, this will only return results if the program_user_role row is active.
+        if (activeOnly)
+        {
+            return getExperimentIdsIfActive(programUserRoleId);
+        }
+        return getExperimentIds(programUserRoleId);
+    }
+
+    private List<UUID> getExperimentIdsIfActive(UUID programUserRoleId) {
+        return dsl.select(EXPERIMENT_PROGRAM_USER_ROLE.EXPERIMENT_ID)
+                .from(EXPERIMENT_PROGRAM_USER_ROLE)
+                .join(PROGRAM_USER_ROLE).on(EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID.eq(PROGRAM_USER_ROLE.ID))
+                .where(EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID.eq(programUserRoleId))
+                .and(PROGRAM_USER_ROLE.ACTIVE.eq(true))
+                .fetchInto(UUID.class);
+    }
+
+    private List<UUID> getExperimentIds(UUID programUserRoleId) {
+        return dsl.select(EXPERIMENT_PROGRAM_USER_ROLE.EXPERIMENT_ID)
+                .from(EXPERIMENT_PROGRAM_USER_ROLE)
+                .where(EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID.eq(programUserRoleId))
+                .fetchInto(UUID.class);
     }
 }
