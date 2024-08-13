@@ -68,11 +68,10 @@ public class ExperimentCollaboratorSecuredAnnotationRule extends SecuredAnnotati
         if (routeMatch instanceof MethodBasedRouteMatch) {
             MethodBasedRouteMatch methodRoute = ((MethodBasedRouteMatch) routeMatch);
 
-            String programId = (String) routeMatch.getVariableValues()
-                    .get("programId");
-            String experimentId = extractExperimentId(routeMatch);
-
             if (methodRoute.hasAnnotation(ExperimentCollaboratorSecured.class)) {
+                String programId = (String) routeMatch.getVariableValues()
+                        .get("programId");
+                String experimentId = extractExperimentId(routeMatch);
                 if (programId == null) {
                     throw new HttpServerException("Endpoint does not have program id to check roles against");
                 }
