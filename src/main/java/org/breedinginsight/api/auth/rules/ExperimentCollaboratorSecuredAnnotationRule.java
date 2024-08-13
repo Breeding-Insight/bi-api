@@ -68,8 +68,6 @@ public class ExperimentCollaboratorSecuredAnnotationRule extends SecuredAnnotati
         if (routeMatch instanceof MethodBasedRouteMatch) {
             MethodBasedRouteMatch methodRoute = ((MethodBasedRouteMatch) routeMatch);
 
-            Map<String, Object> tmp = routeMatch.getVariableValues();
-
             String programId = (String) routeMatch.getVariableValues()
                     .get("programId");
             String experimentId = extractExperimentId(routeMatch);

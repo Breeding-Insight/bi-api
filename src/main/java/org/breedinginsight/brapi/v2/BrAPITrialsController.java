@@ -53,23 +53,14 @@ public class BrAPITrialsController {
 
     @Get("/trials{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<List<BrAPITrial>>>> getExperiments(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = ExperimentQueryMapper.class) @Valid ExperimentQuery queryParams) {
         try {
             log.debug("fetching trials for program: " + programId);
-            AuthenticatedUser authenticatedUser = securityService.getUser();
-            ProgramUser programUser = authenticatedUser.extractProgramUser(programId);
 
-            List<BrAPITrial> experiments = null;
-            if( this.isExperimentCoordinator(programUser)) {
-                experiments = experimentService.getExperimentsForCoordinator(programId, programUser);
-            }
-            else{
-                experiments = experimentService.getExperiments(programId);
-            }
-            experiments = experiments.stream().peek(this::setDbIds).collect(Collectors.toList());
+            List<BrAPITrial> experiments = experimentService.getExperiments(programId).stream().peek(this::setDbIds).collect(Collectors.toList());
             SearchRequest searchRequest = queryParams.constructSearchRequest();
             return ResponseUtils.getBrapiQueryResponse(experiments, experimentQueryMapper, queryParams, searchRequest);
         } catch (ApiException e) {

@@ -102,11 +102,6 @@ public class BrAPITrialService {
         return trialDAO.getTrials(programId);
     }
 
-    public List<BrAPITrial> getExperimentsForCoordinator(UUID programId, ProgramUser programUser) throws ApiException, DoesNotExistException {
-
-        //TODO the following is just a place holder.  FIX IT!
-        return trialDAO.getTrials(programId);
-    }
 
     public BrAPITrial getTrialDataByUUID(UUID programId, UUID trialId, boolean stats) throws DoesNotExistException {
         try {
