@@ -25,5 +25,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface ExperimentSecured {
-    ExperimentSecuredRole[] roles() default {};
+    //The only role is EXPERIMENTAL_COLLABORATOR
 }
