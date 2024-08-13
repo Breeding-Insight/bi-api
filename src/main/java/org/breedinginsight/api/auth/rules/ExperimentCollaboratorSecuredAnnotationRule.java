@@ -35,6 +35,7 @@ import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.Role;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
@@ -71,12 +72,7 @@ public class ExperimentCollaboratorSecuredAnnotationRule extends SecuredAnnotati
 
             String programId = (String) routeMatch.getVariableValues()
                     .get("programId");
-            String experimentId = (String) routeMatch.getVariableValues()
-                    .get("experimentId");
-            if( experimentId==null) {
-                experimentId = (String) routeMatch.getVariableValues()
-                        .get("trialId");
-            }
+            String experimentId = extractExperimentId(routeMatch);
 
             if (methodRoute.hasAnnotation(ExperimentCollaboratorSecured.class)) {
                 if (programId == null) {
@@ -113,6 +109,17 @@ public class ExperimentCollaboratorSecuredAnnotationRule extends SecuredAnnotati
         }
 
         return SecurityRuleResult.UNKNOWN;
+    }
+
+    private static String extractExperimentId(@NotNull RouteMatch<?> routeMatch) {
+        //The endpoints can use either the "experimentId" or "trialId" parameter to pass the experiment ID
+        String experimentId = (String) routeMatch.getVariableValues()
+                .get("experimentId");
+        if( experimentId==null) {
+            experimentId = (String) routeMatch.getVariableValues()
+                    .get("trialId");
+        }
+        return experimentId;
     }
 
     private SecurityRuleResult processExperiment(AuthenticatedUser authenticatedUser, String experimentId, String programId) {
