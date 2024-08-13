@@ -45,7 +45,7 @@ public class ExperimentController {
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/export{?queryParams*}")
-    @ExperimentSecured
+    @ExperimentCollaboratorSecured
     @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN})
     @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"})
     public HttpResponse<StreamedFile> datasetExport(
@@ -74,7 +74,7 @@ public class ExperimentController {
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/dataset/{datasetId}{?stats}")
-    @ExperimentSecured
+    @ExperimentCollaboratorSecured
     @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<Dataset>> getDatasetData(
@@ -132,7 +132,7 @@ public class ExperimentController {
      * @throws ApiException if an error occurs while retrieving the datasets.
      */
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/datasets")
-    @ExperimentSecured
+    @ExperimentCollaboratorSecured
     @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<List<DatasetMetadata>>> getDatasets(

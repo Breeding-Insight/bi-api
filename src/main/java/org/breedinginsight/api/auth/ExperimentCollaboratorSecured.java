@@ -17,23 +17,13 @@
 
 package org.breedinginsight.api.auth;
 
-public enum ExperimentSecuredRole {
-    EXPERIMENTAL_COLLABORATOR("Experimental Collaborator");
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-    private String domain;
-
-    ExperimentSecuredRole(String domain) {
-        this.domain = domain;
-    }
-
-    @Override
-    public String toString() {
-        return domain;
-    }
-
-    public static ExperimentSecuredRole getEnum(String domain) {
-        for(ExperimentSecuredRole v : values())
-            if(v.toString().equalsIgnoreCase(domain)) return v;
-        throw new IllegalArgumentException();
-    }
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface ExperimentCollaboratorSecured {
+    //The only role is EXPERIMENTAL_COLLABORATOR
 }

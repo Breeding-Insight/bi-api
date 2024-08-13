@@ -42,12 +42,12 @@ import javax.inject.Singleton;
 import java.util.*;
 
 @Singleton
-public class ExperimentSecuredAnnotationRule extends SecuredAnnotationRule {
+public class ExperimentCollaboratorSecuredAnnotationRule extends SecuredAnnotationRule {
 
     // Executes before the ProgramSecuredAnnotationRule, and if the annotation exists, will return before the ProgramSecuredAnnotationRule can execute
     public static final Integer ORDER = ProgramSecuredAnnotationRule.ORDER -2;
 
-    public ExperimentSecuredAnnotationRule(RolesFinder rolesFinder) {
+    public ExperimentCollaboratorSecuredAnnotationRule(RolesFinder rolesFinder) {
         super(rolesFinder);
     }
 
@@ -66,12 +66,19 @@ public class ExperimentSecuredAnnotationRule extends SecuredAnnotationRule {
 
         if (routeMatch instanceof MethodBasedRouteMatch) {
             MethodBasedRouteMatch methodRoute = ((MethodBasedRouteMatch) routeMatch);
+
+            Map<String, Object> tmp = routeMatch.getVariableValues();
+
             String programId = (String) routeMatch.getVariableValues()
                     .get("programId");
             String experimentId = (String) routeMatch.getVariableValues()
-                    .get("trialId");
+                    .get("experimentId");
+            if( experimentId==null) {
+                experimentId = (String) routeMatch.getVariableValues()
+                        .get("trialId");
+            }
 
-            if (methodRoute.hasAnnotation(ExperimentSecured.class)) {
+            if (methodRoute.hasAnnotation(ExperimentCollaboratorSecured.class)) {
                 if (programId == null) {
                     throw new HttpServerException("Endpoint does not have program id to check roles against");
                 }
@@ -130,8 +137,11 @@ public class ExperimentSecuredAnnotationRule extends SecuredAnnotationRule {
 
     private boolean isExperimentCoordinator(ProgramUser programUser){
         List<Role> roles = programUser.getRoles();
-        return (roles.size()==1 &&
-                ExperimentSecuredRole.getEnum( roles.get(0).getDomain() )==ExperimentSecuredRole.EXPERIMENTAL_COLLABORATOR);
+        if( roles.size()!=1 ){ return false; }
+        String primaryRole = roles.get(0).getDomain();
+        return (primaryRole != null &&
+                primaryRole.equals( ExperimentCollaboratorSecuredRole.EXPERIMENTAL_COLLABORATOR.toString() )
+        );
     }
 
     @Override
