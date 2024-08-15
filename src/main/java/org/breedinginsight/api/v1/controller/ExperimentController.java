@@ -15,14 +15,16 @@ import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRole;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.SubEntityDatasetRequest;
+import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
+import org.breedinginsight.api.model.v1.response.metadata.Metadata;
+import org.breedinginsight.api.model.v1.response.metadata.Pagination;
+import org.breedinginsight.api.model.v1.response.metadata.Status;
+import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.dao.db.tables.pojos.ExperimentProgramUserRoleEntity;
-import org.breedinginsight.model.Dataset;
-import org.breedinginsight.model.DatasetMetadata;
-import org.breedinginsight.model.DownloadFile;
-import org.breedinginsight.model.Program;
+import org.breedinginsight.model.*;
 import org.breedinginsight.services.ExperimentalCollaboratorService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -31,6 +33,7 @@ import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -196,10 +199,10 @@ public class ExperimentController {
      * @param experimentId
      * @param active
      */
-    @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/collaborators?active=true/false")
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/collaborators{?active}")
     @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     @Produces(MediaType.APPLICATION_JSON)
-    public HttpResponse<Response<List<ExperimentProgramUserRoleEntity>>> getExperimentalCollaborators(
+    public HttpResponse<Response<DataResponse<ExperimentProgramUserRoleEntity>>> getExperimentalCollaborators(
             @PathVariable("programId") UUID programId,
             @PathVariable("experimentId") UUID experimentId,
             @QueryValue(defaultValue = "true") Boolean active
@@ -208,8 +211,17 @@ public class ExperimentController {
 
         try {
             Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
-            Response<List<ExperimentProgramUserRoleEntity>> response = new Response(experimentalCollaboratorService.getExperimentalCollaborators(experimentId));
+            List<ExperimentProgramUserRoleEntity> collaborators = experimentalCollaboratorService.getExperimentalCollaborators(experimentId);
+            //Response<List<ExperimentProgramUserRoleEntity>> response = new Response(experimentalCollaboratorService.getExperimentalCollaborators(experimentId));
             //todo filter by program and active
+
+            List<Status> metadataStatus = new ArrayList<>();
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            //TODO: paging
+            Pagination pagination = new Pagination(collaborators.size(), collaborators.size(), 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+
+            Response<DataResponse<ExperimentProgramUserRoleEntity>> response = new Response(metadata, new DataResponse<>(collaborators));
             return HttpResponse.ok(response);
         } catch (Exception e) {
             log.info(e.getMessage(), e);

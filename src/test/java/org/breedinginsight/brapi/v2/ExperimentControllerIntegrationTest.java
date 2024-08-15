@@ -43,6 +43,7 @@ import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
@@ -52,6 +53,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import static io.micronaut.http.HttpRequest.*;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
@@ -347,6 +349,71 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         ByteArrayInputStream plantBodyStream = new ByteArrayInputStream(Objects.requireNonNull(plantResponse.body()));
         parseAndCheck(plantBodyStream, extension, false, plantRows, false, 23);
     }
+
+    /**
+     * Tests for Experimental Collaborator endpoints
+     *
+     * Create Experimental Collaborator
+     *
+     * Remove Experimental Collaborator
+     *
+     * Get Experimental Collaborators None
+     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
+     *   WHEN no users have been added as experiment collaborators
+     *   AND no program users with Experimental Collaborator role exist in program
+     *   THEN response should be an empty array regardless of active query parameter value
+     *
+     * Get Experimental Collaborators No Active
+     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
+     *   WHEN no users have been added as experiment collaborators
+     *   AND one or more program users with Experimental Collaborator role exist in program
+     *   THEN response should be:
+     *      empty array when active=true
+     *      array with program user when active=false
+     *
+     * Get Experimental Collaborators Active
+     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
+     *   WHEN program user has been added to experiment as collaborator
+     *   AND program user with Experimental Collaborator role exists in program
+     *   THEN response should be:
+     *      array with program user when active=true
+     *      empty array when active=false
+     *
+     * Get Experimental Collaborators Deactivated from Program
+     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
+     *   WHEN program user has been added to experiment as collaborator
+     *   AND after being added as a collaborator, program user is deactivated from program
+     *   THEN response should be empty array regardless of active query parameter value (assumes single user)
+     *
+     */
+
+    /**
+     *  Get Experimental Collaborators None
+     *      GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
+     *      WHEN no users have been added as experiment collaborators
+     *      AND no program users with Experimental Collaborator role exist in program
+     *      THEN response should be an empty array regardless of active query parameter value
+     *
+     *      test-registered-user has Program Administration role in program
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void getExperimentalCollaboratorsNone(boolean active) {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/collaborators?active=%s", program.getId().toString(), experimentId, active))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(0, data.size());
+    }
+
 
     private List<Map<String, Object>> buildSubEntityRows(List<Map<String, Object>> topLevelRows, String entityName, int repeatedMeasures) {
         List<Map<String, Object>> plantRows = new ArrayList<>();
