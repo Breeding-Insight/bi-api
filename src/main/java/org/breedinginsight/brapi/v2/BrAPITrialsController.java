@@ -39,13 +39,11 @@ import java.util.stream.Collectors;
 public class BrAPITrialsController {
 
     private final String referenceSource;
-    private final SecurityService securityService;
     private final BrAPITrialService experimentService;
     private final ExperimentQueryMapper experimentQueryMapper;
 
     @Inject
-    public BrAPITrialsController(SecurityService securityService, BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, @Property(name = "brapi.server.reference-source") String referenceSource) {
-        this.securityService = securityService;
+    public BrAPITrialsController(BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, @Property(name = "brapi.server.reference-source") String referenceSource) {
         this.experimentService = experimentService;
         this.experimentQueryMapper = experimentQueryMapper;
         this.referenceSource = referenceSource;
@@ -53,7 +51,8 @@ public class BrAPITrialsController {
 
     @Get("/trials{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN
+            ,ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR })
     public HttpResponse<Response<DataResponse<List<BrAPITrial>>>> getExperiments(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = ExperimentQueryMapper.class) @Valid ExperimentQuery queryParams) {
@@ -75,7 +74,7 @@ public class BrAPITrialsController {
     @Get("/trials/{trialId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ExperimentCollaboratorSecured
-    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPITrialSingleResponse> getExperimentById(
             @PathVariable("programId") UUID programId,
             @PathVariable("trialId") UUID trialId,
@@ -120,12 +119,4 @@ public class BrAPITrialsController {
 
         //TODO update locationDbId
     }
-
-    private boolean isExperimentCoordinator(ProgramUser programUser){
-        List<Role> roles = programUser.getRoles();
-        return (roles.size()==1 &&
-                ProgramSecuredRole.getEnum(roles.get(0).getDomain())==ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR);
-
-    }
-
 }

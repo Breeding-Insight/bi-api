@@ -97,7 +97,7 @@ public class ExperimentCollaboratorSecuredAnnotationRule extends SecuredAnnotati
                 if (claims != null){
                     AuthenticatedUser user = securityService.getUser();
 
-                    return processExperiment(user, experimentId, programId);
+                    return checkAuthorization(user, experimentId, programId);
                 }
 
                 // Rejects if no claims
@@ -119,7 +119,7 @@ public class ExperimentCollaboratorSecuredAnnotationRule extends SecuredAnnotati
         return experimentId;
     }
 
-    private SecurityRuleResult processExperiment(AuthenticatedUser authenticatedUser, String experimentId, String programId) {
+    private SecurityRuleResult checkAuthorization(AuthenticatedUser authenticatedUser, String experimentId, String programId) {
         ProgramUser programUserRole;
         try {
             programUserRole = authenticatedUser.extractProgramUser(UUID.fromString(programId));
@@ -144,7 +144,7 @@ public class ExperimentCollaboratorSecuredAnnotationRule extends SecuredAnnotati
         if( roles.size()!=1 ){ return false; }
         String primaryRole = roles.get(0).getDomain();
         return (primaryRole != null &&
-                primaryRole.equals( ExperimentCollaboratorSecuredRole.EXPERIMENTAL_COLLABORATOR.toString() )
+                primaryRole.equals( ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR.toString() )
         );
     }
 

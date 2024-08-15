@@ -88,6 +88,8 @@ public class ProgramController {
 
     @Get("/programs{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN
+            ,ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR })
     public HttpResponse<Response<DataResponse<Program>>> getPrograms(
             @QueryValue @QueryValid(using = ProgramQueryMapper.class) @Valid QueryParams queryParams) {
 
@@ -107,7 +109,8 @@ public class ProgramController {
 
     @Get("/programs/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN
+            ,ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR })
     @AddMetadata
     public HttpResponse<Response<Program>> getProgram(@PathVariable UUID programId) {
 

@@ -31,6 +31,7 @@ import org.brapi.v2.model.BrAPIStatus;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.response.BrAPIStudySingleResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
+import org.breedinginsight.api.auth.ProgramSecuredRole;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
@@ -74,7 +75,8 @@ public class BrAPIStudiesController {
 
     @Get("/studies{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ProgramSecured( roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN
+            ,ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR} )
     public HttpResponse<Response<DataResponse<List<BrAPIStudy>>>> getStudies(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = StudyQueryMapper.class) @Valid StudyQuery queryParams) {

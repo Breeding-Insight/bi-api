@@ -46,7 +46,7 @@ public class ExperimentController {
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/export{?queryParams*}")
     @ExperimentCollaboratorSecured
-    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"})
     public HttpResponse<StreamedFile> datasetExport(
             @PathVariable("programId") UUID programId, @PathVariable("experimentId") UUID experimentId,
@@ -75,7 +75,7 @@ public class ExperimentController {
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/dataset/{datasetId}{?stats}")
     @ExperimentCollaboratorSecured
-    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<Dataset>> getDatasetData(
             @PathVariable("programId") UUID programId,
@@ -133,7 +133,7 @@ public class ExperimentController {
      */
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/datasets")
     @ExperimentCollaboratorSecured
-    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<List<DatasetMetadata>>> getDatasets(
             @PathVariable("programId") UUID programId,
