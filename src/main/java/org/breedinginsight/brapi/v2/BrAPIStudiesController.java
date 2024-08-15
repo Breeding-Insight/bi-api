@@ -113,7 +113,8 @@ public class BrAPIStudiesController {
                 studies = studyService.getStudiesByExperimentIds(program.get(), experimentIds)
                         .stream()
                         .peek(this::setDbIds)
-                        .collect(Collectors.toList());            } else {
+                        .collect(Collectors.toList());
+            } else {
                 studies = studyService.getStudies(programId)
                         .stream()
                         .peek(this::setDbIds)

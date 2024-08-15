@@ -133,7 +133,6 @@ public class BrAPIStudiesControllerIntegrationTest extends BrAPITest {
         program = TestUtils.insertAndFetchTestProgram(gson, client, programRequest);
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), program.getId());
-        dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Get experiment import map
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -204,7 +203,64 @@ public class BrAPIStudiesControllerIntegrationTest extends BrAPITest {
         // Add environmentIds.
         envIds.add(getEnvId(importResult, 0));
         envIds.add(getEnvId(importResult, 1));
+
+        // Experimental Collaborator user.
+        User collaborator = userDAO.getUserByOrcId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
+        dsl.execute(securityFp.get("InsertProgramRolesExperimentalCollaborator"), collaborator.getId().toString(), program.getId().toString());
+        // Add collaborator to experiment.
+        // Make another test experiment import.
+        Map<String, Object> row3 = makeExpImportRow("Env3", "xyz");
+        Map<String, Object> row4 = makeExpImportRow("Env4", "xyz");
+
+        List<Map<String, Object>> newrows = new ArrayList<>();
+
+        newrows.add(row3);
+        newrows.add(row4);
+
+        // Import test experiment, environments, and any observations
+        importResult = importTestUtils.uploadAndFetchWorkflow(
+                writeDataToFile(newrows, new ArrayList<>()),
+                null,
+                true,
+                client,
+                program,
+                mappingId,
+                newExperimentWorkflowId);
+        String newExperimentId = importResult
+                .get("preview").getAsJsonObject()
+                .get("rows").getAsJsonArray()
+                .get(0).getAsJsonObject()
+                .get("trial").getAsJsonObject()
+                .get("id").getAsString();
+
+        // Refetch collaborator, since we updated program_user_roles.
+        collaborator = userDAO.getUserByOrcId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
+        dsl.execute(securityFp.get("AddCollaborator"), newExperimentId, collaborator.getProgramRoles().get(0).getId());
     }
+
+    @Test
+    public void testGetStudiesAsExperimentalCollaborator() {
+        // This test ensures that studies are filtered for experimental collaborators.
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/studies", program.getId()))
+                        .bearerAuth("other-registered-user"),
+                String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+        JsonArray studies = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+        assertEquals(2, studies.size());
+        List<String> studyNames = new ArrayList<>();
+        for(var study : studies) {
+            studyNames.add(study.getAsJsonObject().get("studyName").getAsString());
+        }
+        assertTrue(studyNames.contains("Env3"));
+        assertTrue(studyNames.contains("Env4"));
+    }
+
 
     @Test
     @SneakyThrows
@@ -395,10 +451,14 @@ public class BrAPIStudiesControllerIntegrationTest extends BrAPITest {
     }
 
     private Map<String, Object> makeExpImportRow(String environment) {
+        return makeExpImportRow(environment, "Test Exp");
+    }
+
+    private Map<String, Object> makeExpImportRow(String environment, String expTitle) {
         Map<String, Object> row = new HashMap<>();
         row.put(ExperimentObservation.Columns.GERMPLASM_GID, "1");
         row.put(ExperimentObservation.Columns.TEST_CHECK, "T");
-        row.put(ExperimentObservation.Columns.EXP_TITLE, "Test Exp");
+        row.put(ExperimentObservation.Columns.EXP_TITLE, expTitle);
         row.put(ExperimentObservation.Columns.EXP_UNIT, "Plot");
         row.put(ExperimentObservation.Columns.EXP_TYPE, "Phenotyping");
         row.put(ExperimentObservation.Columns.ENV, environment);

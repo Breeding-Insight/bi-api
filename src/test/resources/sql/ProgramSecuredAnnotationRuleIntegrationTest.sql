@@ -34,6 +34,25 @@ insert into program (species_id, name, abbreviation, documentation_url, objectiv
 select species.id, 'Program4', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id, 'PD' from species
 join bi_user on bi_user.name = 'Test User' limit 1;
 
+-- name: InsertProgramRolesExperimentalCollaborator
+
+insert into program_user_role (user_id, program_id, role_id, created_by, updated_by)
+select
+?::uuid, ?::uuid, role.id, bi_user.id, bi_user.id
+from
+bi_user
+join role on role.domain = 'Experimental Collaborator';
+
+-- name: AddCollaborator
+
+insert into experiment_program_user_role (experiment_id, program_user_role_id, created_by, updated_by)
+select
+?::uuid, ?::uuid, bi_user.id, bi_user.id
+from
+bi_user
+where bi_user.name = 'system';
+;
+
 -- name: InsertProgramRolesMember
 
 insert into program_user_role (user_id, program_id, role_id, created_by, updated_by)

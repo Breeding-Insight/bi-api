@@ -35,23 +35,12 @@ public class ExperimentController {
     private final BrAPITrialService experimentService;
     private final ExperimentQueryMapper experimentQueryMapper;
     private final ProgramService programService;
-    private final SecurityService securityService;
-    private final ProgramUserService programUserService;
-    private final ExperimentalCollaboratorService experimentalCollaboratorService;
 
     @Inject
-    public ExperimentController(BrAPITrialService experimentService,
-                                ExperimentQueryMapper experimentQueryMapper,
-                                ProgramService programService,
-                                SecurityService securityService,
-                                ProgramUserService programUserService,
-                                ExperimentalCollaboratorService experimentalCollaboratorService) {
+    public ExperimentController(BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, ProgramService programService) {
         this.experimentService = experimentService;
         this.experimentQueryMapper = experimentQueryMapper;
         this.programService = programService;
-        this.securityService = securityService;
-        this.programUserService = programUserService;
-        this.experimentalCollaboratorService = experimentalCollaboratorService;
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/export{?queryParams*}")
@@ -65,21 +54,6 @@ public class ExperimentController {
             Optional<Program> program = programService.getById(programId);
             if(program.isEmpty()) {
                 return HttpResponse.notFound();
-            }
-
-            AuthenticatedUser user = securityService.getUser();
-            Optional<ProgramUser> programUser = programUserService.getProgramUserbyId(programId, user.getId());
-            if (programUser.isEmpty()) {
-                return HttpResponse.notFound();
-            }
-            boolean isExperimentalCollaborator = programUser.get().getRoles().stream().anyMatch(x -> ProgramSecuredRole.getEnum(x.getDomain()).equals(ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR));
-            // If the programUser is an experimental collaborator, ensure they're authorized to access the experiment.
-            if (isExperimentalCollaborator) {
-                if (!experimentalCollaboratorService.isAuthorized(programUser.get().getId(), experimentId)){
-                    log.debug("Experimental Collaborator {} tried to access experiment {} - FORBIDDEN.", programUser.get().getId(), experimentId);
-                    return HttpResponse.status(HttpStatus.FORBIDDEN);
-                }
-                log.debug("Experimental Collaborator {} tried to access experiment {} - OK.", programUser.get().getId(), experimentId);
             }
 
             // if a list of environmentIds are sent, return multiple files (zipped),
