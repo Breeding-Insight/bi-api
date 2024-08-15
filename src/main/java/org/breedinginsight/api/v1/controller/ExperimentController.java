@@ -10,16 +10,20 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.ProgramSecured;
+import org.breedinginsight.api.auth.ProgramSecuredRole;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.SubEntityDatasetRequest;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
+import org.breedinginsight.dao.db.tables.pojos.ExperimentProgramUserRoleEntity;
 import org.breedinginsight.model.Dataset;
 import org.breedinginsight.model.DatasetMetadata;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ExperimentalCollaboratorService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
@@ -38,12 +42,14 @@ public class ExperimentController {
     private final BrAPITrialService experimentService;
     private final ExperimentQueryMapper experimentQueryMapper;
     private final ProgramService programService;
+    private final ExperimentalCollaboratorService experimentalCollaboratorService;
 
     @Inject
-    public ExperimentController(BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, ProgramService programService) {
+    public ExperimentController(BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, ProgramService programService, ExperimentalCollaboratorService experimentalCollaboratorService) {
         this.experimentService = experimentService;
         this.experimentQueryMapper = experimentQueryMapper;
         this.programService = programService;
+        this.experimentalCollaboratorService = experimentalCollaboratorService;
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/export{?queryParams*}")
@@ -145,6 +151,120 @@ public class ExperimentController {
 
         Response<List<DatasetMetadata>> response = new Response(experimentService.getDatasetsMetadata(programOptional.get(), experimentId));
         return HttpResponse.ok(response);
+
+    }
+
+    /**
+     * Adds a record to the experiment_program_user_role table
+     * @param programId
+     * @param experimentId
+     * @param userId the UUID of the experimental collaborator
+     */
+    @Post("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/collaborators")
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
+    @Produces(MediaType.APPLICATION_JSON)
+    public HttpResponse<Response<ExperimentProgramUserRoleEntity>> createExperimentalCollaborator(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("experimentId") UUID experimentId,
+            @Body @Valid UUID userId
+    ) {
+        try {
+            Optional<Program> programOptional = programService.getById(programId);
+            if (programOptional.isEmpty()) {
+                return HttpResponse.status(HttpStatus.NOT_FOUND, "Program does not exist");
+            }
+            //todo clarify body
+            //userId for downstream method the user creating
+            //programUserRoleId the experimental collaborator
+
+            //AuthenticatedUser actingUser = securityService.getUser();
+
+            UUID programUserRoleId = userId;
+
+            Response<ExperimentProgramUserRoleEntity> response = new Response(experimentalCollaboratorService.createExperimentalCollaborator(programUserRoleId,experimentId,userId));
+            return HttpResponse.ok(response);
+        } catch (Exception e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        }
+
+    }
+
+    /**
+     * Returns an array of collaborators for given experiment filterable using the active query parameter
+     * @param programId
+     * @param experimentId
+     * @param active
+     */
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/collaborators?active=true/false")
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
+    @Produces(MediaType.APPLICATION_JSON)
+    public HttpResponse<Response<List<ExperimentProgramUserRoleEntity>>> getExperimentalCollaborators(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("experimentId") UUID experimentId,
+            @QueryValue(defaultValue = "true") Boolean active
+    ) {
+    //todo confirm what default of active should be/if there should be a default
+
+        try {
+            Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
+            Response<List<ExperimentProgramUserRoleEntity>> response = new Response(experimentalCollaboratorService.getExperimentalCollaborators(experimentId));
+            //todo filter by program and active
+            return HttpResponse.ok(response);
+        } catch (Exception e) {
+            log.info(e.getMessage(), e);
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "todo").contentType(MediaType.TEXT_PLAIN).body("todo");
+            return response;
+        }
+         /*
+            active = true: program users with the Experimental Collaborator role who have been added as a collaborator to this experiment
+
+            active = false: program users with the Experimental Collaborator role who have not been added as a collaborator to this experiment
+
+        Includes name and email as a convenience to the front end to avoid making another api call
+
+Response:
+[
+    {
+        "id": UUID,
+        "active": Boolean,
+        "userId": UUID,
+        "name": String,
+        "email": String
+    },
+    {
+        "id": UUID,
+        "active": Boolean,
+        "userId": UUID,
+        "name": String,
+        "email": String
+    }
+]
+     */
+
+    }
+
+    /**
+     * Removes record from experiment_program_user_role table
+     * @param programId
+     * @param experimentId
+     * @param collaboratorId
+     */
+    @Delete("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/collaborators/{collaboratorId}")
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
+    @Produces(MediaType.APPLICATION_JSON)
+    public HttpResponse deleteExperimentalCollaborator(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("experimentId") UUID experimentId,
+            @PathVariable("collaboratorId") UUID collaboratorId
+    ) {
+        try {
+            experimentalCollaboratorService.deleteExperimentalCollaborator(collaboratorId);
+            return HttpResponse.ok();
+        } catch (Exception e) {
+            log.error("Error deleting experimental collaborator.\n\tprogramId: " + programId +  "\n\texperimentId: " + experimentId + "\n\tcollaboratorId: " + collaboratorId);
+            throw e;
+        }
 
     }
 }
