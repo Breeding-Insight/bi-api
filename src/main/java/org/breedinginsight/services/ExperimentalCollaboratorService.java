@@ -37,8 +37,8 @@ public class ExperimentalCollaboratorService {
         this.experimentalCollaboratorDAO = experimentalCollaboratorDAO;
     }
 
-    public ExperimentProgramUserRoleEntity createExperimentalCollaborator(UUID programUserRoleId, UUID experimentId, UUID userId) {
-        return this.experimentalCollaboratorDAO.create(experimentId, programUserRoleId, userId);
+    public ExperimentProgramUserRoleEntity createExperimentalCollaborator(UUID programUserRoleId, UUID experimentId, UUID createdByUserId) {
+        return this.experimentalCollaboratorDAO.create(experimentId, programUserRoleId, createdByUserId);
     }
 
     public List<ExperimentProgramUserRoleEntity> getExperimentalCollaborators(UUID experimentId) {
@@ -47,7 +47,7 @@ public class ExperimentalCollaboratorService {
     }
 
     public void deleteExperimentalCollaborator(UUID collaboratorId) {
-        // Note: collaboratorId is the PK of the experiment_program_user_role table.
+        // Note: collaboratorId is the primary key of the experiment_program_user_role table.
         this.experimentalCollaboratorDAO.deleteById(collaboratorId);
     }
 }
