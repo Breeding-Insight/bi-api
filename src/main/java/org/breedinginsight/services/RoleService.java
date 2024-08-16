@@ -17,6 +17,9 @@
 
 package org.breedinginsight.services;
 
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.dao.db.tables.daos.RoleDao;
 import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
@@ -64,6 +67,15 @@ public class RoleService {
             roles.add(new Role(roleEntity));
         }
         return roles;
+    }
+
+    public Optional<Role> getRoleByDomain(String domain) {
+        RoleEntity role = dao.fetchByDomain(domain).get(0);
+        if (role == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new Role(role));
     }
 
 }
