@@ -24,6 +24,8 @@ import org.breedinginsight.dao.db.tables.pojos.ExperimentProgramUserRoleEntity;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.ExperimentalCollaboratorService;
 import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.ProgramUserService;
+import org.breedinginsight.services.RoleService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
@@ -44,14 +46,18 @@ public class ExperimentController {
     private final ProgramService programService;
     private final ExperimentalCollaboratorService experimentalCollaboratorService;
     private final SecurityService securityService;
+    private final ProgramUserService programUserService;
+    private final RoleService roleService;
 
     @Inject
-    public ExperimentController(BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, ProgramService programService, ExperimentalCollaboratorService experimentalCollaboratorService, SecurityService securityService) {
+    public ExperimentController(BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, ProgramService programService, ExperimentalCollaboratorService experimentalCollaboratorService, SecurityService securityService, ProgramUserService programUserService, RoleService roleService) {
         this.experimentService = experimentService;
         this.experimentQueryMapper = experimentQueryMapper;
         this.programService = programService;
         this.experimentalCollaboratorService = experimentalCollaboratorService;
         this.securityService = securityService;
+        this.programUserService = programUserService;
+        this.roleService = roleService;
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/export{?queryParams*}")
@@ -209,27 +215,40 @@ public class ExperimentController {
     //todo confirm what default of active should be/if there should be a default
 
         try {
-            Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
+            //Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
 
             //Get experimental collaborators associated with the experiment
             List<ExperimentProgramUserRoleEntity> collaborators = experimentalCollaboratorService.getExperimentalCollaborators(experimentId);
 
-            //Get all program users with experimental collaborator role
-            //List<ProgramUser> collabRoleUsers = programService.
+            //Get roleId for experimental collaborator role
+            Role experimentalCollabRole = roleService.getRoleByDomain(ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR.toString()).get();
+            UUID roleId = experimentalCollabRole.getId();
 
-            if (active){
-                //return users with experimental collaborator role associated with this experiment
-            } else {
-                //return users with experimental collaborator role NOT associated with this experiment
+            //Get all program users with experimental collaborator role
+            List<ProgramUser> collabRoleUsers = programUserService.getProgramUsersByRole(programId, roleId);
+
+            //let's start with case of finding users not assoc with experiment
+            //need new fancy model maybe
+
+            Boolean isACollaborator = false;
+            for (ProgramUser collabRoleUser : collabRoleUsers) {
+                //if collabRoleUser.getUser().getId();
+                //should be something more efficient, right?
+                if (active){
+                    //return users with experimental collaborator role associated with this experiment
+                } else {
+                    //return users with experimental collaborator role NOT associated with this experiment
+                }
             }
 
-            //may end up needing helper method
+            //wait what *is* response type
+            //model ExperimentalCollaboratorResponse
 
 
-            //Response<List<ExperimentProgramUserRoleEntity>> response = new Response(experimentalCollaboratorService.getExperimentalCollaborators(experimentId));
+            //biuser has name and email
+            //program_user_role has id, user_id
 
-            //programuserservice, programusers with expcollab role and then could collaborators on experiment
-
+            //experimentProgramUserRoleEntity with some stuff appended on
 
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
