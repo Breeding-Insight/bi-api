@@ -375,7 +375,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
             context.getAppendOverwriteWorkflowContext().setPendingObservationByHash(pendingObservationByHash);
 
             return processNext(context);
-        } catch (DoesNotExistException | ApiException | UnprocessableEntityException | ValidatorException e) {
+        } catch (DoesNotExistException | ApiException | UnprocessableEntityException | ValidatorException | IllegalStateException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);
         }
