@@ -11,6 +11,7 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.*;
+import org.breedinginsight.api.model.v1.request.ExperimentCollaboratorRequest;
 import org.breedinginsight.api.model.v1.request.SubEntityDatasetRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -166,7 +167,7 @@ public class ExperimentController {
      * Adds a record to the experiment_program_user_role table
      * @param programId The UUID of the program
      * @param experimentId The UUID of the experiment
-     * @param programUserRoleId The UUID of the program user
+     * @param programUserId The UUID of the program user
      * @return HttpResponse containing the newly created ExperimentProgramUserRoleEntity
      */
     @Post("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/collaborators")
@@ -175,7 +176,7 @@ public class ExperimentController {
     public HttpResponse<Response<ExperimentProgramUserRoleEntity>> createExperimentalCollaborator(
             @PathVariable("programId") UUID programId,
             @PathVariable("experimentId") UUID experimentId,
-            @Body @Valid UUID programUserRoleId
+            @Body @Valid ExperimentCollaboratorRequest request
     ) {
         try {
             Optional<Program> programOptional = programService.getById(programId);
@@ -186,8 +187,8 @@ public class ExperimentController {
             //get active user creating the collaborator
             AuthenticatedUser createdByUser = securityService.getUser();
             UUID createdByUserId = createdByUser.getId();
-
-            Response<ExperimentProgramUserRoleEntity> response = new Response(experimentalCollaboratorService.createExperimentalCollaborator(programUserRoleId,experimentId,createdByUserId));
+            UUID programUserId = request.getProgramUserId();
+            Response<ExperimentProgramUserRoleEntity> response = new Response(experimentalCollaboratorService.createExperimentalCollaborator(programUserId,experimentId,createdByUserId));
             return HttpResponse.ok(response);
         } catch (Exception e){
             log.info(e.getMessage());

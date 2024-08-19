@@ -8,6 +8,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
@@ -40,7 +41,6 @@ import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.FileUtil;
 import org.jooq.DSLContext;
-import org.junit.Test;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -362,19 +362,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
      *
      * Remove Experimental Collaborator
      *
-     * Get Experimental Collaborators None
-     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
-     *   WHEN no users have been added as experiment collaborators
-     *   AND no program users with Experimental Collaborator role exist in program
-     *   THEN response should be an empty array regardless of active query parameter value
-     *
-     * Get Experimental Collaborators No Active
-     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
-     *   WHEN no users have been added as experiment collaborators
-     *   AND one or more program users with Experimental Collaborator role exist in program
-     *   THEN response should be:
-     *      empty array when active=true
-     *      array with program user when active=false
      *
      * Get Experimental Collaborators Active
      *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
@@ -393,13 +380,37 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
      */
 
     /**
-     *  Get Experimental Collaborators None
-     *      GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
-     *      WHEN no users have been added as experiment collaborators
-     *      AND no program users with Experimental Collaborator role exist in program
-     *      THEN response should be an empty array regardless of active query parameter value
+     * Create Experimental Collaborator Invalid Id
+     *   GIVEN POST /v1/programs/{programId}/experiments/{experimentId}/collaborators
+     *   WHEN an invalid id is passed in the body of the request
+     *   THEN response should be 422 (maybe should be bad request?)
+     */
+    @Test
+    public void postExperimentalCollaboratorsInvalidId() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("programUserId", "f47ac10b-58cc-4372-a567-0e02b2c3d479");
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/collaborators", program.getId().toString(), experimentId), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    /**
+     * Get Experimental Collaborators None
+     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
+     *   WHEN no users have been added as experiment collaborators
+     *   AND no program users with Experimental Collaborator role exist in program
+     *   THEN response should be an empty array regardless of active query parameter value
      *
-     *      test-registered-user has Program Administration role in program
+     *   test-registered-user has Program Administration role in program
      */
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
