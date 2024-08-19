@@ -161,6 +161,12 @@ public class BrAPIStudyDAO {
                                 .collect(Collectors.toList());
     }
 
+    /**
+     * Get a list of studies by a list of BI-assigned experiment UUIDs within a program.
+     * @param experimentIds a list of BI-assigned experiment UUIDs.
+     * @param program the program.
+     * @return a list of BrAPIStudies.
+     */
     public List<BrAPIStudy> getStudiesByExperimentIds(@NotNull Collection<UUID> experimentIds, Program program) throws ApiException {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
