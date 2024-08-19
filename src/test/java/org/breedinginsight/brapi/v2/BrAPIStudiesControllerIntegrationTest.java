@@ -70,9 +70,11 @@ public class BrAPIStudiesControllerIntegrationTest extends BrAPITest {
         this.experimentId = resultTuple.getV2().get(0);
     }
 
+    /**
+    * Tests that studies are filtered for experimental collaborators.
+    */
     @Test
     public void testGetStudiesAsExperimentalCollaborator() {
-        // This test ensures that studies are filtered for experimental collaborators.
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/brapi/v2/studies", program.getId()))
                         .bearerAuth("other-registered-user"),

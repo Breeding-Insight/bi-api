@@ -74,7 +74,7 @@ public class BrAPITrialsControllerIntegrationTest extends BrAPITest {
     }
 
     /**
-    * This test ensures that all trials in a program are returned for a system admin user.
+    * Tests that all trials in a program are returned for a system admin user.
     */
     @Test
     public void testGetTrials() {
@@ -110,9 +110,11 @@ public class BrAPITrialsControllerIntegrationTest extends BrAPITest {
         assert(expIds.contains(experiment2Id));
     }
 
+    /**
+    * Tests that trials are filtered for an experimental collaborator.
+    */
     @Test
     public void testGetTrialsAsExperimentalCollaborator() {
-        // This test ensures that trials are filtered for experimental collaborators.
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/brapi/v2/trials", program.getId()))
                         .bearerAuth("other-registered-user"),
