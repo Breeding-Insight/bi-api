@@ -17,7 +17,9 @@
 
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.data;
 
+import com.github.filosganga.geogson.gson.GeometryAdapterFactory;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Prototype;
@@ -91,7 +93,7 @@ public class OverwrittenData extends VisitedObservationData {
         this.program = program;
         this.fieldValidator = fieldValidator;
         this.observationService = observationService;
-        this.gson = new Gson();
+        this.gson = new GsonBuilder().registerTypeAdapterFactory(new GeometryAdapterFactory()).create();
     }
 
     @Override

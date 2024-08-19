@@ -17,7 +17,9 @@
 
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process;
 
+import com.github.filosganga.geogson.gson.GeometryAdapterFactory;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
@@ -44,11 +46,11 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.data.VisitedObservationData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.validator.field.FieldValidator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationVariableService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.StudyService;
+import org.breedinginsight.brapps.importer.services.processors.experiment.validator.field.FieldValidator;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
@@ -60,12 +62,12 @@ import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
-import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.*;
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.MULTIPLE_EXP_TITLES;
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.TIMESTAMP_PREFIX;
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.TIMESTAMP_REGEX;
 
 @Slf4j
 @Prototype
@@ -96,7 +98,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
         this.brAPIObservationDAO = brAPIObservationDAO;
         this.observationService = observationService;
         this.experimentUtil = experimentUtil;
-        this.gson = new Gson();
+        this.gson = new GsonBuilder().registerTypeAdapterFactory(new GeometryAdapterFactory()).create();
         this.fieldValidator = fieldValidator;
         this.statistic = statistic;
         this.processedDataFactory = processedDataFactory;
@@ -373,7 +375,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
             context.getAppendOverwriteWorkflowContext().setPendingObservationByHash(pendingObservationByHash);
 
             return processNext(context);
-        } catch (DoesNotExistException | ApiException | UnprocessableEntityException | ValidatorException e) {
+        } catch (DoesNotExistException | ApiException | UnprocessableEntityException | ValidatorException | IllegalStateException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);
         }
