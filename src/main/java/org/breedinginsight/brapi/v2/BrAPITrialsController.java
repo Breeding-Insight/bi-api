@@ -78,20 +78,14 @@ public class BrAPITrialsController {
             List<BrAPITrial> experiments = new ArrayList<>();
             log.debug("fetching trials for program: " + programId);
 
-            AuthenticatedUser user = securityService.getUser();
-            Optional<ProgramUser> programUser = programUserService.getProgramUserbyId(programId, user.getId());
-            if (programUser.isEmpty()) {
-                return HttpResponse.notFound();
-            }
-            boolean isExperimentalCollaborator = programUser.get().getRoles().stream().anyMatch(x -> ProgramSecuredRole.getEnum(x.getDomain()).equals(ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR));
-
-            if (isExperimentalCollaborator) {
+            Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
+            // If the program user is an experimental collaborator, filter results.
+            if (experimentalCollaborator.isPresent()) {
                 Optional<Program> program = programService.getById(programId);
                 if (program.isEmpty()) {
                     return HttpResponse.notFound();
                 }
-
-                List<UUID> experimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(programUser.get().getId());
+                List<UUID> experimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
                 experiments = experimentService.getTrialsByExperimentIds(program.get(), experimentIds).stream().peek(this::setDbIds).collect(Collectors.toList());
             } else {
                 experiments = experimentService.getExperiments(programId).stream().peek(this::setDbIds).collect(Collectors.toList());

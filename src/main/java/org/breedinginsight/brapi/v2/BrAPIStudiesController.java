@@ -44,6 +44,7 @@ import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.services.ExperimentalCollaboratorService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.StudyQueryMapper;
@@ -96,20 +97,15 @@ public class BrAPIStudiesController {
             log.debug("fetching studies for program: " + programId);
             List<BrAPIStudy> studies;
 
-            AuthenticatedUser user = securityService.getUser();
-            Optional<ProgramUser> programUser = programUserService.getProgramUserbyId(programId, user.getId());
-            if (programUser.isEmpty()) {
-                return HttpResponse.notFound();
-            }
-            boolean isExperimentalCollaborator = programUser.get().getRoles().stream().anyMatch(x -> ProgramSecuredRole.getEnum(x.getDomain()).equals(ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR));
-
-            if (isExperimentalCollaborator) {
+            Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
+            // If the program user is an experimental collaborator, filter results.
+            if (experimentalCollaborator.isPresent()) {
                 Optional<Program> program = programService.getById(programId);
                 if (program.isEmpty()) {
                     return HttpResponse.notFound();
                 }
 
-                List<UUID> experimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(programUser.get().getId());
+                List<UUID> experimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
                 studies = studyService.getStudiesByExperimentIds(program.get(), experimentIds)
                         .stream()
                         .peek(this::setDbIds)
@@ -131,6 +127,9 @@ public class BrAPIStudiesController {
         } catch (IllegalArgumentException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
