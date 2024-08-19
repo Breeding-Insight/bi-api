@@ -40,6 +40,7 @@ import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.FileUtil;
 import org.jooq.DSLContext;
+import org.junit.Test;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -67,6 +68,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private final List<Map<String, Object>> rows = new ArrayList<>();
     private final List<Column> columns = ExperimentFileColumns.getOrderedColumns();
     private List<Trait> traits;
+    private User testUser;
+    private User otherTestUser;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -101,7 +104,9 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         FannyPack brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
         // Test User
-        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
+        testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
+        otherTestUser = userDAO.getUserByOrcId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
+
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Species
@@ -414,6 +419,48 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         assertEquals(0, data.size());
     }
 
+    /**
+     * Get Experimental Collaborators No Active
+     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
+     *   WHEN no users have been added as experiment collaborators
+     *   AND one or more program users with Experimental Collaborator role exist in program
+     *   THEN response should be:
+     *      empty array when active=true
+     *      array with program user when active=false
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void getExperimentalCollaboratorsNoActive(boolean active) {
+
+        // add a program user with the experimental collaborator role
+        FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+        dsl.execute(securityFp.get("InsertProgramRolesExperimentalCollaborator"), otherTestUser.getId().toString(), program.getId());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/collaborators?active=%s", program.getId().toString(), experimentId, active))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        if (active) {
+            assertEquals(0, data.size());
+        } else {
+            assertEquals(1, data.size());
+            // TODO: check user details
+
+        }
+
+        // delete program user from setup
+        // NOTE: if test fails this may not be run and could impact other tests results
+        dsl.execute(securityFp.get("DeleteProgramUser"), otherTestUser.getId().toString());
+
+    }
 
     private List<Map<String, Object>> buildSubEntityRows(List<Map<String, Object>> topLevelRows, String entityName, int repeatedMeasures) {
         List<Map<String, Object>> plantRows = new ArrayList<>();
