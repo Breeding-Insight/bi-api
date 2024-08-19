@@ -1,6 +1,8 @@
 package org.breedinginsight.model.delta;
 
+import com.github.filosganga.geogson.gson.GeometryAdapterFactory;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import lombok.NonNull;
 
 public abstract class DeltaEntity<T> {
@@ -13,7 +15,7 @@ public abstract class DeltaEntity<T> {
     // Note: do not use @Inject, DeltaEntity<T> are always constructed by DeltaEntityFactory.
     protected DeltaEntity(@NonNull T entity) {
         this.entity = entity;
-        this.gson = new Gson();
+        this.gson = new GsonBuilder().registerTypeAdapterFactory(new GeometryAdapterFactory()).create();
     }
 
     protected T getEntity() {

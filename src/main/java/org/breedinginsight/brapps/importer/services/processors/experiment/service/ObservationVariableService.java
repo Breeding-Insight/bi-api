@@ -20,6 +20,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.servi
 import io.micronaut.http.HttpStatus;
 import org.apache.commons.lang3.StringUtils;
 import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
@@ -69,7 +70,7 @@ public class ObservationVariableService {
         if (varNames.size() != traits.size()) {
             Set<String> missingVarNames = new HashSet<>(varNames);
             missingVarNames.removeAll(traits.stream().map(TraitEntity::getObservationVariableName).collect(Collectors.toSet()));
-            throw new IllegalStateException("Observation variables not found for name(s): " + String.join(ExpImportProcessConstants.COMMA_DELIMITER, missingVarNames));
+            throw new DoesNotExistException(ExperimentUtilities.UNMATCHED_COLUMN + String.join(ExpImportProcessConstants.COMMA_DELIMITER, missingVarNames));
         }
 
         return traits;

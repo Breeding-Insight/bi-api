@@ -75,7 +75,7 @@ public class ObservationUnitService {
             missingIds.removeAll(brapiUnits.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toSet()));
 
             // Throw exception with missing IDs information
-            throw new IllegalStateException("Observation unit not found for unit dbid(s): " + String.join(COMMA_DELIMITER, missingIds));
+            throw new IllegalStateException(ExperimentUtilities.UNMATCHED_COLUMN + String.join(COMMA_DELIMITER, missingIds));
         }
 
         return brapiUnits;
