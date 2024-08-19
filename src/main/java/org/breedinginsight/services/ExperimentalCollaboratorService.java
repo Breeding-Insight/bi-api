@@ -37,12 +37,23 @@ public class ExperimentalCollaboratorService {
         this.experimentalCollaboratorDAO = experimentalCollaboratorDAO;
     }
 
+    /**
+     * Check if an Experimental Collaborator is authorized to access an experiment.
+     * @param programUserRoleId the primary key of a program_user_role record representing an experimental collaborator.
+     * @param experimentId the BI-assigned UUID of an experiment (stored in xref on the BrAPI trial).
+     * @return true if the specified program user is authorized to access the specified experiment.
+     */
     public boolean isAuthorized(UUID programUserRoleId, UUID experimentId) {
         return !experimentalCollaboratorDAO
                 .fetchByProgramUserIdAndExperimentId(programUserRoleId, experimentId)
                 .isEmpty();
     }
 
+    /**
+     * Get the BI-assigned UUIDs of all experiments for which an experimental collaborator has authorization.
+     * @param programUserRoleId the primary key of a program_user_role record representing an experimental collaborator.
+     * @return a list of BI-assigned experiment UUIDs.
+     */
     public List<UUID> getAuthorizedExperimentIds(UUID programUserRoleId) {
         // Get the list of experimentIds associated with the programUserRoleId, empty if the programUserRole is active.
         return experimentalCollaboratorDAO.getExperimentIds(programUserRoleId, true);
