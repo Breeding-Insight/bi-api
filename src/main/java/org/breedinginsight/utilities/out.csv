@@ -1,0 +1,8 @@
+genotype,genotype_uncertainty,plot,plot_uncertainty,height,height_uncertainty,rating,rating_uncertainty,notes,notes_uncertainty
+Apple,FALSE,1001,FALSE,7,FALSE,1,FALSE,Bad germ,FALSE
+Xnana,FALSE,1002,FALSE,8.2,TRUE,2,FALSE,,TRUE
+Clementine,FALSE,1003,FALSE,128,TRUE,1,FALSE,missing,FALSE
+Durian,FALSE,1004,FALSE,8,TRUE,3,FALSE,,TRUE
+Elephant,FALSE,1005,FALSE,6.38,FALSE,4,FALSE,missing,FALSE
+Framboise,FALSE,1006,FALSE,10,FALSE,5,FALSE,,TRUE
+Grapes,FALSE,1007,FALSE,3,FALSE,6,FALSE,NA,FALSE
