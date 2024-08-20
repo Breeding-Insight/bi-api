@@ -14,6 +14,7 @@ import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.ExperimentCollaboratorRequest;
 import org.breedinginsight.api.model.v1.request.SubEntityDatasetRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
+import org.breedinginsight.api.model.v1.response.ExperimentalCollaboratorResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
@@ -29,6 +30,7 @@ import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.RoleService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
 import javax.inject.Inject;
@@ -37,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Controller
@@ -167,7 +170,7 @@ public class ExperimentController {
      * Adds a record to the experiment_program_user_role table
      * @param programId The UUID of the program
      * @param experimentId The UUID of the experiment
-     * @param programUserId The UUID of the program user
+     * @param request ExperimentalCollaboratorRequest containing the UUID of the program user to add as a collaborator to the experiemnt
      * @return HttpResponse containing the newly created ExperimentProgramUserRoleEntity
      */
     @Post("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/collaborators")
@@ -179,9 +182,16 @@ public class ExperimentController {
             @Body @Valid ExperimentCollaboratorRequest request
     ) {
         try {
+            //Check if program exists
             Optional<Program> programOptional = programService.getById(programId);
             if (programOptional.isEmpty()) {
                 return HttpResponse.status(HttpStatus.NOT_FOUND, "Program does not exist");
+            }
+
+            //Check if program user exists
+            Optional<ProgramUser> programUserOptional = programUserService.getProgramUserbyId(programId, request.getProgramUserId());
+            if (programUserOptional.isEmpty()) {
+                return HttpResponse.status(HttpStatus.NOT_FOUND, "Program user does not exist");
             }
 
             //get active user creating the collaborator
@@ -208,7 +218,7 @@ public class ExperimentController {
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/collaborators{?active}")
     @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     @Produces(MediaType.APPLICATION_JSON)
-    public HttpResponse<Response<DataResponse<ExperimentProgramUserRoleEntity>>> getExperimentalCollaborators(
+    public HttpResponse<Response<DataResponse<List<ExperimentalCollaboratorResponse>>>> getExperimentalCollaborators(
             @PathVariable("programId") UUID programId,
             @PathVariable("experimentId") UUID experimentId,
             @QueryValue(defaultValue = "true") Boolean active
@@ -220,6 +230,7 @@ public class ExperimentController {
 
             //Get experimental collaborators associated with the experiment
             List<ExperimentProgramUserRoleEntity> collaborators = experimentalCollaboratorService.getExperimentalCollaborators(experimentId);
+            List<UUID> activeCollaboratorIds = collaborators.stream().map((ExperimentProgramUserRoleEntity::getProgramUserRoleId)).collect(Collectors.toList());
 
             //Get roleId for experimental collaborator role
             Role experimentalCollabRole = roleService.getRoleByDomain(ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR.toString()).get();
@@ -227,29 +238,25 @@ public class ExperimentController {
 
             //Get all program users with experimental collaborator role
             List<ProgramUser> collabRoleUsers = programUserService.getProgramUsersByRole(programId, roleId);
+            List<ExperimentalCollaboratorResponse> collaboratorResponses = new ArrayList<>();
 
-            //let's start with case of finding users not assoc with experiment
-            //need new fancy model maybe
-
-            Boolean isACollaborator = false;
             for (ProgramUser collabRoleUser : collabRoleUsers) {
-                //if collabRoleUser.getUser().getId();
-                //should be something more efficient, right?
-                if (active){
-                    //return users with experimental collaborator role associated with this experiment
-                } else {
-                    //return users with experimental collaborator role NOT associated with this experiment
+                UUID collaboratorId = null;
+                //check if user is an active collaborator for this experiment
+                Boolean isThisExpCollab = activeCollaboratorIds.contains(collabRoleUser.getId());
+
+                //If active, want to retrieve experimental collaborators added to the experiment
+                //If not active, want to retrieve experimental collaborators not added to the experiment
+                if ((active && isThisExpCollab) || (!active && !isThisExpCollab)) {
+                    ExperimentalCollaboratorResponse collabResponse = new ExperimentalCollaboratorResponse();
+                    collabResponse.setActive(active);
+                    collabResponse.setEmail(collabRoleUser.getUser().getEmail());
+                    collabResponse.setName(collabRoleUser.getUser().getName());
+                    collabResponse.setProgramUserId(collabRoleUser.getId());
+                    collabResponse.setCollaboratorId(collaboratorId);
+                    collaboratorResponses.add(collabResponse);
                 }
             }
-
-            //wait what *is* response type
-            //model ExperimentalCollaboratorResponse
-
-
-            //biuser has name and email
-            //program_user_role has id, user_id
-
-            //experimentProgramUserRoleEntity with some stuff appended on
 
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
@@ -257,33 +264,14 @@ public class ExperimentController {
             Pagination pagination = new Pagination(collaborators.size(), collaborators.size(), 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            Response<DataResponse<ExperimentProgramUserRoleEntity>> response = new Response(metadata, new DataResponse<>(collaborators));
+            //todo check response type
+            Response<DataResponse<List<ExperimentalCollaboratorResponse>>> response = new Response(metadata, new DataResponse<>(collaboratorResponses));
             return HttpResponse.ok(response);
         } catch (Exception e) {
             log.info(e.getMessage(), e);
-            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "todo").contentType(MediaType.TEXT_PLAIN).body("todo");
+            HttpResponse response = HttpResponse.serverError();
             return response;
         }
-         /*
-
-Response:
-[
-    {
-        "id": UUID, collaboratorId
-        "active": Boolean,
-        "userId": UUID,programUserId
-        "name": String,
-        "email": String
-    },
-    {
-        "id": UUID,
-        "active": Boolean,
-        "userId": UUID,
-        "name": String,
-        "email": String
-    }
-]
-     */
 
     }
 
