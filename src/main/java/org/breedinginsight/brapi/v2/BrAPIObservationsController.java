@@ -40,7 +40,7 @@ import java.util.UUID;
 public class BrAPIObservationsController {
 
     @Get("/observations")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse observationsGet(@PathVariable("programId") UUID programId,
                                         @Nullable @QueryValue("observationDbId") String observationDbId,
                                         @Nullable @QueryValue("observationUnitDbId") String observationUnitDbId,
@@ -71,14 +71,14 @@ public class BrAPIObservationsController {
     }
 
     @Get("/observations/{observationDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse observationsObservationDbIdGet(@PathVariable("programId") UUID programId,
                                                        @PathVariable("observationDbId") String observationDbId) {
         return HttpResponse.notFound();
     }
 
     @Put("/observations/{observationDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse observationsObservationDbIdPut(@PathVariable("programId") UUID programId,
                                                        @PathVariable("observationDbId") String observationDbId,
                                                        @Body BrAPIObservation body) {
@@ -90,7 +90,7 @@ public class BrAPIObservationsController {
     }
 
     @Post("/observations")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse observationsPost(@PathVariable("programId") UUID programId, @Body List<BrAPIObservation> body) {
         /*
             DO NOT IMPLEMENT - users must create observations via file upload
@@ -100,7 +100,7 @@ public class BrAPIObservationsController {
     }
 
     @Put("/observations")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse observationsPut(@PathVariable("programId") UUID programId, @Body Map<String, BrAPIObservation> body) {
         /*
             DO NOT IMPLEMENT - users must create observations via file upload
@@ -111,7 +111,7 @@ public class BrAPIObservationsController {
 
     @Get("/observations/table")
     @Produces({"application/json", "text/csv", "text/tsv"})
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse observationsTableGet(@PathVariable("programId") UUID programId,
                                              @Nullable @Header("Accept") String accept,
                                              @Nullable @QueryValue("observationUnitDbId") String observationUnitDbId,

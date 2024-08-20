@@ -44,7 +44,8 @@ public class ExperimentController {
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/export{?queryParams*}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ExperimentCollaboratorSecured
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"})
     public HttpResponse<StreamedFile> datasetExport(
             @PathVariable("programId") UUID programId, @PathVariable("experimentId") UUID experimentId,
@@ -72,7 +73,8 @@ public class ExperimentController {
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/dataset/{datasetId}{?stats}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ExperimentCollaboratorSecured
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<Dataset>> getDatasetData(
             @PathVariable("programId") UUID programId,
@@ -99,7 +101,7 @@ public class ExperimentController {
      * @return An HttpResponse with a Response object containing the newly created Dataset.
      */
     @Post("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/dataset")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<Dataset>> createSubEntityDataset(
             @PathVariable("programId") UUID programId,
@@ -129,7 +131,8 @@ public class ExperimentController {
      * @throws ApiException if an error occurs while retrieving the datasets.
      */
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/datasets")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ExperimentCollaboratorSecured
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<List<DatasetMetadata>>> getDatasets(
             @PathVariable("programId") UUID programId,

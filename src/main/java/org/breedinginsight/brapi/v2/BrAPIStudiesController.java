@@ -89,7 +89,8 @@ public class BrAPIStudiesController {
 
     @Get("/studies{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured( roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN
+            ,ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR} )
     public HttpResponse<Response<DataResponse<List<BrAPIStudy>>>> getStudies(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = StudyQueryMapper.class) @Valid StudyQuery queryParams) {
@@ -134,14 +135,14 @@ public class BrAPIStudiesController {
     }
 
     @Post("/studies")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse studiesPost(@PathVariable("programId") UUID programId, @Body List<BrAPIStudy> body) {
         //DO NOT IMPLEMENT - Users are only able to create new studies via the DeltaBreed UI
         return HttpResponse.notFound();
     }
 
     @Get("/studies/{studyDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIStudySingleResponse> studiesStudyDbIdGet(@PathVariable("programId") UUID programId, @PathVariable("studyDbId") String environmentId) {
         Optional<Program> program = programService.getById(programId);
         if(program.isEmpty()) {
@@ -165,7 +166,7 @@ public class BrAPIStudiesController {
     }
 
     @Put("/studies/{studyDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse studiesStudyDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("studyDbId") String studyDbId,
                                             @Body BrAPIStudy body) {
         //DO NOT IMPLEMENT - Users are only able to update studies via the DeltaBreed UI

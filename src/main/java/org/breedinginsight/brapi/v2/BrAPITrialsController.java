@@ -42,6 +42,8 @@ import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.services.ExperimentalCollaboratorService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
+import org.breedinginsight.model.ProgramUser;
+import org.breedinginsight.model.Role;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.ResponseUtils;
@@ -87,7 +89,8 @@ public class BrAPITrialsController {
 
     @Get("/trials{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN
+            ,ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR })
     public HttpResponse<Response<DataResponse<List<BrAPITrial>>>> getExperiments(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = ExperimentQueryMapper.class) @Valid ExperimentQuery queryParams) {
@@ -121,7 +124,8 @@ public class BrAPITrialsController {
 
     @Get("/trials/{trialId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ExperimentCollaboratorSecured
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPITrialSingleResponse> getExperimentById(
             @PathVariable("programId") UUID programId,
             @PathVariable("trialId") UUID trialId,
@@ -142,7 +146,7 @@ public class BrAPITrialsController {
     }
 
     @Post("/trials")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> trialsPost(@PathVariable("programId") UUID programId, @Body List<BrAPITrial> body) {
         //DO NOT IMPLEMENT - Users are only able to create new trials via the DeltaBreed UI
         return HttpResponse.notFound();
@@ -150,7 +154,7 @@ public class BrAPITrialsController {
 
 
     @Put("/trials/{trialDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> trialsTrialDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("trialDbId") String trialDbId, @Body BrAPITrial body) {
         //DO NOT IMPLEMENT - Users are only able to update trials via the DeltaBreed UI
         return HttpResponse.notFound();
@@ -166,5 +170,4 @@ public class BrAPITrialsController {
 
         //TODO update locationDbId
     }
-
 }
