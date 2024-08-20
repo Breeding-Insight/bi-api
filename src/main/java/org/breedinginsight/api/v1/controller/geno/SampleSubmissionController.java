@@ -74,7 +74,7 @@ public class SampleSubmissionController {
 
     @Get("programs/{programId}/submissions")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = ProgramSecuredRoleGroup.ALL)
+    @ProgramSecured(roleGroups = ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES)
     public HttpResponse<Response<DataResponse<SampleSubmission>>> getProgramSampleSubmissions(@PathVariable UUID programId) {
         Optional<Program> program = programService.getById(programId);
         if(program.isEmpty()) {
@@ -91,7 +91,7 @@ public class SampleSubmissionController {
 
     @Get("programs/{programId}/submissions/{submissionId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = ProgramSecuredRoleGroup.ALL)
+    @ProgramSecured(roleGroups = ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES)
     public HttpResponse<Response<SampleSubmission>> getSubmissionById(@PathVariable UUID programId, @PathVariable UUID submissionId, @QueryValue(value = "details", defaultValue = "false") @Nullable Boolean fetchDetails) {
         Optional<Program> program = programService.getById(programId);
         if(program.isEmpty()) {
@@ -157,7 +157,7 @@ public class SampleSubmissionController {
 
 
     @Get("/programs/{programId}/submissions/{submissionId}/dart")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"})
     public HttpResponse<StreamedFile> generateDArTFile(@PathVariable UUID programId, @PathVariable UUID submissionId) {
         try {
@@ -184,7 +184,7 @@ public class SampleSubmissionController {
     }
 
     @Get("/programs/{programId}/submissions/{submissionId}/lookup")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"})
     public HttpResponse<StreamedFile> generateLookupFile(@PathVariable UUID programId, @PathVariable UUID submissionId) {
         try {

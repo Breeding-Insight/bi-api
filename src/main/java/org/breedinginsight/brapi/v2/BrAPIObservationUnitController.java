@@ -67,7 +67,7 @@ public class BrAPIObservationUnitController {
     }
 
     @Get("/observationunits")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIObservationUnitListResponse> observationunitsGet(@PathVariable("programId") UUID programId,
                                                @Nullable @QueryValue("observationUnitDbId") String observationUnitDbId,
                                                @Nullable @QueryValue("observationUnitName") String observationUnitName,
@@ -147,7 +147,7 @@ public class BrAPIObservationUnitController {
     }
 
     @Get("/observationunits/{observationUnitDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIObservationUnitSingleResponse> observationunitsObservationUnitDbIdGet(@PathVariable("programId") UUID programId, @PathVariable("observationUnitDbId") String observationUnitDbId) {
         log.debug("observationunitsObservationUnitDbIdGet: fetching ou by externalReferenceId: " + observationUnitDbId);
         Optional<Program> program = programService.getById(programId);
@@ -175,21 +175,21 @@ public class BrAPIObservationUnitController {
     }
 
     @Put("/observationunits/{observationUnitDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> observationunitsObservationUnitDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("observationUnitDbId") String observationUnitDbId, @Body BrAPIObservationUnit body) {
         //DO NOT IMPLEMENT - Users aren't yet able to update observation units
         return HttpResponse.notFound();
     }
 
     @Post("/observationunits")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> observationunitsPost(@PathVariable("programId") UUID programId, @Body List<BrAPIObservationUnit> body) {
         //DO NOT IMPLEMENT - Users are only able to create observation units via the DeltaBreed UI
         return HttpResponse.notFound();
     }
 
     @Put("/observationunits")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> observationunitsPut(@PathVariable("programId") UUID programId, @Body Map<String, BrAPIObservationUnit> body) {
         //DO NOT IMPLEMENT - Users aren't yet able to update observation units
         return HttpResponse.notFound();
@@ -197,7 +197,7 @@ public class BrAPIObservationUnitController {
 
     @Get("/observationunits/table")
     @Produces({"application/json", "text/csv", "text/tsv"})
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> observationunitsTableGet(@PathVariable("programId") UUID programId,
                                                     @Nullable @Header("Accept") String accept,
                                                     @Nullable @QueryValue("observationUnitDbId") String observationUnitDbId,

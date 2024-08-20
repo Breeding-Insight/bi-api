@@ -67,7 +67,7 @@ public class BrAPIListController {
     //@Get(BrapiVersion.BRAPI_V2 + "/lists")
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/lists{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<Object>>> getLists(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = ListQueryMapper.class) @Valid ListQuery queryParams
