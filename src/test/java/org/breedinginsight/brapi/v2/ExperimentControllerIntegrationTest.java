@@ -589,7 +589,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             assertEquals(1, data.size());
         } else {
             assertEquals(0, data.size());
-            // TODO: check user details
         }
 
         // cleanup - delete collaborator
