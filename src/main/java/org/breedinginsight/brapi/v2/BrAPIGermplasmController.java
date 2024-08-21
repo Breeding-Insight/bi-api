@@ -76,7 +76,7 @@ public class BrAPIGermplasmController {
     // TODO: expand to fully support BrAPI request body.
     @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> searchGermplasm(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid BrapiQuery queryParams,
@@ -95,7 +95,7 @@ public class BrAPIGermplasmController {
 
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> getGermplasm(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid GermplasmQuery queryParams) {
@@ -122,7 +122,7 @@ public class BrAPIGermplasmController {
 
     @Get("/programs/{programId}/germplasm/lists/{listDbId}/records{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> getGermplasmListRecords(
         @PathVariable("programId") UUID programId,
         @PathVariable("listDbId") String listDbId,
@@ -139,7 +139,7 @@ public class BrAPIGermplasmController {
 
     @Get("/programs/{programId}/germplasm/lists/{listDbId}/export{?fileExtension}")
     @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<StreamedFile> germplasmListExport(
             @PathVariable("programId") UUID programId, @PathVariable("listDbId") String listDbId, @QueryValue(defaultValue = "XLSX") String fileExtension) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
@@ -159,7 +159,7 @@ public class BrAPIGermplasmController {
 
     @Get("/programs/{programId}/germplasm/export{?fileExtension}")
     @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<StreamedFile> germplasmExport(
             @PathVariable("programId") UUID programId, @QueryValue(defaultValue = "XLSX") String fileExtension) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
@@ -178,7 +178,7 @@ public class BrAPIGermplasmController {
 
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<BrAPIGermplasm>> getSingleGermplasm(
             @PathVariable("programId") UUID programId,
             @PathVariable("germplasmId") String germplasmId) {
@@ -197,7 +197,7 @@ public class BrAPIGermplasmController {
 
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}/pedigree{?notation}{?includeSiblings}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIGermplasmPedigreeResponse> getGermplasmPedigreeInfo(
             @PathVariable("programId") UUID programId,
             @PathVariable("germplasmId") String germplasmId,
@@ -282,7 +282,7 @@ public class BrAPIGermplasmController {
 
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}/progeny")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIGermplasmProgenyResponse> getGermplasmProgenyInfo(
             @PathVariable("programId") UUID programId,
             @PathVariable("germplasmId") String germplasmId) {
@@ -346,7 +346,7 @@ public class BrAPIGermplasmController {
 
     @Get("/programs/{programId}/germplasm/{germplasmId}/genotype")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<GermplasmGenotype>> getGermplasmGenotype(@PathVariable("programId") UUID programId,
                                                                           @PathVariable("germplasmId") String germplasmId) {
 

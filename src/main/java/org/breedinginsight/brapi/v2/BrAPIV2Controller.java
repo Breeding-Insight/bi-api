@@ -30,10 +30,7 @@ import okhttp3.*;
 import org.brapi.v2.model.core.BrAPIServerInfo;
 import org.brapi.v2.model.core.BrAPIService;
 import org.brapi.v2.model.core.response.BrAPIServerInfoResponse;
-import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.auth.ProgramSecured;
-import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
-import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.auth.*;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
@@ -170,7 +167,7 @@ public class BrAPIV2Controller {
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> getCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<String> request) {
         return executeRequest(path, programId, request, "GET");
     }
@@ -178,7 +175,7 @@ public class BrAPIV2Controller {
     @Post("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Consumes(MediaType.ALL)
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<String> postCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<byte[]> request,
                                              @Header("Content-Type") String contentType) {
         return executeByteRequest(path, programId, request, contentType, "POST");
@@ -187,7 +184,7 @@ public class BrAPIV2Controller {
     @Put("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Consumes(MediaType.ALL)
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<String> putCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<byte[]> request,
                                             @Header("Content-Type") String contentType) {
         return executeByteRequest(path, programId, request, contentType, "PUT");

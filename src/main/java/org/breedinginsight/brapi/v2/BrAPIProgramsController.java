@@ -126,7 +126,7 @@ public class BrAPIProgramsController {
 
     //START - endpoints for within the context of a program
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIProgramListResponse> programsGet(@PathVariable("programId") UUID programId,
                                     @QueryValue("abbreviation") Optional<String> abbreviation,
                                     @QueryValue("programType") Optional<String> programType,
@@ -153,14 +153,14 @@ public class BrAPIProgramsController {
     }
 
     @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> programsPost(@PathVariable("programId") UUID programId, @Body List<BrAPIProgram> body) {
         //DO NOT IMPLEMENT - Users should only be able to create new programs via the DeltaBreed UI
         return HttpResponse.notFound();
     }
 
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs/{programDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIProgramSingleResponse> programsProgramDbIdGet(@PathVariable("programId") UUID programId, @PathVariable("programDbId") String programDbId) {
         Optional<BrAPIProgram> program = programService.getById(programId)
                                                        .stream()
@@ -172,7 +172,7 @@ public class BrAPIProgramsController {
     }
 
     @Put("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs/{programDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> programsProgramDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("programDbId") String programDbId, @Body BrAPIProgram body) {
         //DO NOT IMPLEMENT - Users should only be able to update programs via the DeltaBreed UI
         return HttpResponse.notFound();

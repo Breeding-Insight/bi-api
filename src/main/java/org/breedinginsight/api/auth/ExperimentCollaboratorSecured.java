@@ -17,18 +17,13 @@
 
 package org.breedinginsight.api.auth;
 
-import java.util.List;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public enum ProgramSecuredRoleGroup {
-    PROGRAM_SCOPED_ROLES(List.of(ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN));
-
-    private List<ProgramSecuredRole> programRoles;
-
-    ProgramSecuredRoleGroup(List<ProgramSecuredRole> programRoles) {
-        this.programRoles = programRoles;
-    }
-
-    public List<ProgramSecuredRole> getProgramRoles() {
-        return programRoles;
-    }
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface ExperimentCollaboratorSecured {
+    //The only role is EXPERIMENTAL_COLLABORATOR
 }
