@@ -40,6 +40,8 @@ public class ExperimentalCollaboratorResponse {
     private String name;
     @NotNull
     private String email;
+    @NotNull
+    private UUID userId;
     //todo determine notblank vs notnull
 
 }

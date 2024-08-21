@@ -170,7 +170,7 @@ public class ExperimentController {
      * Adds a record to the experiment_program_user_role table
      * @param programId The UUID of the program
      * @param experimentId The UUID of the experiment
-     * @param request ExperimentalCollaboratorRequest containing the UUID of the program user to add as a collaborator to the experiemnt
+     * @param request ExperimentalCollaboratorRequest containing the UUID of the bi user to add as a collaborator to the experiemnt
      * @return HttpResponse containing the newly created ExperimentProgramUserRoleEntity
      */
     @Post("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/collaborators")
@@ -189,15 +189,15 @@ public class ExperimentController {
             }
 
             //Check if program user exists
-            Optional<ProgramUser> programUserOptional = programUserService.getProgramUserbyId(programId, request.getProgramUserId());
+            Optional<ProgramUser> programUserOptional = programUserService.getProgramUserbyId(programId, request.getUserId());
             if (programUserOptional.isEmpty()) {
                 return HttpResponse.status(HttpStatus.NOT_FOUND, "Program user does not exist");
             }
-
+            
             //get active user creating the collaborator
             AuthenticatedUser createdByUser = securityService.getUser();
+            UUID programUserId = programUserOptional.get().getId();
             UUID createdByUserId = createdByUser.getId();
-            UUID programUserId = request.getProgramUserId();
             Response<ExperimentProgramUserRoleEntity> response = new Response(experimentalCollaboratorService.createExperimentalCollaborator(programUserId,experimentId,createdByUserId));
             return HttpResponse.ok(response);
         } catch (Exception e){
@@ -244,6 +244,9 @@ public class ExperimentController {
                 UUID collaboratorId = null;
                 //check if user is an active collaborator for this experiment
                 Boolean isThisExpCollab = activeCollaboratorIds.contains(collabRoleUser.getId());
+                if (isThisExpCollab) {
+                    collaboratorId = collaborators.get(activeCollaboratorIds.indexOf(collabRoleUser.getId())).getId(); //todo may implement in cleaner manner
+                }
 
                 //If active, want to retrieve experimental collaborators added to the experiment
                 //If not active, want to retrieve experimental collaborators not added to the experiment
@@ -252,7 +255,8 @@ public class ExperimentController {
                     collabResponse.setActive(active);
                     collabResponse.setEmail(collabRoleUser.getUser().getEmail());
                     collabResponse.setName(collabRoleUser.getUser().getName());
-                    collabResponse.setProgramUserId(collabRoleUser.getId());
+                    collabResponse.setProgramUserId(collabRoleUser.getId()); //todo see if this can be fully removed
+                    collabResponse.setUserId(collabRoleUser.getUserId());
                     collabResponse.setCollaboratorId(collaboratorId);
                     collaboratorResponses.add(collabResponse);
                 }

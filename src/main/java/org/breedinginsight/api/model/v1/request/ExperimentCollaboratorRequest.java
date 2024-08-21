@@ -15,5 +15,5 @@ import java.util.UUID;
 @Introspected
 public class ExperimentCollaboratorRequest {
     @NotBlank
-    private UUID programUserId;
+    private UUID userId;
 }
