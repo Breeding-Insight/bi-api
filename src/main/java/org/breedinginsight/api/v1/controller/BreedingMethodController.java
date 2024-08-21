@@ -85,7 +85,7 @@ public class BreedingMethodController {
     @Get("programs/{programId}/breeding-methods{?inUse}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<ProgramBreedingMethodEntity>>> getProgramBreedingMethods(@PathVariable UUID programId, @QueryValue(defaultValue = "false") Boolean inUse) {
         log.debug(String.format("fetching breeding methods for program: %s", programId));
 

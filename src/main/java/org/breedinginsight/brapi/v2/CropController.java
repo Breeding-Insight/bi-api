@@ -58,7 +58,7 @@ public class CropController {
      */
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/commoncropnames")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<org.breedinginsight.api.model.v1.response.Response<DataResponse<List<String>>>> getCommonCropNames(
             @PathVariable("programId") UUID programId) {
 

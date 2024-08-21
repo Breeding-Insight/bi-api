@@ -59,7 +59,7 @@ public class JobController {
     @Get("programs/{programId}/jobs")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<Job>>> getProgramJobs(@PathVariable UUID programId) {
         log.debug(String.format("fetching jobs for program: %s", programId));
         try {
