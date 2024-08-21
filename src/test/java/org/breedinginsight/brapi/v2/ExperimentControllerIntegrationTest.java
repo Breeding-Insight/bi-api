@@ -660,11 +660,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
 
-        if (active) {
-            assertEquals(0, data.size());
-        } else {
-            assertEquals(0, data.size());
-        }
+        // should be empty regardless of active query parameter value
+        assertEquals(0, data.size());
 
         // cleanup - remove collaborator
         call = client.exchange(
