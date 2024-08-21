@@ -368,14 +368,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
      *
      * TODO
      *
-     * Get Experimental Collaborators Active
-     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
-     *   WHEN program user has been added to experiment as collaborator
-     *   AND program user with Experimental Collaborator role exists in program
-     *   THEN response should be:
-     *      array with program user when active=true
-     *      empty array when active=false
-     *
      * Get Experimental Collaborators Deactivated from Program
      *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
      *   WHEN program user has been added to experiment as collaborator
@@ -442,7 +434,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         Assertions.assertNotEquals(null, id);
 
         // check count = 1
-
         call = client.exchange(
                 GET(String.format("/programs/%s/experiments/%s/collaborators?active=true", program.getId().toString(), experimentId))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -457,7 +448,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         assertEquals(1, data.size());
 
         // now delete
-
         call = client.exchange(
                 DELETE(String.format("/programs/%s/experiments/%s/collaborators/%s", program.getId().toString(), experimentId, id))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -468,7 +458,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.OK, response.getStatus());
 
         // check count = 0
-
         call = client.exchange(
                 GET(String.format("/programs/%s/experiments/%s/collaborators?active=true", program.getId().toString(), experimentId))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -481,6 +470,10 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         data = result.getAsJsonArray("data");
         assertEquals(0, data.size());
+
+        // clean up
+        programUserDAO.deleteProgramUserRoles(program.getId(), otherTestUser.getId());
+
     }
 
     /**
@@ -551,6 +544,74 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         // NOTE: if test fails this may not be run and could impact other tests results
         dsl.execute(securityFp.get("DeleteProgramUser"), otherTestUser.getId().toString());
 
+    }
+
+    /**
+     * Get Experimental Collaborators Active
+     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
+     *   WHEN program user has been added to experiment as collaborator
+     *   AND program user with Experimental Collaborator role exists in program
+     *   THEN response should be:
+     *      array with program user when active=true
+     *      empty array when active=false
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void getExperimentalCollaboratorsActive(boolean active) {
+        // add a program user with the experimental collaborator role
+        FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+        dsl.execute(securityFp.get("InsertProgramRolesExperimentalCollaborator"), otherTestUser.getId().toString(), program.getId());
+
+        // add user as experimental collaborator
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("userId", otherTestUser.getId().toString());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/collaborators", program.getId().toString(), experimentId), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String id = result.get("id").getAsString();
+        Assertions.assertNotEquals(null, id);
+
+        // get experimental collaborators
+        call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/collaborators?active=%s", program.getId().toString(), experimentId, active))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        if (active) {
+            assertEquals(1, data.size());
+        } else {
+            assertEquals(0, data.size());
+            // TODO: check user details
+        }
+
+        // cleanup - delete collaborator
+        call = client.exchange(
+                DELETE(String.format("/programs/%s/experiments/%s/collaborators/%s", program.getId().toString(), experimentId, id))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // delete program user from setup
+        // NOTE: if test fails this may not be run and could impact other tests results
+        dsl.execute(securityFp.get("DeleteProgramUser"), otherTestUser.getId().toString());
     }
 
     private List<Map<String, Object>> buildSubEntityRows(List<Map<String, Object>> topLevelRows, String entityName, int repeatedMeasures) {

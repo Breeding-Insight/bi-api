@@ -70,6 +70,12 @@ DELETE FROM program_user_role
 WHERE program_user_role.role_id = role.id
   AND role.domain = 'Experimental Collaborator';
 
+-- name: DeleteExperimentalCollaborator
+
+DELETE FROM experiment_program_user_role
+WHERE id = :id:uuid;
+
+
 -- name: DeleteProgramUser
 
 DELETE FROM program_user_role
