@@ -29,7 +29,11 @@ import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.dao.db.enums.DataType;
+import org.breedinginsight.dao.db.tables.daos.RoleDao;
+import org.breedinginsight.dao.db.tables.pojos.ProgramUserRoleEntity;
+import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
+import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
@@ -85,6 +89,10 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private BrAPITrialService experimentService;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
+    @Inject
+    private ProgramUserDAO programUserDAO;
+    @Inject
+    private RoleDao roleDao;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -358,10 +366,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     /**
      * Tests for Experimental Collaborator endpoints
      *
-     * Create Experimental Collaborator
-     *
-     * Remove Experimental Collaborator
-     *
+     * TODO
      *
      * Get Experimental Collaborators Active
      *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
@@ -376,14 +381,13 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
      *   WHEN program user has been added to experiment as collaborator
      *   AND after being added as a collaborator, program user is deactivated from program
      *   THEN response should be empty array regardless of active query parameter value (assumes single user)
-     *
      */
 
     /**
      * Create Experimental Collaborator Invalid Id
      *   GIVEN POST /v1/programs/{programId}/experiments/{experimentId}/collaborators
      *   WHEN an invalid id is passed in the body of the request
-     *   THEN response should be 422 (maybe should be bad request?)
+     *   THEN response should be 404
      */
     @Test
     public void postExperimentalCollaboratorsInvalidId() {
@@ -400,7 +404,83 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
 
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    /**
+     * Create and Delete Experimental Collaborator
+     */
+    @Test
+    public void postAndDeleteExperimentalCollaborator() {
+
+        RoleEntity roleEntity = roleDao.fetchByDomain("Experimental Collaborator").get(0);
+
+        ProgramUserRoleEntity programUserEntity = ProgramUserRoleEntity.builder()
+                .userId(otherTestUser.getId())
+                .programId(program.getId())
+                .roleId(roleEntity.getId())
+                .createdBy(testUser.getId())
+                .updatedBy(testUser.getId())
+                .build();
+
+        programUserDAO.insert(programUserEntity);
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("userId", otherTestUser.getId().toString());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/collaborators", program.getId().toString(), experimentId), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String id = result.get("id").getAsString();
+        Assertions.assertNotEquals(null, id);
+
+        // check count = 1
+
+        call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/collaborators?active=true", program.getId().toString(), experimentId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(1, data.size());
+
+        // now delete
+
+        call = client.exchange(
+                DELETE(String.format("/programs/%s/experiments/%s/collaborators/%s", program.getId().toString(), experimentId, id))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // check count = 0
+
+        call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/collaborators?active=true", program.getId().toString(), experimentId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        data = result.getAsJsonArray("data");
+        assertEquals(0, data.size());
     }
 
     /**
