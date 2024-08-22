@@ -409,6 +409,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 .build();
 
         programUserDAO.insert(programUserEntity);
+        ProgramUser programUser = programUserDAO.getProgramUser(program.getId(), otherTestUser.getId());
 
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("userId", otherTestUser.getId().toString());
@@ -439,6 +440,14 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
         assertEquals(1, data.size());
+        JsonObject collaborator = data.get(0).getAsJsonObject();
+
+        assertNotEquals(collaborator.get("collaboratorId").getAsString(),null, "Expected not null for collaboratorId");
+        assertEquals(collaborator.get("userId").getAsString(), otherTestUser.getId().toString(), "Unexpected userId");
+        assertEquals(collaborator.get("programUserId").getAsString(), programUser.getId().toString(), "Unexpected programUserId");
+        assertEquals(collaborator.get("name").getAsString(), otherTestUser.getName(), "Unexpected name");
+        assertEquals(collaborator.get("email").getAsString(), otherTestUser.getEmail(), "Unexpected email");
+        assertEquals(collaborator.get("active").getAsBoolean(), true, "Unexpected active status");
 
         // now delete
         call = client.exchange(
@@ -531,7 +540,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             assertEquals(0, data.size());
         } else {
             assertEquals(1, data.size());
-            // TODO: check user details
             JsonObject collaborator = data.get(0).getAsJsonObject();
             // Currently not returning key rather than key with null
             //assertEquals(collaborator.get("collaboratorId").getAsString(),null, "Expected null for id");
