@@ -149,7 +149,7 @@ public class ExperimentController {
      * @param experimentId The UUID of the experiment.
      * @return An HttpResponse with a Response object containing a list of DatasetMetadata.
      * @throws DoesNotExistException if the program does not exist.
-     * @throws ApiException if an error occurs while retrieving the datasets.UserId
+     * @throws ApiException if an error occurs while retrieving the datasets
      */
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/datasets")
     @ExperimentCollaboratorSecured
@@ -215,7 +215,7 @@ public class ExperimentController {
      * @param programId The UUID of the program
      * @param experimentId The UUID of the experiment
      * @param active true if querying for collaborators added as a collaborator to the experiment, false if querying for collaborators not added
-     * @return
+     * @return list of ExperimentalCollaboratorResponse
      *  Response includes name and email as a convenience to the front end to avoid making another api call
      */
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/collaborators{?active}")
@@ -255,6 +255,7 @@ public class ExperimentController {
                     collabResponse.setEmail(collabRoleUser.getUser().getEmail());
                     collabResponse.setName(collabRoleUser.getUser().getName());
                     collabResponse.setUserId(collabRoleUser.getUserId());
+                    collabResponse.setProgramUserId(collabRoleUser.getId());
                     collabResponse.setCollaboratorId(collaboratorId);
                     collaboratorResponses.add(collabResponse);
                 }

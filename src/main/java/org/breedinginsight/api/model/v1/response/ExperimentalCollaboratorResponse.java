@@ -31,7 +31,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExperimentalCollaboratorResponse {
-    //is null in case where active=false
+    //collaboratorId is null in case where active=false
     private UUID collaboratorId;
     @NotNull
     private Boolean active;
@@ -41,4 +41,6 @@ public class ExperimentalCollaboratorResponse {
     private String email;
     @NotBlank
     private UUID userId;
+    @NotBlank
+    private UUID programUserId;
 }
