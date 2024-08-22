@@ -513,6 +513,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
         dsl.execute(securityFp.get("InsertProgramRolesExperimentalCollaborator"), otherTestUser.getId().toString(), program.getId());
 
+        ProgramUser programUser = programUserDAO.getProgramUser(program.getId(), otherTestUser.getId());
+
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/experiments/%s/collaborators?active=%s", program.getId().toString(), experimentId, active))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -530,7 +532,14 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         } else {
             assertEquals(1, data.size());
             // TODO: check user details
-
+            JsonObject collaborator = data.get(0).getAsJsonObject();
+            // Currently not returning key rather than key with null
+            //assertEquals(collaborator.get("collaboratorId").getAsString(),null, "Expected null for id");
+            assertEquals(collaborator.get("userId").getAsString(), otherTestUser.getId().toString(), "Unexpected userId");
+            assertEquals(collaborator.get("programUserId").getAsString(), programUser.getId().toString(), "Unexpected programUserId");
+            assertEquals(collaborator.get("name").getAsString(), otherTestUser.getName(), "Unexpected name");
+            assertEquals(collaborator.get("email").getAsString(), otherTestUser.getEmail(), "Unexpected email");
+            assertEquals(collaborator.get("active").getAsBoolean(), false, "Unexpected active status");
         }
 
         // delete program user from setup
