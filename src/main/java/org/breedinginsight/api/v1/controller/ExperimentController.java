@@ -226,11 +226,7 @@ public class ExperimentController {
             @PathVariable("experimentId") UUID experimentId,
             @QueryValue(defaultValue = "true") Boolean active
     ) {
-    //todo confirm what default of active should be/if there should be a default
-
         try {
-            //Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
-
             //Get experimental collaborators associated with the experiment
             List<ExperimentProgramUserRoleEntity> collaborators = experimentalCollaboratorService.getExperimentalCollaborators(experimentId);
             List<UUID> activeCollaboratorIds = collaborators.stream().map((ExperimentProgramUserRoleEntity::getProgramUserRoleId)).collect(Collectors.toList());
@@ -248,7 +244,7 @@ public class ExperimentController {
                 //check if user is an active collaborator for this experiment
                 Boolean isThisExpCollab = activeCollaboratorIds.contains(collabRoleUser.getId());
                 if (isThisExpCollab) {
-                    collaboratorId = collaborators.get(activeCollaboratorIds.indexOf(collabRoleUser.getId())).getId(); //todo may implement in cleaner manner
+                    collaboratorId = collaborators.get(activeCollaboratorIds.indexOf(collabRoleUser.getId())).getId();
                 }
 
                 //If active, want to retrieve experimental collaborators added to the experiment
@@ -258,7 +254,6 @@ public class ExperimentController {
                     collabResponse.setActive(active);
                     collabResponse.setEmail(collabRoleUser.getUser().getEmail());
                     collabResponse.setName(collabRoleUser.getUser().getName());
-                    collabResponse.setProgramUserId(collabRoleUser.getId()); //todo see if this can be fully removed
                     collabResponse.setUserId(collabRoleUser.getUserId());
                     collabResponse.setCollaboratorId(collaboratorId);
                     collaboratorResponses.add(collabResponse);
@@ -271,7 +266,6 @@ public class ExperimentController {
             Pagination pagination = new Pagination(collaborators.size(), collaborators.size(), 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            //todo check response type
             Response<DataResponse<List<ExperimentalCollaboratorResponse>>> response = new Response(metadata, new DataResponse<>(collaboratorResponses));
             return HttpResponse.ok(response);
         } catch (Exception e) {
@@ -298,7 +292,6 @@ public class ExperimentController {
             @PathVariable("collaboratorId") UUID collaboratorId
     ) {
         try {
-            //todo double check this endpoint would be getting the collaboratorId and not the programUserRoleId
             experimentalCollaboratorService.deleteExperimentalCollaborator(collaboratorId);
             return HttpResponse.ok();
         } catch (Exception e) {

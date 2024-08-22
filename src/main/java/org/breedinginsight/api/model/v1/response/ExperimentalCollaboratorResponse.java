@@ -20,6 +20,7 @@ package org.breedinginsight.api.model.v1.response;
 import lombok.*;
 import lombok.experimental.Accessors;
 
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.UUID;
 
@@ -34,14 +35,10 @@ public class ExperimentalCollaboratorResponse {
     private UUID collaboratorId;
     @NotNull
     private Boolean active;
-    @NotNull
-    private UUID programUserId;
-    @NotNull
+    @NotBlank
     private String name;
-    @NotNull
+    @NotBlank
     private String email;
-    @NotNull
+    @NotBlank
     private UUID userId;
-    //todo determine notblank vs notnull
-
 }
