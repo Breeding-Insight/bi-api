@@ -41,6 +41,4 @@ public class ExperimentalCollaboratorResponse {
     private String email;
     @NotBlank
     private UUID userId;
-    @NotBlank
-    private UUID programUserId;
 }

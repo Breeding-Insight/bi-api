@@ -255,7 +255,6 @@ public class ExperimentController {
                     collabResponse.setEmail(collabRoleUser.getUser().getEmail());
                     collabResponse.setName(collabRoleUser.getUser().getName());
                     collabResponse.setUserId(collabRoleUser.getUserId());
-                    collabResponse.setProgramUserId(collabRoleUser.getId());
                     collabResponse.setCollaboratorId(collaboratorId);
                     collaboratorResponses.add(collabResponse);
                 }

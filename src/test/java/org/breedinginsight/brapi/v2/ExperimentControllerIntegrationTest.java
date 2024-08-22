@@ -444,7 +444,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         assertNotEquals(collaborator.get("collaboratorId").getAsString(),null, "Expected not null for collaboratorId");
         assertEquals(collaborator.get("userId").getAsString(), otherTestUser.getId().toString(), "Unexpected userId");
-        assertEquals(collaborator.get("programUserId").getAsString(), programUser.getId().toString(), "Unexpected programUserId");
         assertEquals(collaborator.get("name").getAsString(), otherTestUser.getName(), "Unexpected name");
         assertEquals(collaborator.get("email").getAsString(), otherTestUser.getEmail(), "Unexpected email");
         assertEquals(collaborator.get("active").getAsBoolean(), true, "Unexpected active status");
@@ -541,10 +540,9 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         } else {
             assertEquals(1, data.size());
             JsonObject collaborator = data.get(0).getAsJsonObject();
-            // Currently not returning key rather than key with null
-            //assertEquals(collaborator.get("collaboratorId").getAsString(),null, "Expected null for id");
+            // Currently not returning key rather than key with null todo check
+            assertEquals(collaborator.get("collaboratorId").getAsString(),null, "Expected null for id");
             assertEquals(collaborator.get("userId").getAsString(), otherTestUser.getId().toString(), "Unexpected userId");
-            assertEquals(collaborator.get("programUserId").getAsString(), programUser.getId().toString(), "Unexpected programUserId");
             assertEquals(collaborator.get("name").getAsString(), otherTestUser.getName(), "Unexpected name");
             assertEquals(collaborator.get("email").getAsString(), otherTestUser.getEmail(), "Unexpected email");
             assertEquals(collaborator.get("active").getAsBoolean(), false, "Unexpected active status");
