@@ -540,9 +540,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         } else {
             assertEquals(1, data.size());
             JsonObject collaborator = data.get(0).getAsJsonObject();
-            // Currently not returning key rather than key with null todo check
             assertNull(collaborator.get("collaboratorId"), "Expected null for id");
-            //assertEquals(collaborator.get("collaboratorId").getAsString(),null, "Expected null for id");
             assertEquals(collaborator.get("userId").getAsString(), otherTestUser.getId().toString(), "Unexpected userId");
             assertEquals(collaborator.get("name").getAsString(), otherTestUser.getName(), "Unexpected name");
             assertEquals(collaborator.get("email").getAsString(), otherTestUser.getEmail(), "Unexpected email");
