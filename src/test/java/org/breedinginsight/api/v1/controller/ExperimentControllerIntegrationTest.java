@@ -1,4 +1,4 @@
-package org.breedinginsight.brapi.v2;
+package org.breedinginsight.api.v1.controller;
 
 import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
@@ -6,7 +6,6 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
-import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -23,7 +22,6 @@ import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
-import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
