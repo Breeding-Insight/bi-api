@@ -1,4 +1,4 @@
-package org.breedinginsight.brapi.v2;
+package org.breedinginsight.api.v1.controller;
 
 import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
@@ -8,6 +8,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
@@ -21,14 +22,17 @@ import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
-import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.dao.db.enums.DataType;
+import org.breedinginsight.dao.db.tables.daos.RoleDao;
+import org.breedinginsight.dao.db.tables.pojos.ProgramUserRoleEntity;
+import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
+import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
@@ -43,6 +47,7 @@ import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
@@ -52,6 +57,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import static io.micronaut.http.HttpRequest.*;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
@@ -65,6 +71,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private final List<Map<String, Object>> rows = new ArrayList<>();
     private final List<Column> columns = ExperimentFileColumns.getOrderedColumns();
     private List<Trait> traits;
+    private User testUser;
+    private User otherTestUser;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -80,6 +88,10 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private BrAPITrialService experimentService;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
+    @Inject
+    private ProgramUserDAO programUserDAO;
+    @Inject
+    private RoleDao roleDao;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -99,7 +111,9 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         FannyPack brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
         // Test User
-        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
+        testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
+        otherTestUser = userDAO.getUserByOrcId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
+
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Species
@@ -348,6 +362,334 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         ByteArrayInputStream plantBodyStream = new ByteArrayInputStream(Objects.requireNonNull(plantResponse.body()));
         parseAndCheck(plantBodyStream, extension, false, plantRows, false, 23);
     }
+
+    /**
+     * Tests for Experimental Collaborator endpoints
+     */
+
+    /**
+     * Create Experimental Collaborator Invalid Id
+     *   GIVEN POST /v1/programs/{programId}/experiments/{experimentId}/collaborators
+     *   WHEN an invalid id is passed in the body of the request
+     *   THEN response should be 404
+     */
+    @Test
+    public void postExperimentalCollaboratorsInvalidId() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("programUserId", "f47ac10b-58cc-4372-a567-0e02b2c3d479");
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/collaborators", program.getId().toString(), experimentId), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    /**
+     * Create and Delete Experimental Collaborator
+     */
+    @Test
+    public void postAndDeleteExperimentalCollaborator() {
+
+        RoleEntity roleEntity = roleDao.fetchByDomain("Experimental Collaborator").get(0);
+
+        ProgramUserRoleEntity programUserEntity = ProgramUserRoleEntity.builder()
+                .userId(otherTestUser.getId())
+                .programId(program.getId())
+                .roleId(roleEntity.getId())
+                .createdBy(testUser.getId())
+                .updatedBy(testUser.getId())
+                .build();
+
+        programUserDAO.insert(programUserEntity);
+        ProgramUser programUser = programUserDAO.getProgramUser(program.getId(), otherTestUser.getId());
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("userId", otherTestUser.getId().toString());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/collaborators", program.getId().toString(), experimentId), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String id = result.get("id").getAsString();
+        Assertions.assertNotEquals(null, id);
+
+        // check count = 1
+        call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/collaborators?active=true", program.getId().toString(), experimentId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(1, data.size());
+        JsonObject collaborator = data.get(0).getAsJsonObject();
+
+        assertNotEquals(collaborator.get("collaboratorId").getAsString(),null, "Expected not null for collaboratorId");
+        assertEquals(collaborator.get("userId").getAsString(), otherTestUser.getId().toString(), "Unexpected userId");
+        assertEquals(collaborator.get("name").getAsString(), otherTestUser.getName(), "Unexpected name");
+        assertEquals(collaborator.get("email").getAsString(), otherTestUser.getEmail(), "Unexpected email");
+        assertEquals(collaborator.get("active").getAsBoolean(), true, "Unexpected active status");
+
+        // now delete
+        call = client.exchange(
+                DELETE(String.format("/programs/%s/experiments/%s/collaborators/%s", program.getId().toString(), experimentId, id))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // check count = 0
+        call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/collaborators?active=true", program.getId().toString(), experimentId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        data = result.getAsJsonArray("data");
+        assertEquals(0, data.size());
+
+        // clean up
+        programUserDAO.deleteProgramUserRoles(program.getId(), otherTestUser.getId());
+
+    }
+
+    /**
+     * Get Experimental Collaborators None
+     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
+     *   WHEN no users have been added as experiment collaborators
+     *   AND no program users with Experimental Collaborator role exist in program
+     *   THEN response should be an empty array regardless of active query parameter value
+     *
+     *   test-registered-user has Program Administration role in program
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void getExperimentalCollaboratorsNone(boolean active) {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/collaborators?active=%s", program.getId().toString(), experimentId, active))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(0, data.size());
+    }
+
+    /**
+     * Get Experimental Collaborators No Active
+     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
+     *   WHEN no users have been added as experiment collaborators
+     *   AND one or more program users with Experimental Collaborator role exist in program
+     *   THEN response should be:
+     *      empty array when active=true
+     *      array with program user when active=false
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void getExperimentalCollaboratorsNoActive(boolean active) {
+
+        // add a program user with the experimental collaborator role
+        FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+        dsl.execute(securityFp.get("InsertProgramRolesExperimentalCollaborator"), otherTestUser.getId().toString(), program.getId());
+
+        ProgramUser programUser = programUserDAO.getProgramUser(program.getId(), otherTestUser.getId());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/collaborators?active=%s", program.getId().toString(), experimentId, active))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        if (active) {
+            assertEquals(0, data.size());
+        } else {
+            assertEquals(1, data.size());
+            JsonObject collaborator = data.get(0).getAsJsonObject();
+            assertNull(collaborator.get("collaboratorId"), "Expected null for id");
+            assertEquals(collaborator.get("userId").getAsString(), otherTestUser.getId().toString(), "Unexpected userId");
+            assertEquals(collaborator.get("name").getAsString(), otherTestUser.getName(), "Unexpected name");
+            assertEquals(collaborator.get("email").getAsString(), otherTestUser.getEmail(), "Unexpected email");
+            assertEquals(collaborator.get("active").getAsBoolean(), false, "Unexpected active status");
+        }
+
+        // delete program user from setup
+        // NOTE: if test fails this may not be run and could impact other tests results
+        dsl.execute(securityFp.get("DeleteProgramUser"), otherTestUser.getId().toString());
+
+    }
+
+    /**
+     * Get Experimental Collaborators Active
+     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
+     *   WHEN program user has been added to experiment as collaborator
+     *   AND program user with Experimental Collaborator role exists in program
+     *   THEN response should be:
+     *      array with program user when active=true
+     *      empty array when active=false
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void getExperimentalCollaboratorsActive(boolean active) {
+        // add a program user with the experimental collaborator role
+        FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+        dsl.execute(securityFp.get("InsertProgramRolesExperimentalCollaborator"), otherTestUser.getId().toString(), program.getId());
+
+        // add user as experimental collaborator
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("userId", otherTestUser.getId().toString());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/collaborators", program.getId().toString(), experimentId), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String id = result.get("id").getAsString();
+        Assertions.assertNotEquals(null, id);
+
+        // get experimental collaborators
+        call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/collaborators?active=%s", program.getId().toString(), experimentId, active))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        if (active) {
+            assertEquals(1, data.size());
+        } else {
+            assertEquals(0, data.size());
+        }
+
+        // cleanup - delete collaborator
+        call = client.exchange(
+                DELETE(String.format("/programs/%s/experiments/%s/collaborators/%s", program.getId().toString(), experimentId, id))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // delete program user from setup
+        // NOTE: if test fails this may not be run and could impact other tests results
+        dsl.execute(securityFp.get("DeleteProgramUser"), otherTestUser.getId().toString());
+    }
+
+    /**
+     * Get Experimental Collaborators Deactivated from Program
+     *   GIVEN GET /v1/programs/{programId}/experiments/{experimentId}/collaborators?active=true|false
+     *   WHEN program user has been added to experiment as collaborator
+     *   AND after being added as a collaborator, program user is deactivated from program
+     *   THEN response should be empty array regardless of active query parameter value (assumes single user)
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void getExperimentalCollaboratorsDeactivated(boolean active) {
+        // add a program user with the experimental collaborator role
+        FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+        dsl.execute(securityFp.get("InsertProgramRolesExperimentalCollaborator"), otherTestUser.getId().toString(), program.getId());
+
+        // add user as experimental collaborator
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("userId", otherTestUser.getId().toString());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/collaborators", program.getId().toString(), experimentId), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String id = result.get("id").getAsString();
+        Assertions.assertNotEquals(null, id);
+
+        // deactivate program user
+        call = client.exchange(
+                DELETE(String.format("/programs/%s/users/%s", program.getId().toString(), otherTestUser.getId().toString()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // get experimental collaborators
+        call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/collaborators?active=%s", program.getId().toString(), experimentId, active))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        // should be empty regardless of active query parameter value
+        assertEquals(0, data.size());
+
+        // cleanup - remove collaborator
+        call = client.exchange(
+                DELETE(String.format("/programs/%s/experiments/%s/collaborators/%s", program.getId().toString(), experimentId, id))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // delete program user from setup
+        // NOTE: if test fails this may not be run and could impact other tests results
+        dsl.execute(securityFp.get("DeleteProgramUser"), otherTestUser.getId().toString());
+    }
+
 
     private List<Map<String, Object>> buildSubEntityRows(List<Map<String, Object>> topLevelRows, String entityName, int repeatedMeasures) {
         List<Map<String, Object>> plantRows = new ArrayList<>();
