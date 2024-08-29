@@ -1,3 +1,20 @@
+/*
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.breedinginsight.brapi.v2;
 
 import io.micronaut.context.annotation.Property;
@@ -20,6 +37,11 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramUser;
+import org.breedinginsight.services.ExperimentalCollaboratorService;
+import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.Role;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -29,7 +51,9 @@ import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -41,12 +65,26 @@ public class BrAPITrialsController {
     private final String referenceSource;
     private final BrAPITrialService experimentService;
     private final ExperimentQueryMapper experimentQueryMapper;
+    private final SecurityService securityService;
+    private final ProgramUserService programUserService;
+    private final ExperimentalCollaboratorService experimentalCollaboratorService;
+    private final ProgramService programService;
 
     @Inject
-    public BrAPITrialsController(BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, @Property(name = "brapi.server.reference-source") String referenceSource) {
+    public BrAPITrialsController(BrAPITrialService experimentService,
+                                 ExperimentQueryMapper experimentQueryMapper,
+                                 @Property(name = "brapi.server.reference-source") String referenceSource,
+                                 SecurityService securityService,
+                                 ProgramUserService programUserService,
+                                 ExperimentalCollaboratorService experimentalCollaboratorService,
+                                 ProgramService programService) {
         this.experimentService = experimentService;
         this.experimentQueryMapper = experimentQueryMapper;
         this.referenceSource = referenceSource;
+        this.securityService = securityService;
+        this.programUserService = programUserService;
+        this.experimentalCollaboratorService = experimentalCollaboratorService;
+        this.programService = programService;
     }
 
     @Get("/trials{?queryParams*}")
@@ -57,9 +95,22 @@ public class BrAPITrialsController {
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = ExperimentQueryMapper.class) @Valid ExperimentQuery queryParams) {
         try {
+            List<BrAPITrial> experiments = new ArrayList<>();
             log.debug("fetching trials for program: " + programId);
 
-            List<BrAPITrial> experiments = experimentService.getExperiments(programId).stream().peek(this::setDbIds).collect(Collectors.toList());
+            Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
+            // If the program user is an experimental collaborator, filter results.
+            if (experimentalCollaborator.isPresent()) {
+                Optional<Program> program = programService.getById(programId);
+                if (program.isEmpty()) {
+                    return HttpResponse.notFound();
+                }
+                List<UUID> experimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
+                experiments = experimentService.getTrialsByExperimentIds(program.get(), experimentIds).stream().peek(this::setDbIds).collect(Collectors.toList());
+            } else {
+                experiments = experimentService.getExperiments(programId).stream().peek(this::setDbIds).collect(Collectors.toList());
+            }
+
             SearchRequest searchRequest = queryParams.constructSearchRequest();
             return ResponseUtils.getBrapiQueryResponse(experiments, experimentQueryMapper, queryParams, searchRequest);
         } catch (ApiException e) {

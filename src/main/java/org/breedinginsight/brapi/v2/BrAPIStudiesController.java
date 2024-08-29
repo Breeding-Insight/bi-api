@@ -30,9 +30,7 @@ import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.BrAPIStatus;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.response.BrAPIStudySingleResponse;
-import org.breedinginsight.api.auth.ProgramSecured;
-import org.breedinginsight.api.auth.ProgramSecuredRole;
-import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
+import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -42,7 +40,11 @@ import org.breedinginsight.brapi.v2.model.request.query.StudyQuery;
 import org.breedinginsight.brapi.v2.services.BrAPIStudyService;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramUser;
+import org.breedinginsight.services.ExperimentalCollaboratorService;
 import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.ProgramUserService;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.StudyQueryMapper;
@@ -63,14 +65,26 @@ public class BrAPIStudiesController {
     private final BrAPIStudyService studyService;
     private final StudyQueryMapper studyQueryMapper;
     private final ProgramService programService;
+    private final SecurityService securityService;
+    private final ProgramUserService programUserService;
+    private final ExperimentalCollaboratorService experimentalCollaboratorService;
 
 
     @Inject
-    public BrAPIStudiesController(BrAPIStudyService studyService, StudyQueryMapper studyQueryMapper, @Property(name = "brapi.server.reference-source") String referenceSource, ProgramService programService) {
+    public BrAPIStudiesController(BrAPIStudyService studyService,
+                                  StudyQueryMapper studyQueryMapper,
+                                  @Property(name = "brapi.server.reference-source") String referenceSource,
+                                  ProgramService programService,
+                                  SecurityService securityService,
+                                  ProgramUserService programUserService,
+                                  ExperimentalCollaboratorService experimentalCollaboratorService) {
         this.studyService = studyService;
         this.studyQueryMapper = studyQueryMapper;
         this.referenceSource = referenceSource;
         this.programService = programService;
+        this.securityService = securityService;
+        this.programUserService = programUserService;
+        this.experimentalCollaboratorService = experimentalCollaboratorService;
     }
 
     @Get("/studies{?queryParams*}")
@@ -82,11 +96,28 @@ public class BrAPIStudiesController {
             @QueryValue @QueryValid(using = StudyQueryMapper.class) @Valid StudyQuery queryParams) {
         try {
             log.debug("fetching studies for program: " + programId);
+            List<BrAPIStudy> studies;
 
-            List<BrAPIStudy> studies = studyService.getStudies(programId)
-                                                   .stream()
-                                                   .peek(this::setDbIds)
-                                                   .collect(Collectors.toList());
+            Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
+            // If the program user is an experimental collaborator, filter results.
+            if (experimentalCollaborator.isPresent()) {
+                Optional<Program> program = programService.getById(programId);
+                if (program.isEmpty()) {
+                    return HttpResponse.notFound();
+                }
+
+                List<UUID> experimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
+                studies = studyService.getStudiesByExperimentIds(program.get(), experimentIds)
+                        .stream()
+                        .peek(this::setDbIds)
+                        .collect(Collectors.toList());
+            } else {
+                studies = studyService.getStudies(programId)
+                        .stream()
+                        .peek(this::setDbIds)
+                        .collect(Collectors.toList());
+            }
+
             queryParams.setSortField(studyQueryMapper.getDefaultSortField());
             queryParams.setSortOrder(studyQueryMapper.getDefaultSortOrder());
             SearchRequest searchRequest = queryParams.constructSearchRequest();
@@ -97,6 +128,9 @@ public class BrAPIStudiesController {
         } catch (IllegalArgumentException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 

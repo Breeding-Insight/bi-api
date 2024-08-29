@@ -139,10 +139,10 @@ public class BrAPIStudyDAO {
         );
     }
 
-    public List<BrAPIStudy> getStudiesByExperimentID(@NotNull UUID experimentID, Program program ) throws ApiException {
+    public List<BrAPIStudy> getStudiesByExperimentID(@NotNull UUID experimentId, Program program) throws ApiException {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
-        studySearch.addExternalReferenceIDsItem(experimentID.toString());
+        studySearch.addExternalReferenceIdsItem(experimentId.toString());
         studySearch.addExternalReferenceSourcesItem(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS));
         StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), StudiesApi.class);
         return brAPIDAOUtil.search(
@@ -152,13 +152,35 @@ public class BrAPIStudyDAO {
         );
     }
 
-    public List<BrAPIStudy> getStudiesByEnvironmentIds(@NotNull Collection<UUID> environmentIds, Program program ) throws ApiException {
+    public List<BrAPIStudy> getStudiesByEnvironmentIds(@NotNull Collection<UUID> environmentIds, Program program) throws ApiException {
         return programStudyCache.get(program.getId())
                                 .entrySet()
                                 .stream()
                                 .filter(entry -> environmentIds.contains(UUID.fromString(entry.getKey())))
                                 .map(Map.Entry::getValue)
                                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Get a list of studies by a list of BI-assigned experiment UUIDs within a program.
+     * @param experimentIds a list of BI-assigned experiment UUIDs.
+     * @param program the program.
+     * @return a list of BrAPIStudies.
+     */
+    public List<BrAPIStudy> getStudiesByExperimentIds(@NotNull Collection<UUID> experimentIds, Program program) throws ApiException {
+        BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
+        studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        // Add all experimentIds as xref ID search terms.
+        for (UUID experimentId : experimentIds) {
+            studySearch.addExternalReferenceIdsItem(experimentId.toString());
+        }
+        studySearch.addExternalReferenceSourcesItem(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS));
+        StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), StudiesApi.class);
+        return new ArrayList<>(processStudyForDisplay(brAPIDAOUtil.search(
+                api::searchStudiesPost,
+                api::searchStudiesSearchResultsDbIdGet,
+                studySearch
+        ), program.getKey()).values());
     }
 
     public List<BrAPIStudy> createBrAPIStudies(List<BrAPIStudy> brAPIStudyList, UUID programId, ImportUpload upload) throws ApiException {

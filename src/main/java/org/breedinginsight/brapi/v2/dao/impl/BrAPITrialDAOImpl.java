@@ -269,14 +269,12 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
         trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         trialSearch.externalReferenceSources(List.of(referenceSource + "/" + ExternalReferenceSource.TRIALS.getName()));
-        trialSearch.externalReferenceIDs(experimentIds.stream().map(id -> id.toString()).collect(Collectors.toList()));
+        trialSearch.externalReferenceIds(experimentIds.stream().map(UUID::toString).collect(Collectors.toList()));
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
-        return brAPIDAOUtil.search(
+        return processExperimentsForDisplay(brAPIDAOUtil.search(
                 api::searchTrialsPost,
                 api::searchTrialsSearchResultsDbIdGet,
                 trialSearch
-        );
+        ), program.getKey());
     }
 }
-
-
