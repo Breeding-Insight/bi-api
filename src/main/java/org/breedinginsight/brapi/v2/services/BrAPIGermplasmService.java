@@ -85,7 +85,8 @@ public class BrAPIGermplasmService {
 
             // Use the entry number in the list map if generated
             if(new UUID(0,0).compareTo(germplasmListId) == 0) {
-                row.put("Entry No", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsInt());
+                // Not downloading a real list, use GID (https://breedinginsight.atlassian.net/browse/BI-2266).
+                row.put("Entry No", Integer.valueOf(germplasmEntry.getAccessionNumber()));
             } else {
                 row.put("Entry No", germplasmEntry.getAdditionalInfo()
                         .getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS).get(germplasmListId.toString()).getAsInt());
@@ -153,6 +154,7 @@ public class BrAPIGermplasmService {
             return germplasm;
         } else throw new ApiException();
     }
+
     public DownloadFile exportGermplasm(UUID programId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
 

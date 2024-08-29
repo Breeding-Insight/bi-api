@@ -300,6 +300,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     @ParameterizedTest
     @CsvSource(value = {"CSV", "XLSX", "XLS"})
     @SneakyThrows
+    @Disabled // disabled for now until we re-enable subentity support
     void downloadSubEntityDataset(String extension) {
 
         // Create sub-entity dataset.
@@ -731,13 +732,13 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         row.put(ExperimentObservation.Columns.TEST_CHECK, "T");
         row.put(ExperimentObservation.Columns.EXP_TITLE, "Test Exp");
         row.put(ExperimentObservation.Columns.EXP_UNIT, "Plot");
-        row.put(ExperimentObservation.Columns.SUB_OBS_UNIT, "");
+        //row.put(ExperimentObservation.Columns.SUB_OBS_UNIT, "");
         row.put(ExperimentObservation.Columns.EXP_TYPE, "Phenotyping");
         row.put(ExperimentObservation.Columns.ENV, environment);
         row.put(ExperimentObservation.Columns.ENV_LOCATION, "Location A");
         row.put(ExperimentObservation.Columns.ENV_YEAR, "2023");
         row.put(ExperimentObservation.Columns.EXP_UNIT_ID, "a-1");
-        row.put(ExperimentObservation.Columns.SUB_UNIT_ID, "");
+        //row.put(ExperimentObservation.Columns.SUB_UNIT_ID, "");
         row.put(ExperimentObservation.Columns.REP_NUM, "1");
         row.put(ExperimentObservation.Columns.BLOCK_NUM, "1");
         row.put(ExperimentObservation.Columns.ROW, "1");
