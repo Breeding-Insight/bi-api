@@ -16,9 +16,13 @@ import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.BrAPIStatus;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.*;
+import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmPedigreeResponse;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmProgenyResponse;
+import org.brapi.v2.model.germ.response.BrAPIPedigreeListResponse;
+import org.brapi.v2.model.germ.response.BrAPIPedigreeListResponseResult;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -31,6 +35,8 @@ import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
@@ -59,38 +65,74 @@ public class BrAPIGermplasmController {
     private final BrAPIGermplasmDAO germplasmDAO;
 
     private final GenotypeService genoService;
+    private final ProgramService programService;
 
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
 
     @Inject
-    public BrAPIGermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper, ProgramDAO programDAO, BrAPIGermplasmDAO germplasmDAO, GenotypeService genoService, BrAPIEndpointProvider brAPIEndpointProvider) {
+    public BrAPIGermplasmController(BrAPIGermplasmService germplasmService,
+                                    GermplasmQueryMapper germplasmQueryMapper,
+                                    ProgramDAO programDAO,
+                                    BrAPIGermplasmDAO germplasmDAO,
+                                    GenotypeService genoService,
+                                    BrAPIEndpointProvider brAPIEndpointProvider,
+                                    ProgramService programService) {
         this.germplasmService = germplasmService;
         this.germplasmQueryMapper = germplasmQueryMapper;
         this.programDAO = programDAO;
         this.germplasmDAO = germplasmDAO;
         this.genoService = genoService;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
+        this.programService = programService;
     }
 
-    // TODO: expand to fully support BrAPI request body.
-    @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm{?queryParams*}")
+    // NOTE: bypasses cache and makes api request directly to brapi service
+    @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> searchGermplasm(
             @PathVariable("programId") UUID programId,
-            @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid BrapiQuery queryParams,
-            @Body @SearchValid(using = GermplasmQueryMapper.class) SearchRequest searchRequest) {
-        try {
-            log.debug("fetching germ for program: " + programId);
-            List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
-            queryParams.setSortField(germplasmQueryMapper.getDefaultSortField());
-            queryParams.setSortOrder(germplasmQueryMapper.getDefaultSortOrder());
-            return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams, searchRequest);
-        } catch (ApiException e) {
-            log.info(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
+            @Body BrAPIGermplasmSearchRequest body) {
+
+        log.debug("searchGermplasm: fetching germplasm by filters");
+
+        Optional<Program> program = programService.getById(programId);
+        if(program.isEmpty()) {
+            log.warn("Program id: " + programId + " not found");
+            return HttpResponse.notFound();
         }
+
+        // TODO
+        return null;
+
+        /*
+        try {
+            List<BrAPIPedigreeNode> pedigree = pedigreeDAO.getPedigree(
+                    program.get(),
+                    Optional.ofNullable(includeParents),
+                    Optional.ofNullable(includeSiblings),
+                    Optional.ofNullable(includeProgeny),
+                    Optional.ofNullable(includeFullTree),
+                    Optional.ofNullable(pedigreeDepth),
+                    Optional.ofNullable(progenyDepth),
+                    Optional.ofNullable(germplasmName));
+
+            return HttpResponse.ok(
+                    new BrAPIPedigreeListResponse()
+                            .metadata(new BrAPIMetadata().pagination(new BrAPIIndexPagination().currentPage(0)
+                                    .totalPages(1)
+                                    .pageSize(pedigree.size())
+                                    .totalCount(pedigree.size())))
+                            .result(new BrAPIPedigreeListResponseResult().data(pedigree))
+            );
+        } catch (ApiException e) {
+            log.error(Utilities.generateApiExceptionLogMessage(e), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "error fetching pedigree");
+        }
+        */
+
+
     }
 
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm{?queryParams*}")
