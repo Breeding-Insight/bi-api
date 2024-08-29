@@ -325,6 +325,7 @@ public class GermplasmProcessor implements Processor {
     private void processNewGermplasm(Germplasm germplasm, ValidationErrors validationErrors, Map<String, ProgramBreedingMethodEntity> breedingMethods,
                                      List<String> badBreedingMethods,
                                      Program program, UUID importListId, boolean commit, PendingImport mappedImportRow, int i, User user, Supplier<BigInteger> nextVal) {
+        germplasm = removeBreedingMethodBlanks(germplasm);
         // Get the breeding method database object
         ProgramBreedingMethodEntity breedingMethod = null;
         if (germplasm.getBreedingMethod() != null) {
@@ -356,6 +357,14 @@ public class GermplasmProcessor implements Processor {
         }
 
         importList.addDataItem(newGermplasm.getGermplasmName());
+    }
+
+    // Removes leading and trailing blanks from the germplasm breedingMethod
+    private Germplasm removeBreedingMethodBlanks(Germplasm germplasm) {
+        if(germplasm.getBreedingMethod() != null ) {
+            germplasm.setBreedingMethod(germplasm.getBreedingMethod().strip());
+        }
+        return germplasm;
     }
 
     private boolean processExistingGermplasm(Germplasm germplasm, ValidationErrors validationErrors, List<BrAPIImport> importRows, Program program, UUID importListId, boolean commit, PendingImport mappedImportRow, int rowIndex) {
