@@ -53,6 +53,34 @@ bi_user
 join role on role.domain = 'Program Administrator'
 where bi_user.name = 'system';
 
+-- name: InsertProgramRolesExperimentalCollaborator
+
+insert into program_user_role (user_id, program_id, role_id, created_by, updated_by)
+select
+    ?::uuid, ?::uuid, role.id, bi_user.id, bi_user.id
+from
+    bi_user
+        join role on role.domain = 'Experimental Collaborator'
+where bi_user.name = 'system';
+
+-- name: DeleteExperimentalCollaboratorProgramUsers
+
+DELETE FROM program_user_role
+    USING role
+WHERE program_user_role.role_id = role.id
+  AND role.domain = 'Experimental Collaborator';
+
+-- name: DeleteExperimentalCollaborator
+
+DELETE FROM experiment_program_user_role
+WHERE id = :id:uuid;
+
+
+-- name: DeleteProgramUser
+
+DELETE FROM program_user_role
+WHERE user_id = :id::uuid;
+
 -- name: InsertSystemRoleAdmin
 
 insert into system_user_role (bi_user_id, system_role_id, created_by, updated_by)

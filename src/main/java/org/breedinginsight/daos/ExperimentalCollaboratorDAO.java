@@ -50,7 +50,7 @@ public class ExperimentalCollaboratorDAO extends ExperimentProgramUserRoleDao {
         this.dsl = dsl;
     }
 
-    public ExperimentProgramUserRoleEntity create(UUID experimentId, UUID programUserRoleId, UUID userId) {
+    public ExperimentProgramUserRoleEntity create(UUID experimentId, UUID programUserRoleId, UUID createdByUserId) {
         return dsl.insertInto(EXPERIMENT_PROGRAM_USER_ROLE)
                 .columns(EXPERIMENT_PROGRAM_USER_ROLE.EXPERIMENT_ID,
                         EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID,
@@ -60,9 +60,9 @@ public class ExperimentalCollaboratorDAO extends ExperimentProgramUserRoleDao {
                         EXPERIMENT_PROGRAM_USER_ROLE.UPDATED_AT)
                 .values(experimentId,
                         programUserRoleId,
-                        userId,
+                        createdByUserId,
                         OffsetDateTime.now(),
-                        userId,
+                        createdByUserId,
                         OffsetDateTime.now())
                 .returning(EXPERIMENT_PROGRAM_USER_ROLE.fields())
                 .fetchOneInto(ExperimentProgramUserRoleEntity.class);
