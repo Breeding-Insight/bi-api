@@ -248,7 +248,8 @@ public class BrAPIGermplasmService {
 
     private ToIntFunction<BrAPIGermplasm> getEntryNumber(UUID germplasmListId) throws IllegalArgumentException {
         if(germplasmListId.compareTo(new UUID(0,0)) == 0) {
-            return this::getImportEntryNumber;
+            // [BI-2266] Fall back to GID (accessionNumber) parsed as int.
+            return g -> Integer.parseInt(g.getAccessionNumber());
         } else {
             return g -> getGermplasmListEntryNumber(g, germplasmListId);
         }
