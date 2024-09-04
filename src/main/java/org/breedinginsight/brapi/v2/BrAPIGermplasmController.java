@@ -10,28 +10,24 @@ import io.micronaut.http.server.types.files.StreamedFile;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
+import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.BrAPIStatus;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.*;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
-import org.brapi.v2.model.germ.response.BrAPIGermplasmPedigreeResponse;
-import org.brapi.v2.model.germ.response.BrAPIGermplasmProgenyResponse;
-import org.brapi.v2.model.germ.response.BrAPIPedigreeListResponse;
-import org.brapi.v2.model.germ.response.BrAPIPedigreeListResponseResult;
+import org.brapi.v2.model.germ.response.*;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
-import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
-import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
@@ -91,9 +87,9 @@ public class BrAPIGermplasmController {
     @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
-    public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> searchGermplasm(
+    public HttpResponse<BrAPIGermplasmListResponse> searchGermplasm(
             @PathVariable("programId") UUID programId,
-            @Body BrAPIGermplasmSearchRequest body) {
+            @Body BrAPIGermplasmSearchRequest body) throws ApiException {
 
         log.debug("searchGermplasm: fetching germplasm by filters");
 
@@ -103,35 +99,26 @@ public class BrAPIGermplasmController {
             return HttpResponse.notFound();
         }
 
-        // TODO
-        return null;
+        // TODO: Issue with BrAPI server programDbId filtering, think germplasm are linked to program through observation
+        // units and doesn't work if don't have any loaded
+        // use external refs instead for now
 
-        /*
-        try {
-            List<BrAPIPedigreeNode> pedigree = pedigreeDAO.getPedigree(
-                    program.get(),
-                    Optional.ofNullable(includeParents),
-                    Optional.ofNullable(includeSiblings),
-                    Optional.ofNullable(includeProgeny),
-                    Optional.ofNullable(includeFullTree),
-                    Optional.ofNullable(pedigreeDepth),
-                    Optional.ofNullable(progenyDepth),
-                    Optional.ofNullable(germplasmName));
+        String extRefId = program.get().getId().toString();
+        //String extRefSrc = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS);
+        body.externalReferenceIds(List.of(extRefId));
+        // search is OR I think
+        //request.externalReferenceSources(List.of(extRefSrc));
 
-            return HttpResponse.ok(
-                    new BrAPIPedigreeListResponse()
-                            .metadata(new BrAPIMetadata().pagination(new BrAPIIndexPagination().currentPage(0)
-                                    .totalPages(1)
-                                    .pageSize(pedigree.size())
-                                    .totalCount(pedigree.size())))
-                            .result(new BrAPIPedigreeListResponseResult().data(pedigree))
-            );
-        } catch (ApiException e) {
-            log.error(Utilities.generateApiExceptionLogMessage(e), e);
-            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "error fetching pedigree");
+        ApiResponse<Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>>> brapiGermplasm;
+        brapiGermplasm = brAPIEndpointProvider
+                .get(programDAO.getCoreClient(program.get().getId()), GermplasmApi.class)
+                .searchGermplasmPost(body);
+
+        if (brapiGermplasm.getBody().getLeft().isPresent()) {
+            return HttpResponse.ok(brapiGermplasm.getBody().getLeft().get());
+        } else {
+            throw new ApiException("Expected immediate germplasm search response");
         }
-        */
-
 
     }
 
