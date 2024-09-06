@@ -217,7 +217,7 @@ public class ExperimentController {
      *  Response includes name and email as a convenience to the front end to avoid making another api call
      */
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/collaborators{?active}")
-    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR, ProgramSecuredRole.READ_ONLY})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<DataResponse<List<ExperimentalCollaboratorResponse>>>> getExperimentalCollaborators(
             @PathVariable("programId") UUID programId,
