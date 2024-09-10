@@ -83,9 +83,9 @@ public class GermplasmProcessor implements Processor {
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
     BrAPIListNewRequest importList = new BrAPIListNewRequest();
 
-    public static String missingGIDsMsg = "The following GIDs were not found in the database: %s.";
-    public static String missingParentalGIDsMsg = "The following parental GIDs were not found in the database: %s.";
-    public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the database: %s.";
+    public static String missingGIDsMsg = "The following GIDs were not found in the database: %s";
+    public static String missingParentalGIDsMsg = "The following parental GIDs were not found in the database: %s";
+    public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the database: %s";
     public static String badBreedMethodsMsg = "Invalid breeding method";
     public static String missingEntryNumbersMsg = "Either all or none of the germplasm must have entry numbers";
     public static String duplicateEntryNoMsg = "Entry numbers must be unique. Duplicated entry numbers found: %s";
