@@ -185,13 +185,6 @@ public class Germplasm implements BrAPIObject {
             }
         }
 
-        // Add germplasm to the new list
-        JsonObject listEntryNumbers = germplasm.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS);
-        if(listEntryNumbers == null) {
-            listEntryNumbers = new JsonObject();
-            germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS, listEntryNumbers);
-        }
-        listEntryNumbers.addProperty(listId.toString(), entryNo);
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNo); //so the preview UI shows correctly
 
         // TODO: figure out why clear this out: brapi-server
@@ -241,9 +234,6 @@ public class Germplasm implements BrAPIObject {
         createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID, user.getId().toString());
         createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME, user.getName());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_BY, createdBy);
-        Map<UUID, String> listEntryNumbers = new HashMap<>();
-        listEntryNumbers.put(listId, entryNo);
-        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS, listEntryNumbers);
         //TODO: Need to check that the acquisition date it in date format
         //brAPIGermplasm.setAcquisitionDate(pedigreeImport.getGermplasm().getAcquisitionDate());
         germplasm.setCountryOfOriginCode(getCountryOfOrigin());
