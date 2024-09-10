@@ -120,7 +120,7 @@ public class GermplasmProcessor implements Processor {
             Germplasm germplasm = germplasmImport.getGermplasm();
             if (germplasm != null) {
 
-                // Retrieve parent dbids to assess if already in db
+                // Retrieve parent accession numbers to assess if already in db
                 if (germplasm.getFemaleParentAccessionNumber() != null) {
                     germplasmAccessionNumbers.put(germplasm.getFemaleParentAccessionNumber(), true);
                 }
@@ -141,7 +141,7 @@ public class GermplasmProcessor implements Processor {
             }
         }
 
-        // If parental DBID, should also be in database
+        // If a parental accession number is present, it should exist in the database.
         existingGermplasm = new ArrayList<>();
         List<String> missingParentalAccessionNumbers = germplasmAccessionNumbers.entrySet().stream().filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(Collectors.toList());
         List<String> missingAccessionNumbers = germplasmAccessionNumbers.entrySet().stream().filter(entry -> !entry.getValue()).map(Map.Entry::getKey).collect(Collectors.toList());
@@ -514,7 +514,7 @@ public class GermplasmProcessor implements Processor {
                 .ignoredObjectCount(germplasmByAccessionNumber.size())
                 .build();
 
-        //Modified logic here to check for female parent dbid or entry no, removed check for male due to assumption that shouldn't have only male parent
+        //Modified logic here to check for female parent accession number or entry no, removed check for male due to assumption that shouldn't have only male parent
         int newObjectCount = newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size();
         ImportPreviewStatistics pedigreeConnectStats = ImportPreviewStatistics.builder()
                 .newObjectCount(importRows.stream().filter(germplasmImport ->
@@ -648,7 +648,7 @@ public class GermplasmProcessor implements Processor {
 
         log.debug("constructing pedigree strings");
         // Construct pedigree
-        // DBID (Acession number) takes precedence over Entry No
+        // Accession number takes precedence over Entry No.
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);
             Germplasm germplasm = brapiImport.getGermplasm();
