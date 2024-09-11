@@ -19,6 +19,7 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.auth.ProgramSecuredRole;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
@@ -272,6 +273,24 @@ public class ProgramUserService {
 
     public boolean existsAndActive(UUID programId, UUID userId) {
         return programUserDao.existsAndActive(programId, userId);
+    }
+
+    /**
+     * Get a program user by programId and userId if it is in the Experimental Collaborator role.
+     * @param programId the program ID.
+     * @param userId the user ID.
+     * @return an Optional that unwraps to a program user if it is an Experimental Collaborator, Optional.empty() otherwise.
+     */
+    public Optional<ProgramUser> getIfExperimentalCollaborator(UUID programId, UUID userId) throws DoesNotExistException {
+        Optional<ProgramUser> programUser = getProgramUserbyId(programId, userId);
+        if (programUser.isEmpty()) {
+            throw new DoesNotExistException("Program User does not exist");
+        }
+        boolean isExperimentalCollaborator = programUser.get().getRoles().stream().anyMatch(x -> ProgramSecuredRole.getEnum(x.getDomain()).equals(ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR));
+        if (isExperimentalCollaborator) {
+            return programUser;
+        }
+        return Optional.empty();
     }
 
     public List<ProgramUser> getProgramUsersByRole(UUID programId, UUID roleId) throws DoesNotExistException {

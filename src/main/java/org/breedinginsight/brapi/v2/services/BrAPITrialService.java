@@ -102,6 +102,15 @@ public class BrAPITrialService {
         return trialDAO.getTrials(programId);
     }
 
+    /**
+     * Get a list of trials by BI-assigned experiment UUIDs withing a program (these UUIDs are xrefs on BrAPITrial objects).
+     * @param program the program.
+     * @param experimentIds a list of BI-assigned experiment UUIDs.
+     * @return a list of BrAPITrials.
+     */
+    public List<BrAPITrial> getTrialsByExperimentIds(Program program, List<UUID> experimentIds) throws ApiException, DoesNotExistException {
+        return trialDAO.getTrialsByExperimentIds(experimentIds, program);
+    }
 
     public BrAPITrial getTrialDataByUUID(UUID programId, UUID trialId, boolean stats) throws DoesNotExistException {
         try {

@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapps.importer.model.base;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -80,12 +79,12 @@ public class Germplasm implements BrAPIObject {
     private String entryNo;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="femaleParentDBID", name="Female Parent Accession Number", description = "The accession number (GID) of the female parent of the germplasm.")
-    private String femaleParentDBID;
+    @ImportFieldMetadata(id="femaleParentAccessionNumber", name="Female Parent Accession Number", description = "The accession number (GID) of the female parent of the germplasm.")
+    private String femaleParentAccessionNumber;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="maleParentDBID", name="Male Parent Accession Number", description = "The accession number (GID) of the male parent of the germplasm.")
-    private String maleParentDBID;
+    @ImportFieldMetadata(id="maleParentAccessionNumber", name="Male Parent Accession Number", description = "The accession number (GID) of the male parent of the germplasm.")
+    private String maleParentAccessionNumber;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="femaleParentEntryNo", name="Female Parent Entry Number", description = "The entry number of the female parent of the germplasm. Used to import offspring with progenitors not yet in the database.")
@@ -159,11 +158,11 @@ public class Germplasm implements BrAPIObject {
     public void updateBrAPIGermplasm(BrAPIGermplasm germplasm, Program program, UUID listId, boolean commit, boolean updatePedigree) {
 
         if (updatePedigree) {
-            if (!StringUtils.isBlank(getFemaleParentDBID())) {
-                germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, getFemaleParentDBID());
+            if (!StringUtils.isBlank(getFemaleParentAccessionNumber())) {
+                germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, getFemaleParentAccessionNumber());
             }
-            if (!StringUtils.isBlank(getMaleParentDBID())) {
-                germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, getMaleParentDBID());
+            if (!StringUtils.isBlank(getMaleParentAccessionNumber())) {
+                germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, getMaleParentAccessionNumber());
             }
             if (!StringUtils.isBlank(getFemaleParentEntryNo())) {
                 germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO, getFemaleParentEntryNo());
@@ -219,8 +218,8 @@ public class Germplasm implements BrAPIObject {
     }
 
     public boolean pedigreeExists() {
-        return StringUtils.isNotBlank(getFemaleParentDBID()) ||
-                StringUtils.isNotBlank(getMaleParentDBID()) ||
+        return StringUtils.isNotBlank(getFemaleParentAccessionNumber()) ||
+                StringUtils.isNotBlank(getMaleParentAccessionNumber()) ||
                 StringUtils.isNotBlank(getFemaleParentEntryNo()) ||
                 StringUtils.isNotBlank(getMaleParentEntryNo());
     }
@@ -234,8 +233,8 @@ public class Germplasm implements BrAPIObject {
         germplasm.setGermplasmDbId(getAccessionNumber());
         //TODO: maybe remove germplasm import entry number
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNo);
-        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, getFemaleParentDBID());
-        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, getMaleParentDBID());
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, getFemaleParentAccessionNumber());
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, getMaleParentAccessionNumber());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO, getFemaleParentEntryNo());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_ENTRY_NO, getMaleParentEntryNo());
         Map<String, String> createdBy = new HashMap<>();
