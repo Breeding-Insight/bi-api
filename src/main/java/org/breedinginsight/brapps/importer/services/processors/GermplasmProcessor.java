@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.services.processors;
 
+import com.google.gson.Gson;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
@@ -373,6 +374,9 @@ public class GermplasmProcessor implements Processor {
         String gid = germplasm.getAccessionNumber();
         if (germplasmByAccessionNumber.containsKey(gid)) {
             existingGermplasm = germplasmByAccessionNumber.get(gid).getBrAPIObject();
+            // TODO: hacky, but deep copy is needed and serialize/deserialize works.
+            Gson gson = new Gson();
+            existingGermplasm = gson.fromJson(gson.toJson(existingGermplasm), BrAPIGermplasm.class);
         } else {
             //should be caught in getExistingBrapiData
             ValidationError ve = new ValidationError("GID", String.format(missingGID, gid), HttpStatus.NOT_FOUND);

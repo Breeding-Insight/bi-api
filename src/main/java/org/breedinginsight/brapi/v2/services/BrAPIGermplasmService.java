@@ -96,6 +96,8 @@ public class BrAPIGermplasmService {
         for (String germplasmName: orderedGermplasmNames) {
             // Increment entryNumber.
             ++entryNumber;
+            // Strip program key and accession number from germplasm name.
+            germplasmName = Utilities.removeUnknownProgramKey(germplasmName);  // TODO: would be better to use known program key.
             // Lookup the BrAPI germplasm in the map.
             BrAPIGermplasm germplasmEntry = germplasmByName.get(germplasmName);
 
