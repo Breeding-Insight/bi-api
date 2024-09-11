@@ -39,6 +39,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -163,6 +164,18 @@ public class BrAPIV2Controller {
         serverInfo.setServerDescription("DeltaBreed - breeding data management system");
         serverInfo.setLocation("Cornell University, Ithaca, NY, USA");
         serverInfo.setDocumentationURL("https://brapi.org/specification");
+    }
+
+    // Explicit match for /seasons GET endpoint, to allow Experimental Collaborator access.
+    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/seasons{?queryParams}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR})
+    public HttpResponse<?> getSeasons(@PathVariable("programId") UUID programId, HttpRequest<String> request, @PathVariable Optional<String> queryParams) {
+        String path = "seasons";
+        if (queryParams.isPresent()) {
+            path = path + queryParams.get();
+        }
+        return executeRequest(path, programId, request, "GET");
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")

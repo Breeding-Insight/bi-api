@@ -34,9 +34,12 @@ import static org.breedinginsight.dao.db.Tables.PROGRAM_USER_ROLE;
 
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.EXPERIMENT_PROGRAM_USER_ROLE;
+import static org.breedinginsight.dao.db.Tables.PROGRAM_USER_ROLE;
+
 
 @Slf4j
 @Singleton
@@ -68,6 +71,12 @@ public class ExperimentalCollaboratorDAO extends ExperimentProgramUserRoleDao {
                 .fetchOneInto(ExperimentProgramUserRoleEntity.class);
     }
 
+    /**
+     * Get the list (expected to have zero or one elements) of records authorizing a program user to access an experiment.
+     * @param programUserRoleId the primary key of a program_user_role record.
+     * @param experimentId the BI-assigned UUID of an experiment.
+     * @return a list of ExperimentProgramUserRoleEntity.
+     */
     public List<ExperimentProgramUserRoleEntity> fetchByProgramUserIdAndExperimentId(UUID programUserRoleId, UUID experimentId) {
         // Only returns results for active program_user_role rows.
         return dsl.select(EXPERIMENT_PROGRAM_USER_ROLE.fields())
@@ -79,6 +88,12 @@ public class ExperimentalCollaboratorDAO extends ExperimentProgramUserRoleDao {
                 .fetchInto(ExperimentProgramUserRoleEntity.class);
     }
 
+    /**
+     * Get a list of BI-assigned experiment UUIDs of experiments which a program user is authorized to access.
+     * @param programUserRoleId the primary key of a program_user_role record.
+     * @param activeOnly if true, only return records for active program users.
+     * @return a list of BI-assigned experiment UUIDs.
+     */
     public List<UUID> getExperimentIds(UUID programUserRoleId, boolean activeOnly) {
         // If activeOnly, this will only return results if the program_user_role row is active.
         if (activeOnly)
@@ -103,5 +118,4 @@ public class ExperimentalCollaboratorDAO extends ExperimentProgramUserRoleDao {
                 .where(EXPERIMENT_PROGRAM_USER_ROLE.PROGRAM_USER_ROLE_ID.eq(programUserRoleId))
                 .fetchInto(UUID.class);
     }
-
 }

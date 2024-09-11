@@ -17,9 +17,6 @@
 
 package org.breedinginsight.services;
 
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.MediaType;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.dao.db.tables.daos.RoleDao;
 import org.breedinginsight.dao.db.tables.pojos.RoleEntity;

@@ -29,8 +29,6 @@ import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.RoleService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
 import javax.inject.Inject;
@@ -149,7 +147,7 @@ public class ExperimentController {
      * @param experimentId The UUID of the experiment.
      * @return An HttpResponse with a Response object containing a list of DatasetMetadata.
      * @throws DoesNotExistException if the program does not exist.
-     * @throws ApiException if an error occurs while retrieving the datasets
+     * @throws ApiException if an error occurs while retrieving the datasets.
      */
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/datasets")
     @ExperimentCollaboratorSecured
@@ -196,7 +194,7 @@ public class ExperimentController {
             if (programUserOptional.isEmpty()) {
                 return HttpResponse.status(HttpStatus.NOT_FOUND, "Program user does not exist");
             }
-            
+
             //get active user creating the collaborator
             AuthenticatedUser createdByUser = securityService.getUser();
             UUID programUserId = programUserOptional.get().getId();
@@ -219,7 +217,7 @@ public class ExperimentController {
      *  Response includes name and email as a convenience to the front end to avoid making another api call
      */
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/collaborators{?active}")
-    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR, ProgramSecuredRole.READ_ONLY})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<DataResponse<List<ExperimentalCollaboratorResponse>>>> getExperimentalCollaborators(
             @PathVariable("programId") UUID programId,

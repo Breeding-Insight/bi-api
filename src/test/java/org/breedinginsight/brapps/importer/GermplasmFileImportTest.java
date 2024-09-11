@@ -371,7 +371,7 @@ public class GermplasmFileImportTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
         List<String> missingDbIds = List.of("1000", "1001", "1002");
-        assertEquals(String.format(GermplasmProcessor.missingParentalDbIdsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(missingDbIds)),
+        assertEquals(String.format(GermplasmProcessor.missingParentalGIDsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(missingDbIds)),
                 result.getAsJsonObject("progress").get("message").getAsString());
     }
 
@@ -405,7 +405,7 @@ public class GermplasmFileImportTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
         List<String> missingDbIds = List.of("100", "101", "102");
-        assertEquals(String.format(GermplasmProcessor.missingParentalDbIdsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(missingDbIds)),
+        assertEquals(String.format(GermplasmProcessor.missingParentalGIDsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(missingDbIds)),
                 result.getAsJsonObject("progress").get("message").getAsString());
     }
 
