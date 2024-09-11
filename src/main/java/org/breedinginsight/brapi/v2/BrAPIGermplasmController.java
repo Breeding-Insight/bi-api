@@ -87,7 +87,7 @@ public class BrAPIGermplasmController {
     @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
-    public HttpResponse<BrAPIGermplasmListResponse> searchGermplasm(
+    public HttpResponse<Object> searchGermplasm(
             @PathVariable("programId") UUID programId,
             @Body BrAPIGermplasmSearchRequest body) throws ApiException {
 
@@ -99,15 +99,11 @@ public class BrAPIGermplasmController {
             return HttpResponse.notFound();
         }
 
-        // TODO: Issue with BrAPI server programDbId filtering, think germplasm are linked to program through observation
-        // units and doesn't work if don't have any loaded
-        // use external refs instead for now
-
+        // Can't use BrAPI server programDbId filtering, think germplasm are linked to program through observation
+        // units and doesn't work if don't have any loaded, use external refs instead for now
+        // Just use DeltaBreed program UUID
         String extRefId = program.get().getId().toString();
-        //String extRefSrc = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS);
         body.externalReferenceIds(List.of(extRefId));
-        // search is OR I think
-        //request.externalReferenceSources(List.of(extRefSrc));
 
         ApiResponse<Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>>> brapiGermplasm;
         brapiGermplasm = brAPIEndpointProvider
@@ -116,8 +112,10 @@ public class BrAPIGermplasmController {
 
         if (brapiGermplasm.getBody().getLeft().isPresent()) {
             return HttpResponse.ok(brapiGermplasm.getBody().getLeft().get());
+        } else if (brapiGermplasm.getBody().getRight().isPresent()) {
+            return HttpResponse.ok(brapiGermplasm.getBody().getRight().get());
         } else {
-            throw new ApiException("Expected immediate germplasm search response");
+            throw new ApiException("Expected search response");
         }
 
     }
