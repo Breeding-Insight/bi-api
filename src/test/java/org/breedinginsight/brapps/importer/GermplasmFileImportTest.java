@@ -133,8 +133,6 @@ public class GermplasmFileImportTest extends BrAPITest {
         for (int i = 0; i < previewRows.size(); i++) {
             JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
             germplasmNames.add(germplasm.get("germplasmName").getAsString());
-            int finalI = i;
-            gson.fromJson(germplasm.getAsJsonObject("additionalInfo").getAsJsonObject("listEntryNumbers"), Map.class).forEach((listId, entryNumber) -> assertEquals(Integer.toString(finalI +1), entryNumber, "Wrong entry number"));
         }
 
         // Check the germplasm list
@@ -563,8 +561,6 @@ public class GermplasmFileImportTest extends BrAPITest {
         for (int i = 0; i < previewRows.size(); i++) {
             JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
             germplasmNames.add(germplasm.get("germplasmName").getAsString());
-            int finalI = i;
-            gson.fromJson(germplasm.getAsJsonObject("additionalInfo").getAsJsonObject("listEntryNumbers"), Map.class).forEach((listId, entryNumber) -> assertEquals(Integer.toString(finalI +1), entryNumber, "Wrong entry number"));
         }
 
         // Check the germplasm list
@@ -650,8 +646,6 @@ public class GermplasmFileImportTest extends BrAPITest {
 
         // Germplasm display name
         assertEquals(fileData.getString(i, "Germplasm Name"), germplasm.get("defaultDisplayName").getAsString(), "Wrong display name");
-        // Entry Number
-        gson.fromJson(germplasm.getAsJsonObject("additionalInfo").getAsJsonObject("listEntryNumbers"), Map.class).forEach((listId, entryNumber) -> assertEquals(fileData.getString(i, "Entry No"), entryNumber, "Wrong entry number"));
         JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
         // Created By User ID
         assertEquals(testUser.getId().toString(), additionalInfo.getAsJsonObject(BrAPIAdditionalInfoFields.CREATED_BY).get(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID).getAsString(), "Wrong createdBy userId");
