@@ -264,6 +264,12 @@ public class GermplasmProcessor implements Processor {
         Map<String, Integer> entryNumberCounts = new HashMap<>();
         List<String> userProvidedEntryNumbers = new ArrayList<>();
         ValidationErrors validationErrors = new ValidationErrors();
+        // Sort importRows by entry number (if present).
+        importRows.sort((left, right) -> {
+            Integer leftEntryNo = Integer.parseInt(left.getGermplasm().getEntryNo());
+            Integer rightEntryNo = Integer.parseInt(right.getGermplasm().getEntryNo());
+            return leftEntryNo.compareTo(rightEntryNo);
+        });
         for (int i = 0; i < importRows.size(); i++) {
             log.debug("processing germplasm row: " + (i+1));
             BrAPIImport brapiImport = importRows.get(i);
