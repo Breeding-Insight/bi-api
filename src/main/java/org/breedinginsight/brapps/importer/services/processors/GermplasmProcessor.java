@@ -266,9 +266,13 @@ public class GermplasmProcessor implements Processor {
         ValidationErrors validationErrors = new ValidationErrors();
         // Sort importRows by entry number (if present).
         importRows.sort((left, right) -> {
-            Integer leftEntryNo = Integer.parseInt(left.getGermplasm().getEntryNo());
-            Integer rightEntryNo = Integer.parseInt(right.getGermplasm().getEntryNo());
-            return leftEntryNo.compareTo(rightEntryNo);
+            if (left.getGermplasm().getEntryNo() == null || right.getGermplasm().getEntryNo() == null) {
+                return 0;
+            } else {
+                Integer leftEntryNo = Integer.parseInt(left.getGermplasm().getEntryNo());
+                Integer rightEntryNo = Integer.parseInt(right.getGermplasm().getEntryNo());
+                return leftEntryNo.compareTo(rightEntryNo);
+            }
         });
         for (int i = 0; i < importRows.size(); i++) {
             log.debug("processing germplasm row: " + (i+1));
