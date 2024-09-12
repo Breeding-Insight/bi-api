@@ -73,7 +73,6 @@ public class BrAPIGermplasmService {
         return germplasmDAO.getGermplasmByDBID(germplasmId, programId);
     }
 
-    // TODO: pass in a hashmap of <GermplasmName, BrAPIGermplasm> as well as BrAPI list object.
     public List<Map<String, Object>> processListData(List<BrAPIGermplasm> germplasm, BrAPIListDetails germplasmList){
         Map<String, BrAPIGermplasm> germplasmByName = new HashMap<>();
         for (BrAPIGermplasm g: germplasm) {
@@ -85,8 +84,11 @@ public class BrAPIGermplasmService {
         // This holds the BrAPI list items or all germplasm in a program if the list is null.
         List<String> orderedGermplasmNames = new ArrayList<>();
         if (germplasmList == null) {
-            // TODO: sort by GID.
-            orderedGermplasmNames = germplasm.stream().map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toList());
+            orderedGermplasmNames = germplasm.stream().sorted((left, right) -> {
+                Integer leftAccessionNumber = Integer.parseInt(left.getAccessionNumber());
+                Integer rightAccessionNumber = Integer.parseInt(right.getAccessionNumber());
+                return leftAccessionNumber.compareTo(rightAccessionNumber);
+            }).map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toList());
         } else {
             orderedGermplasmNames = germplasmList.getData();
         }
@@ -110,12 +112,9 @@ public class BrAPIGermplasmService {
 
             // Use the entry number in the list map if generated
             if(germplasmList == null) {
-                // TODO: ask Shawn if she still wants entryNumber to be GID in this case, or if it should be sequential?
                 // Not downloading a real list, use GID (https://breedinginsight.atlassian.net/browse/BI-2266).
                 row.put("Entry No", Integer.valueOf(germplasmEntry.getAccessionNumber()));
             } else {
-                // TODO: if there are duplicates in a list, which to use?
-                //  if there are duplicates, it makes more sense to build entry number from BrAPI list
                 row.put("Entry No", entryNumber);
             }
 
