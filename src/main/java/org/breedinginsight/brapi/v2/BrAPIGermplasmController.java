@@ -1,5 +1,6 @@
 package org.breedinginsight.brapi.v2;
 
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -18,6 +19,7 @@ import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.BrAPIStatus;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.*;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.germ.response.*;
@@ -31,6 +33,7 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.utilities.Utilities;
@@ -49,11 +52,13 @@ import org.breedinginsight.utilities.response.ResponseUtils;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class BrAPIGermplasmController {
+    private final String referenceSource;
 
     private final BrAPIGermplasmService germplasmService;
     private final GermplasmQueryMapper germplasmQueryMapper;
@@ -67,13 +72,15 @@ public class BrAPIGermplasmController {
 
 
     @Inject
-    public BrAPIGermplasmController(BrAPIGermplasmService germplasmService,
+    public BrAPIGermplasmController(@Property(name = "brapi.server.reference-source") String referenceSource,
+                                    BrAPIGermplasmService germplasmService,
                                     GermplasmQueryMapper germplasmQueryMapper,
                                     ProgramDAO programDAO,
                                     BrAPIGermplasmDAO germplasmDAO,
                                     GenotypeService genoService,
                                     BrAPIEndpointProvider brAPIEndpointProvider,
                                     ProgramService programService) {
+        this.referenceSource = referenceSource;
         this.germplasmService = germplasmService;
         this.germplasmQueryMapper = germplasmQueryMapper;
         this.programDAO = programDAO;
@@ -84,12 +91,13 @@ public class BrAPIGermplasmController {
     }
 
     // NOTE: bypasses cache and makes api request directly to brapi service
+    // Needs to convert DeltaBreed UUIDs to BrAPI Service DbIds and back
     @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Object> searchGermplasm(
             @PathVariable("programId") UUID programId,
-            @Body BrAPIGermplasmSearchRequest body) throws ApiException {
+            @Body BrAPIGermplasmSearchRequest body) throws ApiException, DoesNotExistException {
 
         log.debug("searchGermplasm: fetching germplasm by filters");
 
@@ -105,19 +113,88 @@ public class BrAPIGermplasmController {
         String extRefId = program.get().getId().toString();
         body.externalReferenceIds(List.of(extRefId));
 
+        // convert request filter dbIds from DeltaBreed UUID to BrAPI service dbIds for now
+        // TODO: all dbIds, just germplasmDbIds for now since that's what Field Book needs
+        // Could be more performant by doing batch lookup but at least just going to cache
+        List<String> convertedDbIds = new ArrayList<>();
+        for (String germplasmDbId : body.getGermplasmDbIds()) {
+            BrAPIGermplasm germplasm = germplasmService.getGermplasmByUUID(program.get().getId(), germplasmDbId);
+            convertedDbIds.add(germplasm.getGermplasmDbId());
+        }
+        body.setGermplasmDbIds(convertedDbIds);
+
         ApiResponse<Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>>> brapiGermplasm;
         brapiGermplasm = brAPIEndpointProvider
                 .get(programDAO.getCoreClient(program.get().getId()), GermplasmApi.class)
                 .searchGermplasmPost(body);
 
+        return getObjectHttpResponse(brapiGermplasm, program.get().getKey());
+    }
+
+    // NOTE: bypasses cache and makes api request directly to brapi service
+    // Needs to convert BrAPIService dbIds to DeltaBreed UUIDs
+    @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm/{searchResultId}{?queryParams*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    public HttpResponse<Object> getSearchResult(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("searchResultId") UUID searchResultId,
+            @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid GermplasmQuery queryParams) throws ApiException {
+
+        log.debug("getGermplasmResult: getting results");
+
+        Optional<Program> program = programService.getById(programId);
+        if(program.isEmpty()) {
+            log.warn("Program id: " + programId + " not found");
+            return HttpResponse.notFound();
+        }
+
+        ApiResponse<Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>>> brapiGermplasm;
+        brapiGermplasm = brAPIEndpointProvider
+                .get(programDAO.getCoreClient(program.get().getId()), GermplasmApi.class)
+                .searchGermplasmSearchResultsDbIdGet(searchResultId.toString(), queryParams.getPage(), queryParams.getPageSize());
+
+        return getObjectHttpResponse(brapiGermplasm, program.get().getKey());
+    }
+
+    private HttpResponse<Object> getObjectHttpResponse(ApiResponse<Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>>> brapiGermplasm,
+                                                       String programKey) throws ApiException {
         if (brapiGermplasm.getBody().getLeft().isPresent()) {
-            return HttpResponse.ok(brapiGermplasm.getBody().getLeft().get());
+            // convert dbIds to DeltaBreed UUID
+            BrAPIGermplasmListResponse response = brapiGermplasm.getBody().getLeft().get();
+            List<BrAPIGermplasm> germplasm = response.getResult().getData();
+            germplasm.forEach(g -> setDbIdsAndStripProgramKeys(g, programKey));
+            return HttpResponse.ok(response);
         } else if (brapiGermplasm.getBody().getRight().isPresent()) {
             return HttpResponse.ok(brapiGermplasm.getBody().getRight().get());
         } else {
             throw new ApiException("Expected search response");
         }
+    }
 
+    /**
+     * Keep dbIds in DeltaBreed UUID context and strip program keys from synonyms and pedigree string for Field Book display
+     * @param germplasm
+     * @param programKey
+     */
+    private void setDbIdsAndStripProgramKeys(BrAPIGermplasm germplasm, String programKey) {
+        String extRef = Utilities.getExternalReference(germplasm.getExternalReferences(), "breedinginsight.org")
+                .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
+                        .getReferenceId();
+
+        germplasm.germplasmDbId(extRef);
+
+        // Remove program keys from synonyms
+        if (germplasm.getSynonyms() != null && !germplasm.getSynonyms().isEmpty()) {
+            for (BrAPIGermplasmSynonyms synonym: germplasm.getSynonyms()) {
+                String newSynonym = Utilities.removeProgramKey(synonym.getSynonym(), programKey, germplasm.getAccessionNumber());
+                synonym.setSynonym(newSynonym);
+            }
+        }
+
+        // Remove program keys from pedigree string
+        String strippedPedigree = Utilities.removeProgramKeyAndUnknownAdditionalData(germplasm.getPedigree(), programKey);
+        germplasm.setPedigree(strippedPedigree);
     }
 
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm{?queryParams*}")
