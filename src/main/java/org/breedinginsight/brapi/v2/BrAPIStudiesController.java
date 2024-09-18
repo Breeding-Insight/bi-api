@@ -128,9 +128,6 @@ public class BrAPIStudiesController {
         } catch (IllegalArgumentException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
-        } catch (DoesNotExistException e) {
-            log.info(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
