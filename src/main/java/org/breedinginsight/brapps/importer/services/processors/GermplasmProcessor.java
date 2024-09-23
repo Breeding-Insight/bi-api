@@ -71,6 +71,7 @@ public class GermplasmProcessor implements Processor {
     private final BrAPIListDAO brAPIListDAO;
     private final DSLContext dsl;
     private final BrAPIGermplasmDAO brAPIGermplasmDAO;
+    private final Gson gson = new Gson();
 
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByAccessionNumber = new HashMap<>();
     Map<String, Integer> fileGermplasmByName = new HashMap<>();
@@ -384,8 +385,7 @@ public class GermplasmProcessor implements Processor {
         String gid = germplasm.getAccessionNumber();
         if (germplasmByAccessionNumber.containsKey(gid)) {
             existingGermplasm = germplasmByAccessionNumber.get(gid).getBrAPIObject();
-            // TODO: hacky, but deep copy is needed and serialize/deserialize works.
-            Gson gson = new Gson();
+            // Serialize and deserialize to deep copy
             existingGermplasm = gson.fromJson(gson.toJson(existingGermplasm), BrAPIGermplasm.class);
         } else {
             //should be caught in getExistingBrapiData

@@ -45,6 +45,7 @@ public class BrAPIGermplasmService {
     private final BrAPIGermplasmDAO germplasmDAO;
     private final ProgramService programService;
     private final BrAPIListDAO brAPIListDAO;
+    private final Gson gson = new Gson();
 
     @Inject
     public BrAPIGermplasmService(BrAPIListDAO brAPIListDAO, ProgramService programService, BrAPIGermplasmDAO germplasmDAO) {
@@ -99,7 +100,7 @@ public class BrAPIGermplasmService {
             // Increment entryNumber.
             ++entryNumber;
             // Strip program key and accession number from germplasm name.
-            germplasmName = Utilities.removeUnknownProgramKey(germplasmName);  // TODO: would be better to use known program key.
+            germplasmName = Utilities.removeUnknownProgramKey(germplasmName);  // TODO: could move to the germplasmList != null codepath.
             // Lookup the BrAPI germplasm in the map.
             BrAPIGermplasm germplasmEntry = germplasmByName.get(germplasmName);
 
@@ -183,8 +184,10 @@ public class BrAPIGermplasmService {
                 germplasmByName.put(g.getGermplasmName(), g);
             }
 
-            // TODO: is this really necessary? Also, handle the exception.
-            String programKey = programService.getById(programId).get().getKey();
+            // Get the program key.
+            String programKey = programService.getById(programId)
+                    .orElseThrow(ApiException::new)
+                    .getKey();
 
             // Build list from BrAPI list that preserves ordering and duplicates and assigns sequential entry numbers.
             List<BrAPIGermplasm> germplasmList = new ArrayList<>();
@@ -195,16 +198,14 @@ public class BrAPIGermplasmService {
                 // Set entry number.
                 listEntry.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNumber);
                 germplasmList.add(listEntry);
-                // TODO: need to set entry number, need to deep copy duplicates...
             }
 
             return germplasmList;
         } else throw new ApiException();
     }
 
-    // Serialize then deserialize to deep copy.
     private BrAPIGermplasm cloneBrAPIGermplasm(BrAPIGermplasm germplasm) {
-        Gson gson = new Gson();
+        // Serialize then deserialize to deep copy.
         return (BrAPIGermplasm) gson.fromJson(gson.toJson(germplasm), BrAPIGermplasm.class);
     }
 
