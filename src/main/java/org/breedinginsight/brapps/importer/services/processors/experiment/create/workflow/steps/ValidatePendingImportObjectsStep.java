@@ -290,7 +290,11 @@ public class ValidatePendingImportObjectsStep {
             String errorMessage = String.format("The ID (%s) is not unique within the environment(%s)", importRow.getExpUnitId(), importRow.getEnv());
             ExperimentUtilities.addRowError(ExperimentObservation.Columns.EXP_UNIT_ID, errorMessage, validationErrors, rowNum);
         } else {
-            uniqueStudyAndObsUnit.add(envIdPlusStudyId);
+            //Only want to add valid unique study-obs unit combos
+            //To avoid situations like system counting a null value as a unique combo
+            if (!envIdPlusStudyId.isBlank()) {
+                uniqueStudyAndObsUnit.add(envIdPlusStudyId);
+            }
         }
     }
 
