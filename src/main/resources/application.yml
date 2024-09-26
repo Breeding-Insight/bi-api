@@ -110,6 +110,7 @@ flyway:
       placeholders:
         default-url: ${brapi.server.default-url}
         brapi-reference-source: ${brapi.server.reference-source}
+        orcid-sandbox-authentication: ${ORCID_SANDBOX_AUTHENTICATION:false}
       out-of-order: true
 jooq:
   datasources:
