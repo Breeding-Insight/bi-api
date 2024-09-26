@@ -56,7 +56,7 @@ public class ExperimentPhenotypeService {
         Table data = importContext.getData();
         ImportUpload upload = importContext.getUpload();
         Program program = importContext.getProgram();
-
+        String[] cols = upload.getDynamicColumnNames();
         DynamicColumnParser.DynamicColumnParseResult result = DynamicColumnParser.parse(data, upload.getDynamicColumnNames());
         List<Trait> traits = experimentValidateService.verifyTraits(program.getId(), result);
 
