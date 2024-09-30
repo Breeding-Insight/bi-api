@@ -133,12 +133,7 @@ public class BrAPIProgramsController {
         *
         * @param programId The ID of the program.
         *
-        * todo response type handle
-    HttpResponse<Response<DataResponse<List<String>>>>
-    *  containing a Response object with a DataResponse object that wraps a list of programs.
-    HttpResponse<BrAPIResponse<BrAPIResponseResult<BrAPIProgram>>
-
-        * @return HttpResponse
+        * @return HttpResponse containing BrAPIProgramListResponse
         * Returns HttpResponse.NOT_FOUND if the program is not found.
     */
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs")
