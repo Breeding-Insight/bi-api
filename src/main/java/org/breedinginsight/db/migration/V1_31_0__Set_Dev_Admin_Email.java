@@ -42,6 +42,7 @@ public class V1_31_0__Set_Dev_Admin_Email extends BaseJavaMigration {
         Map<String, String> placeholders = context.getConfiguration().getPlaceholders();
         boolean isOrcidSandboxAuthentication =  Boolean.parseBoolean( placeholders.get(ORCID_SANDBOX_AUTHENTICATION) );
         updateDevAdminUser(context, isOrcidSandboxAuthentication);
+        deleteUserChris(context);
     }
 
     private void updateDevAdminUser(Context context, boolean isOrcidSandboxAuthentication) throws SQLException {
@@ -51,6 +52,14 @@ public class V1_31_0__Set_Dev_Admin_Email extends BaseJavaMigration {
             String sql = "UPDATE bi_user SET email='" + biDevAdminUserEmail + "' WHERE NULLIF(email,'') IS NULL AND bi_user.name='BI-DEV Admin'";
             log.debug(sql);
             update.executeUpdate(sql);
+        }
+    }
+
+    private void deleteUserChris(Context context) throws SQLException {
+        try (Statement delete = context.getConnection().createStatement()) {
+            String sql = "DELETE FROM bi_user WHERE name = 'Chris Tucker'  AND email IS NULL";
+            log.debug(sql);
+            delete.executeUpdate(sql);
         }
     }
 }
