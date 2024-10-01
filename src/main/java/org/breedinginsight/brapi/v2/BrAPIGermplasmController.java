@@ -113,14 +113,8 @@ public class BrAPIGermplasmController {
         String extRefId = program.get().getId().toString();
         body.externalReferenceIds(List.of(extRefId));
 
-        // convert request filter dbIds from DeltaBreed UUID to BrAPI service dbIds for now
-        // TODO: all dbIds, just germplasmDbIds for now since that's what Field Book needs
-        // Could be more performant by doing batch lookup but at least just going to cache
-        List<String> convertedDbIds = new ArrayList<>();
-        for (String germplasmDbId : body.getGermplasmDbIds()) {
-            BrAPIGermplasm germplasm = germplasmService.getGermplasmByUUID(program.get().getId(), germplasmDbId);
-            convertedDbIds.add(germplasm.getGermplasmDbId());
-        }
+        // convert request filter dbIds from DeltaBreed UUID to BrAPI service dbIds
+        List<String> convertedDbIds = germplasmService.getGermplasmDbIdsForUUIDs(program.get().getId(), body.getGermplasmDbIds());
         body.setGermplasmDbIds(convertedDbIds);
 
         ApiResponse<Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>>> brapiGermplasm;
