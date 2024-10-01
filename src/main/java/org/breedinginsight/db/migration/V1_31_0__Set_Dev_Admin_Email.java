@@ -42,7 +42,11 @@ public class V1_31_0__Set_Dev_Admin_Email extends BaseJavaMigration {
         Map<String, String> placeholders = context.getConfiguration().getPlaceholders();
         boolean isOrcidSandboxAuthentication =  Boolean.parseBoolean( placeholders.get(ORCID_SANDBOX_AUTHENTICATION) );
         updateDevAdminUser(context, isOrcidSandboxAuthentication);
+        //Must delete user "Chris Tucker" before adding the new Constraint (User "Chris Tucker" is added by migration V0.5.2__populate-user-data.sql.
+        // It would violate the new constraint)
+        // PS -- We miss Chris Tucker.
         deleteUserChris(context);
+        addConstraint(context);
     }
 
     private void updateDevAdminUser(Context context, boolean isOrcidSandboxAuthentication) throws SQLException {
@@ -60,6 +64,24 @@ public class V1_31_0__Set_Dev_Admin_Email extends BaseJavaMigration {
             String sql = "DELETE FROM bi_user WHERE name = 'Chris Tucker'  AND email IS NULL";
             log.debug(sql);
             delete.executeUpdate(sql);
+        }
+    }
+
+    private void addConstraint(Context context) throws SQLException {
+        final String CONSTRAINT_NAME = "email_orcid";
+        // First, drop the constraint if it already exist.
+        try (Statement altTable = context.getConnection().createStatement()) {
+            String sql = "ALTER TABLE bi_user DROP CONSTRAINT IF EXISTS "+ CONSTRAINT_NAME;
+            log.debug(sql);
+            altTable.executeUpdate(sql);
+        }
+
+        // Add new constraint
+        try (Statement altTable = context.getConnection().createStatement()) {
+            String sql = "ALTER TABLE bi_user\n" +
+                    "ADD CONSTRAINT " +CONSTRAINT_NAME+ " CHECK ( (email IS NOT NULL ) OR (orcid IS NULL) ) ;";
+            log.debug(sql);
+            altTable.executeUpdate(sql);
         }
     }
 }
