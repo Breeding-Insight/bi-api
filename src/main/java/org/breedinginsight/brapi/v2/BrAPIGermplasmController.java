@@ -52,6 +52,7 @@ import org.breedinginsight.utilities.response.ResponseUtils;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -157,7 +158,8 @@ public class BrAPIGermplasmController {
             // convert dbIds to DeltaBreed UUID
             BrAPIGermplasmListResponse response = brapiGermplasm.getBody().getLeft().get();
             List<BrAPIGermplasm> germplasm = response.getResult().getData();
-            germplasm.forEach(g -> setDbIdsAndStripProgramKeys(g, programKey));
+            //germplasm.forEach(g -> setDbIdsAndStripProgramKeys(g, programKey));
+            batchProcessGermplasm(germplasm, programKey);
             return HttpResponse.ok(response);
         } else if (brapiGermplasm.getBody().getRight().isPresent()) {
             return HttpResponse.ok(brapiGermplasm.getBody().getRight().get());
@@ -168,27 +170,28 @@ public class BrAPIGermplasmController {
 
     /**
      * Keep dbIds in DeltaBreed UUID context and strip program keys from synonyms and pedigree string for Field Book display
-     * @param germplasm
+     * @param germplasmList
      * @param programKey
      */
-    private void setDbIdsAndStripProgramKeys(BrAPIGermplasm germplasm, String programKey) {
-        String extRef = Utilities.getExternalReference(germplasm.getExternalReferences(), "breedinginsight.org")
-                .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
-                        .getReferenceId();
-
-        germplasm.germplasmDbId(extRef);
-
-        // Remove program keys from synonyms
-        if (germplasm.getSynonyms() != null && !germplasm.getSynonyms().isEmpty()) {
-            for (BrAPIGermplasmSynonyms synonym: germplasm.getSynonyms()) {
-                String newSynonym = Utilities.removeProgramKey(synonym.getSynonym(), programKey, germplasm.getAccessionNumber());
-                synonym.setSynonym(newSynonym);
+    private void batchProcessGermplasm(List<BrAPIGermplasm> germplasmList, String programKey) throws IllegalStateException {
+        // Prepare a regex pattern for program key removal
+        Pattern programKeyPattern = Utilities.getRegexPatternMatchAllProgramKeysAnyAccession(programKey);
+        germplasmList.parallelStream().forEach(germplasm -> {
+            // Set dbId
+            germplasm.germplasmDbId(Utilities.getExternalReference(germplasm.getExternalReferences(), "breedinginsight.org")
+                    .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
+                    .getReferenceId());
+            // Process synonyms
+            if (germplasm.getSynonyms() != null) {
+                germplasm.getSynonyms().forEach(synonym -> {
+                    synonym.setSynonym(Utilities.removeProgramKey(synonym.getSynonym(), programKey, germplasm.getAccessionNumber()));
+                });
             }
-        }
-
-        // Remove program keys from pedigree string
-        String strippedPedigree = Utilities.removeProgramKeyAndUnknownAdditionalData(germplasm.getPedigree(), programKey);
-        germplasm.setPedigree(strippedPedigree);
+            // Process pedigree
+            if (germplasm.getPedigree() != null) {
+                germplasm.setPedigree(programKeyPattern.matcher(germplasm.getPedigree()).replaceAll(""));
+            }
+        });
     }
 
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm{?queryParams*}")

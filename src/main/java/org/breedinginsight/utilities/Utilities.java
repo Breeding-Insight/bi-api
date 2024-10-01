@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public class Utilities {
 
@@ -95,6 +96,10 @@ public class Utilities {
      */
     public static String removeProgramKeyAnyAccession(String str, String programKey) {
         return str.replaceAll("\\[" + programKey + "-.*\\]", "").trim();
+    }
+
+    public static Pattern getRegexPatternMatchAllProgramKeysAnyAccession(String programKey) {
+        return Pattern.compile(String.format("\\s*\\[%s-.*?\\]\\s*", programKey));
     }
 
     /**
