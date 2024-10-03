@@ -24,11 +24,17 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPIObservationTable;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
+import org.breedinginsight.api.model.v1.response.DataResponse;
+import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
+import org.breedinginsight.brapi.v2.services.BrAPIObservationService;
+import org.breedinginsight.services.ProgramService;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +44,15 @@ import java.util.UUID;
 @Controller("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2)
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class BrAPIObservationsController {
+
+    private final BrAPIObservationService observationService;
+    private final ProgramService programService;
+
+    @Inject
+    public BrAPIObservationsController(BrAPIObservationService observationService, ProgramService programService) {
+        this.observationService = observationService;
+        this.programService = programService;
+    }
 
     @Get("/observations")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
