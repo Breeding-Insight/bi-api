@@ -159,7 +159,7 @@ public class BrAPIProgramsController {
             }
         }
 
-        List<BrAPIProgram> programs = programService.getById(programId).stream().filter(program -> {
+        List<BrAPIProgram> programs = optProgram.stream().filter(program -> {
             boolean matches = abbreviation.map(abbr -> abbr.equals(program.getKey())).orElse(true);
             matches = matches && programDbId.map(id -> id.equals(program.getId().toString())).orElse(true);
             return matches && programName.map(name -> name.equals(program.getName())).orElse(true);
