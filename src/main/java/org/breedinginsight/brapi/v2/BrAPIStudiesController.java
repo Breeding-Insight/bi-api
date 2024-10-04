@@ -95,32 +95,29 @@ public class BrAPIStudiesController {
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = StudyQueryMapper.class) @Valid StudyQuery queryParams) {
         try {
-            log.debug("fetching studies for program: " + programId);
-            List<BrAPIStudy> studies;
-
-            Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
-            // If the program user is an experimental collaborator, filter results.
-            if (experimentalCollaborator.isPresent()) {
-                Optional<Program> program = programService.getById(programId);
-                if (program.isEmpty()) {
-                    return HttpResponse.notFound();
-                }
-
-                List<UUID> experimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
-                studies = studyService.getStudiesByExperimentIds(program.get(), experimentIds)
-                        .stream()
-                        .peek(this::setDbIds)
-                        .collect(Collectors.toList());
-            } else {
-                studies = studyService.getStudies(programId)
-                        .stream()
-                        .peek(this::setDbIds)
-                        .collect(Collectors.toList());
-            }
+            Optional<Program> program = programService.getById(programId);
+            if (program.isEmpty()) { return HttpResponse.notFound(); }
 
             queryParams.setSortField(studyQueryMapper.getDefaultSortField());
             queryParams.setSortOrder(studyQueryMapper.getDefaultSortOrder());
             SearchRequest searchRequest = queryParams.constructSearchRequest();
+            log.debug("fetching studies for program: " + programId);
+
+            // If the program user is an experimental collaborator, filter results for only authorized studies.
+            Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
+            if (experimentalCollaborator.isPresent()) {
+                List<UUID> authorizedExperimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
+                List<BrAPIStudy> authorizedStudies = studyService.getStudiesByExperimentIds(program.get(), authorizedExperimentIds)
+                        .stream()
+                        .peek(this::setDbIds)
+                        .collect(Collectors.toList());
+                return ResponseUtils.getBrapiQueryResponse(authorizedStudies, studyQueryMapper, queryParams, searchRequest);
+            }
+
+            List<BrAPIStudy> studies = studyService.getStudies(programId)
+                        .stream()
+                        .peek(this::setDbIds)
+                        .collect(Collectors.toList());
             return ResponseUtils.getBrapiQueryResponse(studies, studyQueryMapper, queryParams, searchRequest);
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
@@ -128,9 +125,6 @@ public class BrAPIStudiesController {
         } catch (IllegalArgumentException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
-        } catch (DoesNotExistException e) {
-            log.info(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
