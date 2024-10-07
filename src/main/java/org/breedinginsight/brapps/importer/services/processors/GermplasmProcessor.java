@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.services.processors;
 
+import com.google.gson.Gson;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
@@ -70,6 +71,7 @@ public class GermplasmProcessor implements Processor {
     private final BrAPIListDAO brAPIListDAO;
     private final DSLContext dsl;
     private final BrAPIGermplasmDAO brAPIGermplasmDAO;
+    private final Gson gson = new Gson();
 
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByAccessionNumber = new HashMap<>();
     Map<String, Integer> fileGermplasmByName = new HashMap<>();
@@ -263,6 +265,16 @@ public class GermplasmProcessor implements Processor {
         Map<String, Integer> entryNumberCounts = new HashMap<>();
         List<String> userProvidedEntryNumbers = new ArrayList<>();
         ValidationErrors validationErrors = new ValidationErrors();
+        // Sort importRows by entry number (if present).
+        importRows.sort((left, right) -> {
+            if (left.getGermplasm().getEntryNo() == null || right.getGermplasm().getEntryNo() == null) {
+                return 0;
+            } else {
+                Integer leftEntryNo = Integer.parseInt(left.getGermplasm().getEntryNo());
+                Integer rightEntryNo = Integer.parseInt(right.getGermplasm().getEntryNo());
+                return leftEntryNo.compareTo(rightEntryNo);
+            }
+        });
         for (int i = 0; i < importRows.size(); i++) {
             log.debug("processing germplasm row: " + (i+1));
             BrAPIImport brapiImport = importRows.get(i);
@@ -373,6 +385,8 @@ public class GermplasmProcessor implements Processor {
         String gid = germplasm.getAccessionNumber();
         if (germplasmByAccessionNumber.containsKey(gid)) {
             existingGermplasm = germplasmByAccessionNumber.get(gid).getBrAPIObject();
+            // Serialize and deserialize to deep copy
+            existingGermplasm = gson.fromJson(gson.toJson(existingGermplasm), BrAPIGermplasm.class);
         } else {
             //should be caught in getExistingBrapiData
             ValidationError ve = new ValidationError("GID", String.format(missingGID, gid), HttpStatus.NOT_FOUND);
