@@ -169,13 +169,19 @@ public class ExperimentUtilities {
      *
      * This method takes in the name of a study and the name of an observation unit and concatenates them to create a unique key.
      *
+     * If one or both of the inputs is null, returns an empty string since not a valid combination
+     *
      * @param studyName The name of the study
      * @param obsUnitName The name of the observation unit
      * @return A string representing the unique key formed by concatenating the study name and observation unit name
      */
     public static String createObservationUnitKey(String studyName, String obsUnitName) {
         // Concatenate the study name and observation unit name to create the unique key
-        return studyName + obsUnitName;
+        if (studyName != null && obsUnitName != null) {
+            return studyName + obsUnitName;
+        } else {
+            return "";
+        }
     }
 
 // Module/Script-level documentation
