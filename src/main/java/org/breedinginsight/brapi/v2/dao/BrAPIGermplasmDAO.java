@@ -345,6 +345,22 @@ public class BrAPIGermplasmDAO {
         return germplasm;
     }
 
+    public List<String> getGermplasmDbIdsForUUIDs(List<String> germplasmUUIDs, UUID programId) throws ApiException, DoesNotExistException {
+        Map<String, BrAPIGermplasm> cache = programGermplasmCache.get(programId);
+        List<String> germplasmList = new ArrayList<>();
+        if (cache != null) {
+            // not using streams because want to throw checked exception
+            for (String germplasmUUID : germplasmUUIDs) {
+                BrAPIGermplasm germplasm = cache.get(germplasmUUID);
+                if (germplasm == null) {
+                    throw new DoesNotExistException("UUID for this germplasm does not exist: " + germplasmUUID);
+                }
+                germplasmList.add(germplasm.getGermplasmDbId());
+            }
+        }
+        return germplasmList;
+    }
+
     public Optional<BrAPIGermplasm> getGermplasmByDBID(String germplasmDbId, UUID programId) throws ApiException {
         Map<String, BrAPIGermplasm> cache = programGermplasmCache.get(programId);
         //key is UUID, want to filter by DBID
