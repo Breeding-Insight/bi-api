@@ -95,68 +95,68 @@ public class ObservationQuery extends BrapiQuery {
      * Build a query string from the ObservationQuery object.
      */
     public String toQueryString() {
-        StringBuilder queryStringBuilder = new StringBuilder();
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("?");
         if (StringUtils.isNotBlank(observationUnitDbId)) {
-            queryStringBuilder.append("observationUnitDbId=").append(observationUnitDbId).append("&");
+            queryString.append("observationUnitDbId=").append(observationUnitDbId).append("&");
         }
         if (StringUtils.isNotBlank(observationVariableDbId)) {
-            queryStringBuilder.append("observationVariableDbId=").append(observationVariableDbId).append("&");
+            queryString.append("observationVariableDbId=").append(observationVariableDbId).append("&");
         }
         if (StringUtils.isNotBlank(locationDbId)) {
-            queryStringBuilder.append("locationDbId=").append(locationDbId).append("&");
+            queryString.append("locationDbId=").append(locationDbId).append("&");
         }
         if (StringUtils.isNotBlank(seasonDbId)) {
-            queryStringBuilder.append("seasonDbId=").append(seasonDbId).append("&");
+            queryString.append("seasonDbId=").append(seasonDbId).append("&");
         }
         if (StringUtils.isNotBlank(observationLevel)) {
-            queryStringBuilder.append("observationLevel=").append(observationLevel).append("&");
+            queryString.append("observationLevel=").append(observationLevel).append("&");
         }
         if (StringUtils.isNotBlank(searchResultsDbId)) {
-            queryStringBuilder.append("searchResultsDbId=").append(searchResultsDbId).append("&");
+            queryString.append("searchResultsDbId=").append(searchResultsDbId).append("&");
         }
         if (StringUtils.isNotBlank(observationTimeStampRangeStart)) {
-            queryStringBuilder.append("observationTimeStampRangeStart=").append(observationTimeStampRangeStart).append("&");
+            queryString.append("observationTimeStampRangeStart=").append(observationTimeStampRangeStart).append("&");
         }
         if (StringUtils.isNotBlank(observationTimeStampRangeEnd)) {
-            queryStringBuilder.append("observationTimeStampRangeEnd=").append(observationTimeStampRangeEnd).append("&");
+            queryString.append("observationTimeStampRangeEnd=").append(observationTimeStampRangeEnd).append("&");
         }
         if (StringUtils.isNotBlank(programDbId)) {
-            queryStringBuilder.append("programDbId=").append(programDbId).append("&");
+            queryString.append("programDbId=").append(programDbId).append("&");
         }
         if (StringUtils.isNotBlank(trialDbId)) {
-            queryStringBuilder.append("trialDbId=").append(trialDbId).append("&");
+            queryString.append("trialDbId=").append(trialDbId).append("&");
         }
         if (StringUtils.isNotBlank(studyDbId)) {
-            queryStringBuilder.append("studyDbId=").append(studyDbId).append("&");
+            queryString.append("studyDbId=").append(studyDbId).append("&");
         }
         if (StringUtils.isNotBlank(germplasmDbId)) {
-            queryStringBuilder.append("germplasmDbId=").append(germplasmDbId).append("&");
+            queryString.append("germplasmDbId=").append(germplasmDbId).append("&");
         }
         if (StringUtils.isNotBlank(observationUnitLevelName)) {
-            queryStringBuilder.append("observationUnitLevelName=").append(observationUnitLevelName).append("&");
+            queryString.append("observationUnitLevelName=").append(observationUnitLevelName).append("&");
         }
         if (StringUtils.isNotBlank(observationUnitLevelOrder)) {
-            queryStringBuilder.append("observationUnitLevelOrder=").append(observationUnitLevelOrder).append("&");
+            queryString.append("observationUnitLevelOrder=").append(observationUnitLevelOrder).append("&");
         }
         if (StringUtils.isNotBlank(observationUnitLevelCode)) {
-            queryStringBuilder.append("observationUnitLevelCode=").append(observationUnitLevelCode).append("&");
+            queryString.append("observationUnitLevelCode=").append(observationUnitLevelCode).append("&");
         }
         if (StringUtils.isNotBlank(observationUnitLevelRelationshipName)) {
-            queryStringBuilder.append("observationUnitLevelRelationshipName=").append(observationUnitLevelRelationshipName).append("&");
+            queryString.append("observationUnitLevelRelationshipName=").append(observationUnitLevelRelationshipName).append("&");
         }
         if (StringUtils.isNotBlank(observationUnitLevelRelationshipOrder)) {
-            queryStringBuilder.append("observationUnitLevelRelationshipOrder=").append(observationUnitLevelRelationshipOrder).append("&");
+            queryString.append("observationUnitLevelRelationshipOrder=").append(observationUnitLevelRelationshipOrder).append("&");
         }
         if (StringUtils.isNotBlank(observationUnitLevelRelationshipCode)) {
-            queryStringBuilder.append("observationUnitLevelRelationshipCode=").append(observationUnitLevelRelationshipCode).append("&");
+            queryString.append("observationUnitLevelRelationshipCode=").append(observationUnitLevelRelationshipCode).append("&");
         }
 
-        // If any query parameters were added, remove the trailing "&" from the query string.
-        if (queryStringBuilder.length() > 0) {
-            queryStringBuilder.deleteCharAt(queryStringBuilder.length() - 1);
-        }
+        // If any query parameters were added, this removes the trailing "&" from the query string.
+        // If no query parameters were added, this removes the superfluous "?" from the query string.
+        queryString.deleteCharAt(queryString.length() - 1);
 
-        return queryStringBuilder.toString();
+        return queryString.toString();
     }
 
 }
