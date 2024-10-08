@@ -31,20 +31,12 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
 
     public GermplasmQueryMapper() {
         fields = Map.ofEntries(
-                Map.entry("importEntryNumber", (germplasm) ->{
+                Map.entry("importEntryNumber", (germplasm) -> {
                     String entryNumber = null;
                         if (germplasm.getAdditionalInfo() != null) {
                             // if additionalInfo contains the importEntryNumber key then return the value
                             if (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER)) {
                                 entryNumber = germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsString();
-                            }
-
-                            // if additionalInfo has both listEntryNumbers and listId keys then return the entry number
-                            // mapped to the listId
-                            if (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS)
-                                && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID)) {
-                                String listId = germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID).getAsString();
-                                entryNumber = germplasm.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS).get(listId).getAsString();
                             }
                         }
                     return entryNumber;
