@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.services.validators;
 
+import io.micronaut.http.HttpStatus;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -207,6 +208,23 @@ public class TraitValidatorService {
         return errors;
     }
 
+    public ValidationErrors checkTraitFieldsFormat(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
+
+        ValidationErrors errors = new ValidationErrors();
+
+        for (int i = 0; i < traits.size(); i++) {
+
+            Trait trait = traits.get(i);
+            String name = trait.getObservationVariableName();
+
+            if (name != null && name.contains(".")){
+                ValidationError error = traitValidatorErrors.getPeriodObsVarNameMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+        }
+        return errors;
+    }
+
     public List<Trait> checkDuplicateTraitsExistingByName(UUID programId, List<Trait> traits){
 
         List<Trait> duplicates = new ArrayList<>();
@@ -273,7 +291,8 @@ public class TraitValidatorService {
         ValidationErrors dataConsistencyErrors = checkTraitDataConsistency(traits, traitValidatorError);
         ValidationErrors duplicateTraitsInFile = checkDuplicateTraitsInFile(traits, traitValidatorError);
         ValidationErrors fieldLengthError =  checkTraitFieldsLength(traits, traitValidatorError);
-        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraitsInFile, fieldLengthError);
+        ValidationErrors fieldFormatErrors =  checkTraitFieldsFormat(traits, traitValidatorError);
+        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraitsInFile, fieldLengthError, fieldFormatErrors);
 
         if (validationErrors.hasErrors()){
             return Optional.of(validationErrors);
