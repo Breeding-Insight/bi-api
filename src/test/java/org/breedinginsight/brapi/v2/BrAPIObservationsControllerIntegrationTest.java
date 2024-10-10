@@ -260,7 +260,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void testGetObsTableNotFound() {
+    public void testGetObsTableOK() {
         Flowable<HttpResponse<String>> getCall = client.exchange(
                 GET(String.format("/programs/%s/brapi/v2/observations/table",
                         program.getId().toString()))
@@ -268,10 +268,8 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
                         .bearerAuth("test-registered-user"), String.class
         );
 
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = getCall.blockingFirst();
-        });
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        HttpResponse<String> response = getCall.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
     }
 
     @Test
