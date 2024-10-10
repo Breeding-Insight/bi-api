@@ -126,6 +126,7 @@ public class ObservationQuery extends BrapiQuery {
 
     /**
      * Build a query string from the ObservationQuery object.
+     * This may be useful for proxying requests to the backing BrAPI service.
      */
     public String toQueryString() {
         StringBuilder queryString = new StringBuilder();
