@@ -37,7 +37,6 @@ import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
 import org.breedinginsight.brapi.v2.model.request.query.ObservationQuery;
-import org.breedinginsight.brapi.v2.services.BrAPIObservationService;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
@@ -54,15 +53,13 @@ import java.util.*;
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class BrAPIObservationsController {
 
-    private final BrAPIObservationService observationService;
     private final ProgramService programService;
     private final ProgramDAO programDAO;
     private final BrAPIStudyDAO brAPIStudyDAO;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public BrAPIObservationsController(BrAPIObservationService observationService, ProgramService programService, ProgramDAO programDAO, ProgramDAO programDAO1, BrAPIStudyDAO brAPIStudyDAO, BrAPIEndpointProvider brAPIEndpointProvider) {
-        this.observationService = observationService;
+    public BrAPIObservationsController(ProgramService programService, ProgramDAO programDAO, ProgramDAO programDAO1, BrAPIStudyDAO brAPIStudyDAO, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programService = programService;
         this.programDAO = programDAO1;
         this.brAPIStudyDAO = brAPIStudyDAO;
