@@ -66,6 +66,11 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getPeriodObsVarNameMsg() {
+        return new ValidationError("Name", "Period is invalid", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
     public ValidationError getMissingObsVarNameMsg() {
         return new ValidationError("Name", "Missing name", HttpStatus.UNPROCESSABLE_ENTITY);
     }
