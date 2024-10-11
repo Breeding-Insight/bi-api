@@ -426,6 +426,7 @@ public class DeltaEntityFactoryUnitTest extends DatabaseTest {
             .additionalInfo(toJsonObject(additionalInfoString))
             .collector("intern")
             .externalReferences(createExternalReferences())
+            .geoCoordinates(BrApiGeoJSON.builder().geometry(null).type("Feature").build())
             .germplasmDbId("2bb19ef2-fcc5-406d-b9c3-4517c665b699")
             .germplasmName("lucky")
             .observationTimeStamp(OffsetDateTime.now())
