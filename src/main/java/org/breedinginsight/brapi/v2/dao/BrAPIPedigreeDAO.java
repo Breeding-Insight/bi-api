@@ -73,13 +73,14 @@ public class BrAPIPedigreeDAO {
      */
     public List<BrAPIPedigreeNode> getPedigree(
             Program program,
-            Optional<Boolean> includeParents,
-            Optional<Boolean> includeSiblings,
-            Optional<Boolean> includeProgeny,
-            Optional<Boolean> includeFullTree,
-            Optional<Integer> pedigreeDepth,
-            Optional<Integer> progenyDepth,
-            Optional<String> germplasmName
+            Boolean includeParents,
+            Boolean includeSiblings,
+            Boolean includeProgeny,
+            Boolean includeFullTree,
+            Integer pedigreeDepth,
+            Integer progenyDepth,
+            String germplasmName,
+            String accessionNumber
     ) throws ApiException {
 
         PedigreeQueryParams pedigreeRequest = new PedigreeQueryParams();
@@ -94,13 +95,14 @@ public class BrAPIPedigreeDAO {
         pedigreeRequest.externalReferenceId(extRefId);
         pedigreeRequest.externalReferenceSource(extRefSrc);
 
-        includeParents.ifPresent(pedigreeRequest::includeParents);
-        includeSiblings.ifPresent(pedigreeRequest::includeSiblings);
-        includeProgeny.ifPresent(pedigreeRequest::includeProgeny);
-        includeFullTree.ifPresent(pedigreeRequest::includeFullTree);
-        pedigreeDepth.ifPresent(pedigreeRequest::pedigreeDepth);
-        progenyDepth.ifPresent(pedigreeRequest::progenyDepth);
-        germplasmName.ifPresent(pedigreeRequest::germplasmName);
+        if (includeParents != null) pedigreeRequest.includeParents(includeParents);
+        if (includeSiblings != null) pedigreeRequest.includeSiblings(includeSiblings);
+        if (includeProgeny != null) pedigreeRequest.includeProgeny(includeProgeny);
+        if (includeFullTree != null) pedigreeRequest.includeFullTree(includeFullTree);
+        if (pedigreeDepth != null) pedigreeRequest.pedigreeDepth(pedigreeDepth);
+        if (progenyDepth != null) pedigreeRequest.progenyDepth(progenyDepth);
+        if (germplasmName != null) pedigreeRequest.germplasmName(germplasmName);
+        if (accessionNumber != null) pedigreeRequest.accessionNumber(accessionNumber);
         // TODO: other parameters
 
         // TODO: write utility to do paging instead of hardcoding
