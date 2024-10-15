@@ -113,6 +113,7 @@ public class BrAPIV2Controller {
                 .setBase("variables").GET().addPath("{observationVariableDbId}").GET().withSearch()
                 .setBase("observationunits").GET().addPath("{observationUnitDbId}").GET().setPath("table").GET().withSearch()
                 .setBase("observations").GET().addPath("{observationDbId}").GET().setPath("table").GET().withSearch()
+                .setBase("observations").addPath("tables").GET()
                 .setBase("observationlevels").GET().build()
                 //GENOTYPING - TODO
 //                .setBase("calls").GET().withSearch()
