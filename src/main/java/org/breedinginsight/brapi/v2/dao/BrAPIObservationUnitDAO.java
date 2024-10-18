@@ -31,6 +31,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationTreatment;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationUnitLevelRelationship;
@@ -408,6 +409,28 @@ public class BrAPIObservationUnitDAO {
                                                       .getReferenceId());
                 }
             }
+
+            // If we have an observations array, strip program keys from names
+            List<BrAPIObservation> observations = ou.getObservations();
+            if (observations != null) {
+                for (BrAPIObservation observation : observations) {
+                    String germplasmName = observation.getGermplasmName();
+                    if(StringUtils.isNotBlank(germplasmName)) {
+                        observation.setGermplasmName(Utilities.removeProgramKeyAndUnknownAdditionalData(germplasmName, program.getKey()));
+                    }
+
+                    String observationUnitName = observation.getObservationUnitName();
+                    if(StringUtils.isNotBlank(germplasmName)) {
+                        observation.setObservationUnitName(Utilities.removeProgramKeyAndUnknownAdditionalData(observationUnitName, program.getKey()));
+                    }
+
+                    String observationVariableName = observation.getObservationVariableName();
+                    if(StringUtils.isNotBlank(observationVariableName)) {
+                        observation.setObservationVariableName(Utilities.removeProgramKey(observationVariableName, program.getKey()));
+                    }
+                }
+            }
+
             ou.setObservationUnitName(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
             if(StringUtils.isNotBlank(ou.getGermplasmName())) {
                 ou.setGermplasmName(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getGermplasmName(), program.getKey()));
