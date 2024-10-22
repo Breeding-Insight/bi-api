@@ -44,7 +44,7 @@ public class ObservationQuery extends BrapiQuery {
     private String observationUnitLevelRelationshipCode;
 
     public ObservationTableQueryParams toBrAPIQueryParams() {
-        return new ObservationTableQueryParams()
+        return (ObservationTableQueryParams) new ObservationTableQueryParams()
                 .observationUnitDbId(observationUnitDbId)
                 .observationVariableDbId(observationVariableDbId)
                 .locationDbId(locationDbId)
@@ -62,7 +62,9 @@ public class ObservationQuery extends BrapiQuery {
                 .observationUnitLevelCode(observationUnitLevelCode)
                 .observationUnitLevelRelationshipName(observationUnitLevelRelationshipName)
                 .observationUnitLevelRelationshipOrder(observationUnitLevelRelationshipOrder)
-                .observationUnitLevelRelationshipCode(observationUnitLevelRelationshipCode);
+                .observationUnitLevelRelationshipCode(observationUnitLevelRelationshipCode)
+                .page(getPage())
+                .pageSize(getPageSize());
     }
 
     public SearchRequest constructSearchRequest() {
