@@ -27,6 +27,8 @@ import org.breedinginsight.model.Trait;
 
 import javax.inject.Inject;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -217,7 +219,11 @@ public class TraitValidatorService {
             Trait trait = traits.get(i);
             String name = trait.getObservationVariableName();
 
-            if (name != null && name.contains(".")){
+            Pattern pattern = Pattern.compile("\\.");
+            Matcher matcher = pattern.matcher(name);
+            boolean containsInvalidCharacter = matcher.find();
+
+            if (name != null && containsInvalidCharacter){
                 ValidationError error = traitValidatorErrors.getPeriodObsVarNameMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
