@@ -265,7 +265,9 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                         BrAPIObservation observation = gson.fromJson(gson.toJson(observationByObsHash.get(observationHash)), BrAPIObservation.class);
 
                         // Is there a change to the prior data?
-                        if ((!cellData.isBlank() && !cellData.equals(observation.getValue())) || (cell.timestamp != null && !observationService.parseDateTime(cell.timestamp).equals(observation.getObservationTimeStamp()))) {
+                        if (
+                                isChanged(cellData, observation, cell.timestamp)
+                        ) {
 
                             // Is prior data protected?
                             /**
@@ -379,5 +381,15 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);
         }
+    }
+
+    private boolean isChanged(String cellData, BrAPIObservation observation, String newTimestamp) {
+        if (!cellData.isBlank() && !cellData.equals(observation.getValue())){
+            return true;
+        }
+        if (StringUtils.isBlank(newTimestamp)) {
+            return (observation.getObservationTimeStamp()!=null);
+        }
+        return !observationService.parseDateTime(newTimestamp).equals(observation.getObservationTimeStamp());
     }
 }
