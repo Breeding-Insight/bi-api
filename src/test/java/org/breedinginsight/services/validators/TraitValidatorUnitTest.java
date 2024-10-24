@@ -361,7 +361,7 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(1, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         assertEquals(400, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
-        assertEquals("Name", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
+        assertEquals("observationVariableName", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
 
         //There should be no errors
         Trait noPeriodTrait = new Trait();
