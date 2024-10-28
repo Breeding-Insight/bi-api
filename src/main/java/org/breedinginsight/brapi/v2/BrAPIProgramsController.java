@@ -157,9 +157,8 @@ public class BrAPIProgramsController {
             if (optProgram.isEmpty()) {
                 return HttpResponse.status(HttpStatus.NOT_FOUND, "Program not found");
             }
-        }
 
-        List<BrAPIProgram> programs = programService.getById(programId).stream().filter(program -> {
+        List<BrAPIProgram> programs = optProgram.stream().filter(program -> {
             boolean matches = abbreviation.map(abbr -> abbr.equals(program.getKey())).orElse(true);
             matches = matches && programDbId.map(id -> id.equals(program.getId().toString())).orElse(true);
             return matches && programName.map(name -> name.equals(program.getName())).orElse(true);
@@ -170,6 +169,9 @@ public class BrAPIProgramsController {
                                                                                                                                 .totalCount(programs.size())
                                                                                                                                 .pageSize(programs.size())))
                                                              .result(new BrAPIProgramListResponseResult().data(programs)));
+        } else {
+            return HttpResponse.status(HttpStatus.NOT_FOUND, "Program not found");
+        }
     }
 
     @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs")

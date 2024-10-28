@@ -281,16 +281,13 @@ public class ProgramUserService {
      * @param userId the user ID.
      * @return an Optional that unwraps to a program user if it is an Experimental Collaborator, Optional.empty() otherwise.
      */
-    public Optional<ProgramUser> getIfExperimentalCollaborator(UUID programId, UUID userId) throws DoesNotExistException {
-        Optional<ProgramUser> programUser = getProgramUserbyId(programId, userId);
-        if (programUser.isEmpty()) {
-            throw new DoesNotExistException("Program User does not exist");
-        }
-        boolean isExperimentalCollaborator = programUser.get().getRoles().stream().anyMatch(x -> ProgramSecuredRole.getEnum(x.getDomain()).equals(ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR));
-        if (isExperimentalCollaborator) {
-            return programUser;
-        }
-        return Optional.empty();
+    public Optional<ProgramUser> getIfExperimentalCollaborator(UUID programId, UUID userId) {
+        return getProgramUserbyId(programId, userId)
+                .flatMap(user -> user.getRoles().stream()
+                        .anyMatch(role -> ProgramSecuredRole.getEnum(role.getDomain()).equals(ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR))
+                        ? Optional.of(user)
+                        : Optional.empty()
+                );
     }
 
     public List<ProgramUser> getProgramUsersByRole(UUID programId, UUID roleId) throws DoesNotExistException {

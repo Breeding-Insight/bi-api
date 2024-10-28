@@ -95,23 +95,21 @@ public class BrAPITrialsController {
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = ExperimentQueryMapper.class) @Valid ExperimentQuery queryParams) {
         try {
-            List<BrAPITrial> experiments = new ArrayList<>();
-            log.debug("fetching trials for program: " + programId);
-
-            Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
-            // If the program user is an experimental collaborator, filter results.
-            if (experimentalCollaborator.isPresent()) {
-                Optional<Program> program = programService.getById(programId);
-                if (program.isEmpty()) {
-                    return HttpResponse.notFound();
-                }
-                List<UUID> experimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
-                experiments = experimentService.getTrialsByExperimentIds(program.get(), experimentIds).stream().peek(this::setDbIds).collect(Collectors.toList());
-            } else {
-                experiments = experimentService.getExperiments(programId).stream().peek(this::setDbIds).collect(Collectors.toList());
-            }
+            Optional<Program> program = programService.getById(programId);
+            if (program.isEmpty()) { return HttpResponse.notFound(); }
 
             SearchRequest searchRequest = queryParams.constructSearchRequest();
+            log.debug("fetching trials for program: " + programId);
+
+            // If the program user is an experimental collaborator, filter results for only authorized experiments.
+            Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
+            if (experimentalCollaborator.isPresent()) {
+                List<UUID> experimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
+                List<BrAPITrial> authorizedExperiments = experimentService.getTrialsByExperimentIds(program.get(), experimentIds).stream().peek(this::setDbIds).collect(Collectors.toList());
+                return ResponseUtils.getBrapiQueryResponse(authorizedExperiments, experimentQueryMapper, queryParams, searchRequest);
+            }
+
+            List<BrAPITrial> experiments = experimentService.getExperiments(programId).stream().peek(this::setDbIds).collect(Collectors.toList());
             return ResponseUtils.getBrapiQueryResponse(experiments, experimentQueryMapper, queryParams, searchRequest);
         } catch (ApiException e) {
             log.info(e.getMessage(), e);

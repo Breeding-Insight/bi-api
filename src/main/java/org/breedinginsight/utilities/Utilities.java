@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public class Utilities {
 
@@ -95,6 +96,10 @@ public class Utilities {
      */
     public static String removeProgramKeyAnyAccession(String str, String programKey) {
         return str.replaceAll("\\[" + programKey + "-.*\\]", "").trim();
+    }
+
+    public static Pattern getRegexPatternMatchAllProgramKeysAnyAccession(String programKey) {
+        return Pattern.compile(String.format("\\s*\\[%s-.*?\\]\\s*", programKey));
     }
 
     /**
@@ -162,8 +167,21 @@ public class Utilities {
         return brapiInstance;
     }
 
+    /**
+     * \s*: Matches zero or more whitespace characters before the opening bracket.
+     * \[: Matches the opening square bracket [. The backslash is used to escape the special meaning of [ in regex.
+     * .*?: Matches any character (except newline) zero or more times, non-greedily.
+     * . matches any character except newline.
+     * * means "zero or more times".
+     * ? makes the matching non-greedy, so it stops at the first closing bracket.
+     * \]: Matches the closing square bracket ]. Again, the backslash is used to escape it.
+     * \s*: Matches zero or more whitespace characters after the closing bracket.
+     * @param original
+     * @param programKey
+     * @return
+     */
     public static String removeProgramKeyAndUnknownAdditionalData(String original, String programKey) {
-        String keyValueRegEx = String.format(" \\[%s\\-.*\\]", programKey);
+        String keyValueRegEx = String.format("\\s*\\[%s-.*?\\]\\s*", programKey);
         String stripped =  original.replaceAll(keyValueRegEx, "");
         return stripped;
     }
