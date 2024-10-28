@@ -82,10 +82,15 @@ public class BrAPIGermplasmService {
         return germplasmDAO.getGermplasmByDBID(germplasmId, programId);
     }
 
-    public List<Map<String, Object>> processListData(List<BrAPIGermplasm> germplasm, BrAPIListDetails germplasmList){
+    public List<Map<String, Object>> processListData(List<BrAPIGermplasm> germplasm, BrAPIListDetails germplasmList, Program program){
         Map<String, BrAPIGermplasm> germplasmByName = new HashMap<>();
         for (BrAPIGermplasm g: germplasm) {
-            germplasmByName.put(g.getGermplasmName(), g);
+            // Use the full, unique germplasmName with programKey and accessionNumber (GID) for 2 reasons:
+            // 1. the BrAPI list items are full names, and
+            // 2. germplasmNames alone are not unique within a program, this led to unexpected behavior, see BI-2344.
+            String uniqueGermplasmName = String.format("%s [%s-%s]", g.getGermplasmName(), program.getKey(), g.getAccessionNumber());
+            g.setGermplasmName(uniqueGermplasmName);  // For later.
+            germplasmByName.put(uniqueGermplasmName, g);
         }
 
         List<Map<String, Object>> processedData =  new ArrayList<>();
@@ -107,8 +112,6 @@ public class BrAPIGermplasmService {
         for (String germplasmName: orderedGermplasmNames) {
             // Increment entryNumber.
             ++entryNumber;
-            // Strip program key and accession number from germplasm name.
-            germplasmName = Utilities.removeUnknownProgramKey(germplasmName);  // TODO: could move to the germplasmList != null codepath.
             // Lookup the BrAPI germplasm in the map.
             BrAPIGermplasm germplasmEntry = germplasmByName.get(germplasmName);
 
@@ -217,7 +220,7 @@ public class BrAPIGermplasmService {
         return (BrAPIGermplasm) gson.fromJson(gson.toJson(germplasm), BrAPIGermplasm.class);
     }
 
-    public DownloadFile exportGermplasm(UUID programId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException {
+    public DownloadFile exportGermplasm(UUID programId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException, DoesNotExistException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
 
         //Retrieve germplasm list data
@@ -238,7 +241,8 @@ public class BrAPIGermplasmService {
 
         StreamedFile downloadFile;
         //Convert list data to List<Map<String, Object>> data to pass into file writer
-        List<Map<String, Object>> processedData =  processListData(germplasm, null);
+        Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Could not find program: " + programId));
+        List<Map<String, Object>> processedData =  processListData(germplasm, null, program);
 
         if (fileExtension == FileType.CSV){
             downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
@@ -249,7 +253,7 @@ public class BrAPIGermplasmService {
         return new DownloadFile(fileName, downloadFile);
     }
 
-    public DownloadFile exportGermplasmList(UUID programId, String listId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException {
+    public DownloadFile exportGermplasmList(UUID programId, String listId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException, DoesNotExistException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
 
         //Retrieve germplasm list data
@@ -260,15 +264,12 @@ public class BrAPIGermplasmService {
         List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
 
         String listName = listData.getListName();
-        Optional<Program> optionalProgram = programService.getById(programId);
-        if (optionalProgram.isPresent()) {
-            Program program = optionalProgram.get();
-            listName = removeAppendedKey(listName, program.getKey());
-        }
+        Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Could not find program: " + programId));
+        listName = removeAppendedKey(listName, program.getKey());
         String fileName = createFileName(listData, listName);
         StreamedFile downloadFile;
         //Convert list data to List<Map<String, Object>> data to pass into file writer
-        List<Map<String, Object>> processedData =  processListData(germplasm, listData);
+        List<Map<String, Object>> processedData =  processListData(germplasm, listData, program);
 
         if (fileExtension == FileType.CSV){
             downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
