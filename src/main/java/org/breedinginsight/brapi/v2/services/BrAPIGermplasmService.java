@@ -117,7 +117,8 @@ public class BrAPIGermplasmService {
 
             HashMap<String, Object> row = new HashMap<>();
             row.put("GID", Integer.valueOf(germplasmEntry.getAccessionNumber()));
-            row.put("Germplasm Name", germplasmEntry.getGermplasmName());
+            // Strip programKey and accessionNumber from germplasmName for the file output.
+            row.put("Germplasm Name", Utilities.removeProgramKeyAnyAccession(germplasmEntry.getGermplasmName(), program.getKey()));
             row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString());
             String source = germplasmEntry.getSeedSource();
             row.put("Source", source);
