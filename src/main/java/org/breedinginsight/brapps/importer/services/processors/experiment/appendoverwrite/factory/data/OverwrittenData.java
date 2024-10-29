@@ -24,6 +24,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
@@ -181,7 +182,7 @@ public class OverwrittenData extends VisitedObservationData {
     }
 
     private boolean isTimestampMatched() {
-        if (timestamp == null) {
+        if (StringUtils.isBlank(timestamp)) {
             return observation.getObservationTimeStamp() == null;
         } else {
             return observationService.parseDateTime(timestamp).equals(observation.getObservationTimeStamp());
