@@ -89,7 +89,7 @@ public class BrAPIGermplasmService {
             // 1. the BrAPI list items are full names, and
             // 2. germplasmNames alone are not unique within a program, this led to unexpected behavior, see BI-2344.
             String uniqueGermplasmName = String.format("%s [%s-%s]", g.getGermplasmName(), program.getKey(), g.getAccessionNumber());
-            g.setGermplasmName(uniqueGermplasmName);  // For later.
+            g.setGermplasmName(uniqueGermplasmName);  // Mutate the germplasmName in place for later use.
             germplasmByName.put(uniqueGermplasmName, g);
         }
 
