@@ -95,13 +95,14 @@ public class BrAPIPedigreeController {
         try {
             List<BrAPIPedigreeNode> pedigree = pedigreeDAO.getPedigree(
                     program.get(),
-                    Optional.ofNullable(includeParents),
-                    Optional.ofNullable(includeSiblings),
-                    Optional.ofNullable(includeProgeny),
-                    Optional.ofNullable(includeFullTree),
-                    Optional.ofNullable(pedigreeDepth),
-                    Optional.ofNullable(progenyDepth),
-                    Optional.ofNullable(germplasmName));
+                    includeParents,
+                    includeSiblings,
+                    includeProgeny,
+                    includeFullTree,
+                    pedigreeDepth,
+                    progenyDepth,
+                    germplasmName,
+                    accessionNumber);
 
             return HttpResponse.ok(
                     new BrAPIPedigreeListResponse()
