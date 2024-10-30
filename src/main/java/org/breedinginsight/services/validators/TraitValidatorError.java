@@ -66,6 +66,10 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getPeriodObsVarNameMsg() {
+        return new ValidationError("observationVariableName", "Period in name is invalid", HttpStatus.BAD_REQUEST);
+    }
+
     public ValidationError getMissingObsVarNameMsg() {
         return new ValidationError("observationVariableName", "Missing Name", HttpStatus.BAD_REQUEST);
     }
