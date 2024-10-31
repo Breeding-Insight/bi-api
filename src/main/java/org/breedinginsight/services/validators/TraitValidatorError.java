@@ -70,6 +70,7 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
         return new ValidationError("observationVariableName", "Periods and brackets in name is invalid", HttpStatus.BAD_REQUEST);
     }
 
+    @Override
     public ValidationError getMissingObsVarNameMsg() {
         return new ValidationError("observationVariableName", "Missing Name", HttpStatus.BAD_REQUEST);
     }
