@@ -171,11 +171,12 @@ public class FileImportService {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
 
-        // replace "." with "" in column names to deal with json flattening issue in tablesaw
+        // replace certain special characters with "" in column names to deal with json flattening issue in tablesaw
+        // this includes ".", "[", "["
         List<String> columnNames = df.columnNames();
         List<String> namesToReplace = new ArrayList<>();
         for (String name : columnNames) {
-            if (name.contains(".")) {
+            if (name.contains(".") || name.contains("[") || name.contains("]")) {
                 namesToReplace.add(name);
             }
         }
@@ -183,7 +184,8 @@ public class FileImportService {
         List<Column<?>> columns = df.columns(namesToReplace.stream().toArray(String[]::new));
         for (int i=0; i<columns.size(); i++) {
             Column<?> column = columns.get(i);
-            column.setName(namesToReplace.get(i).replace(".",""));
+            //if more characters, could use replaceall and regex, but this works presently
+            column.setName(namesToReplace.get(i).replace(".","").replace("[","").replace("]",""));
         }
 
         return df;

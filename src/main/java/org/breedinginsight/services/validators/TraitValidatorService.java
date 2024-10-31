@@ -217,12 +217,12 @@ public class TraitValidatorService {
             Trait trait = traits.get(i);
             String name = trait.getObservationVariableName();
 
-            Pattern pattern = Pattern.compile("\\.");
+            Pattern pattern = Pattern.compile("[\\.\\]\\[]");
             Matcher matcher = pattern.matcher(name);
             boolean containsInvalidCharacter = matcher.find();
 
             if (name != null && containsInvalidCharacter){
-                ValidationError error = traitValidatorErrors.getPeriodObsVarNameMsg();
+                ValidationError error = traitValidatorErrors.getInvalidCharObsVarNameMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
         }
