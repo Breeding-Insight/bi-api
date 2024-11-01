@@ -173,20 +173,9 @@ public class FileImportService {
 
         // replace certain special characters with "" in column names to deal with json flattening issue in tablesaw
         // this includes ".", "[", "]"
-        List<String> columnNames = df.columnNames();
-        List<String> namesToReplace = new ArrayList<>();
-        for (String name : columnNames) {
-            if (name.contains(".") || name.contains("[") || name.contains("]")) {
-                namesToReplace.add(name);
-            }
-        }
-
-        List<Column<?>> columns = df.columns(namesToReplace.stream().toArray(String[]::new));
-        for (int i=0; i<columns.size(); i++) {
-            Column<?> column = columns.get(i);
-            //if more characters, could use replaceall and regex, but this works presently
-            column.setName(namesToReplace.get(i).replace(".","").replace("[","").replace("]",""));
-        }
+        df.columns().forEach(
+            (c) -> c.setName(c.name().replace(".","").replace("[","").replace("]",""))
+        );
 
         return df;
     }
