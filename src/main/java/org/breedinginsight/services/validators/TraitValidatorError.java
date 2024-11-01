@@ -67,7 +67,7 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     
     @Override
     public ValidationError getInvalidCharObsVarNameMsg() {
-        return new ValidationError("observationVariableName", "Periods and brackets in name is invalid", HttpStatus.BAD_REQUEST);
+        return new ValidationError("observationVariableName", "Periods and brackets in name are invalid", HttpStatus.BAD_REQUEST);
     }
 
     @Override
