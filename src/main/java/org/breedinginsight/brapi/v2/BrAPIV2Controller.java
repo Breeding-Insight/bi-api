@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapi.v2;
 
+import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -35,6 +36,8 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import io.micronaut.http.annotation.Body;
+
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -51,6 +54,8 @@ public class BrAPIV2Controller {
 
     private final SecurityService securityService;
     private final ProgramService programService;
+    @Value("${micronaut.bi.api.version}")
+    private String apiVersion;
 
     @Inject
     public BrAPIV2Controller(SecurityService securityService, ProgramService programService) {
@@ -186,6 +191,17 @@ public class BrAPIV2Controller {
         return executeRequest(path, programId, request, "GET");
     }
 
+    @Delete("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    public HttpResponse<?> deleteCatchall(@PathVariable("path") String path,
+                                          @PathVariable("programId") UUID programId,
+                                          HttpRequest<Void> request) {
+
+        //HttpRequest<String> request = HttpRequest.DELETE("/" + apiVersion + "/programs/" + programId + BrapiVersion.BRAPI_V2 + "/" + path);
+        return executeDeleteRequest(path, programId, request);
+    }
+
     @Post("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Consumes(MediaType.ALL)
     @Produces(MediaType.APPLICATION_JSON)
@@ -241,6 +257,22 @@ public class BrAPIV2Controller {
         throw new HttpStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized BrAPI Request");
     }
 
+    private HttpResponse<String> executeDeleteRequest(String path, UUID programId, HttpRequest<?> request) {
+        AuthenticatedUser actingUser = securityService.getUser();
+
+        if (programId != null) {
+            HttpUrl requestUrl = getUrl(programId, path, request);
+
+            var brapiRequest = new Request.Builder().url(requestUrl)
+                    .method("DELETE", null)
+                    .build();
+
+            return makeCall(brapiRequest);
+        }
+
+        throw new HttpStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized BrAPI Request");
+    }
+
     private HttpResponse<String> makeCall(Request brapiRequest) {
         // TODO: use config parameter for timeout
         OkHttpClient client = new OkHttpClient.Builder()
@@ -262,6 +294,23 @@ public class BrAPIV2Controller {
             throw new HttpStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error calling BrAPI Service");
         }
     }
+
+//    private HttpUrl getDeleteUrl(UUID programId, String path) {
+//        var programBrAPIBaseUrl = getProgramBrAPIBaseUrl(programId);
+//
+//        var requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/" + path).newBuilder();
+//
+//        request.getParameters()
+//                .asMap()
+//                .entrySet()
+//                .stream()
+//                .filter(param -> !param.getKey()
+//                        .equals("programId"))
+//                .forEach(param -> param.getValue()
+//                        .forEach(val -> requestUrl.addQueryParameter(param.getKey(), val)));
+//
+//        return requestUrl.build();
+//    }
 
     private HttpUrl getUrl(UUID programId, String path, HttpRequest<?> request) {
         var programBrAPIBaseUrl = getProgramBrAPIBaseUrl(programId);
