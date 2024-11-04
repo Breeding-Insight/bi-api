@@ -348,5 +348,28 @@ public class TraitValidatorUnitTest {
         }
     }
 
+    @Test
+    @SneakyThrows
+    public void periodInName() {
+
+        Trait trait = new Trait();
+        trait.setObservationVariableName("Period.1");
+
+        ValidationErrors validationErrors = traitValidatorService.checkTraitFieldsFormat(List.of(trait), new TraitValidatorError());
+
+        assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
+        RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
+        assertEquals(1, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
+        assertEquals(400, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
+        assertEquals("observationVariableName", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
+
+        //There should be no errors
+        Trait noPeriodTrait = new Trait();
+        noPeriodTrait.setObservationVariableName("NoPeriod");
+        validationErrors = traitValidatorService.checkTraitFieldsFormat(List.of(noPeriodTrait), new TraitValidatorError());
+        assertEquals(0, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
+    }
+
+
 
 }
