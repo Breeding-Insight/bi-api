@@ -525,7 +525,7 @@ public class ExperimentProcessor implements Processor {
                                                          .map(TraitEntity::getObservationVariableName)
                                                          .collect(Collectors.toSet());
             List<String> differences = varNames.stream()
-                                               .filter(var -> !returnedVarNames.contains(var))
+                                               .filter(var -> !Utilities.containsCaseInsensitive(var, returnedVarNames))
                                                .collect(Collectors.toList());
             //TODO convert this to a ValidationError
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
