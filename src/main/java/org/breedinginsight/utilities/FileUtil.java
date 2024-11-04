@@ -101,11 +101,11 @@ public class FileUtil {
                         if (!stringValue.contains("-")) {
                             //No dashes, assume cell is numeric and not date
                             double cellValue = cell.getNumericCellValue();
-                            stringValue = BigDecimal.valueOf(cellValue).stripTrailingZeros().toPlainString();
+                            stringValue = BigDecimal.valueOf(cellValue).stripTrailingZeros().toPlainString().trim();
                         }
                         columns.get(header).add(stringValue);
                     } else {
-                        columns.get(header).add(formatter.formatCellValue(cell));
+                        columns.get(header).add(formatter.formatCellValue(cell).trim());
                     }
                 }
             }
