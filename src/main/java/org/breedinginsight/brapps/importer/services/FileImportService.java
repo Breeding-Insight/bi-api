@@ -171,12 +171,6 @@ public class FileImportService {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
 
-        // replace certain special characters with "" in column names to deal with json flattening issue in tablesaw
-        // this includes ".", "[", "]"
-        df.columns().forEach(
-            (c) -> c.setName(c.name().replace(".","").replace("[","").replace("]",""))
-        );
-
         return df;
     }
 
