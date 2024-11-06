@@ -36,8 +36,6 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import io.micronaut.http.annotation.Body;
-
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -54,8 +52,6 @@ public class BrAPIV2Controller {
 
     private final SecurityService securityService;
     private final ProgramService programService;
-    @Value("${micronaut.bi.api.version}")
-    private String apiVersion;
 
     @Inject
     public BrAPIV2Controller(SecurityService securityService, ProgramService programService) {
@@ -197,8 +193,6 @@ public class BrAPIV2Controller {
     public HttpResponse<?> deleteCatchall(@PathVariable("path") String path,
                                           @PathVariable("programId") UUID programId,
                                           HttpRequest<Void> request) {
-
-        //HttpRequest<String> request = HttpRequest.DELETE("/" + apiVersion + "/programs/" + programId + BrapiVersion.BRAPI_V2 + "/" + path);
         return executeDeleteRequest(path, programId, request);
     }
 
@@ -294,23 +288,6 @@ public class BrAPIV2Controller {
             throw new HttpStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error calling BrAPI Service");
         }
     }
-
-//    private HttpUrl getDeleteUrl(UUID programId, String path) {
-//        var programBrAPIBaseUrl = getProgramBrAPIBaseUrl(programId);
-//
-//        var requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/" + path).newBuilder();
-//
-//        request.getParameters()
-//                .asMap()
-//                .entrySet()
-//                .stream()
-//                .filter(param -> !param.getKey()
-//                        .equals("programId"))
-//                .forEach(param -> param.getValue()
-//                        .forEach(val -> requestUrl.addQueryParameter(param.getKey(), val)));
-//
-//        return requestUrl.build();
-//    }
 
     private HttpUrl getUrl(UUID programId, String path, HttpRequest<?> request) {
         var programBrAPIBaseUrl = getProgramBrAPIBaseUrl(programId);
