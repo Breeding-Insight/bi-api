@@ -64,6 +64,11 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     public ValidationError getMissingScaleDataTypeMsg() {
         return new ValidationError("scale.dataType", "Missing scale class", HttpStatus.BAD_REQUEST);
     }
+    
+    @Override
+    public ValidationError getInvalidCharObsVarNameMsg() {
+        return new ValidationError("observationVariableName", "Periods and brackets in name are invalid", HttpStatus.BAD_REQUEST);
+    }
 
     @Override
     public ValidationError getMissingObsVarNameMsg() {

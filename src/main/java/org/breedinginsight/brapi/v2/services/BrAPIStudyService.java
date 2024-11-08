@@ -48,4 +48,14 @@ public class BrAPIStudyService {
         return studyDAO.getStudyByEnvironmentId(environmentId, program);
     }
 
+    /**
+     * Get a list of studies by BI-assigned experiment UUIDs withing a program.
+     * @param program the program.
+     * @param experimentIds a list of BI-assigned experiment UUIDs.
+     * @return a list of BrAPIStudies.
+     */
+    public List<BrAPIStudy> getStudiesByExperimentIds(Program program, List<UUID> experimentIds) throws ApiException {
+        return studyDAO.getStudiesByExperimentIds(experimentIds, program);
+    }
+
 }

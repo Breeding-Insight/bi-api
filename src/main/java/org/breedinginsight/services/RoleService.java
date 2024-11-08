@@ -66,4 +66,13 @@ public class RoleService {
         return roles;
     }
 
+    public Optional<Role> getRoleByDomain(String domain) {
+        RoleEntity role = dao.fetchByDomain(domain).get(0);
+        if (role == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new Role(role));
+    }
+
 }

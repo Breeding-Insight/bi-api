@@ -57,7 +57,7 @@ public class BrAPIPedigreeController {
     }
 
     @Get("/pedigree")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIPedigreeListResponse> pedigreeGet(@PathVariable("programId") UUID programId,
                                                                @Nullable @QueryValue("accessionNumber") String accessionNumber,
                                                                @Nullable @QueryValue("collection") String collection,
@@ -95,13 +95,14 @@ public class BrAPIPedigreeController {
         try {
             List<BrAPIPedigreeNode> pedigree = pedigreeDAO.getPedigree(
                     program.get(),
-                    Optional.ofNullable(includeParents),
-                    Optional.ofNullable(includeSiblings),
-                    Optional.ofNullable(includeProgeny),
-                    Optional.ofNullable(includeFullTree),
-                    Optional.ofNullable(pedigreeDepth),
-                    Optional.ofNullable(progenyDepth),
-                    Optional.ofNullable(germplasmName));
+                    includeParents,
+                    includeSiblings,
+                    includeProgeny,
+                    includeFullTree,
+                    pedigreeDepth,
+                    progenyDepth,
+                    germplasmName,
+                    accessionNumber);
 
             return HttpResponse.ok(
                     new BrAPIPedigreeListResponse()
@@ -118,14 +119,14 @@ public class BrAPIPedigreeController {
     }
 
     @Post("/pedigree")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> pedigreePost(@PathVariable("programId") UUID programId, @Body List<BrAPIPedigreeNode> body) {
         //DO NOT IMPLEMENT - Users are only able to create pedigree via the DeltaBreed UI
         return HttpResponse.notFound();
     }
 
     @Put("/pedigree")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> pedigreePut(@PathVariable("programId") UUID programId, @Body Map<String, BrAPIPedigreeNode> body) {
         //DO NOT IMPLEMENT - Users aren't yet able to update observation units
         return HttpResponse.notFound();

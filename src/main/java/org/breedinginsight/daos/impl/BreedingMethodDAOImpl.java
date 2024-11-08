@@ -3,8 +3,8 @@ package org.breedinginsight.daos.impl;
 import org.breedinginsight.dao.db.tables.daos.BreedingMethodDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
-import org.jetbrains.annotations.NotNull;
 import org.jooq.*;
+import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -55,13 +55,13 @@ public class BreedingMethodDAOImpl extends BreedingMethodDao implements Breeding
 
     public List<ProgramBreedingMethodEntity> findByNameOrAbbreviation(String nameOrAbbrev, UUID programId) {
         List<ProgramBreedingMethodEntity> breedingMethodEntities = systemMethodBase(programId)
-                                                                      .and(BREEDING_METHOD.ABBREVIATION.equalIgnoreCase(nameOrAbbrev)
-                                                                                                       .or(BREEDING_METHOD.NAME.equalIgnoreCase(nameOrAbbrev)))
+                                                                      .and(DSL.trim(BREEDING_METHOD.ABBREVIATION).equalIgnoreCase(nameOrAbbrev)
+                                                                              .or(DSL.trim(BREEDING_METHOD.NAME).equalIgnoreCase(nameOrAbbrev)))
                                                                       .fetchInto(ProgramBreedingMethodEntity.class);
 
         List<ProgramBreedingMethodEntity> programBreedingMethodEntities = programMethodBase(programId)
-                                                                             .and(PROGRAM_BREEDING_METHOD.ABBREVIATION.equalIgnoreCase(nameOrAbbrev)
-                                                                                                                      .or(PROGRAM_BREEDING_METHOD.NAME.equalIgnoreCase(nameOrAbbrev)))
+                                                                             .and(DSL.trim(PROGRAM_BREEDING_METHOD.ABBREVIATION).equalIgnoreCase(nameOrAbbrev)
+                                                                                                                      .or(DSL.trim(PROGRAM_BREEDING_METHOD.NAME).equalIgnoreCase(nameOrAbbrev)))
                                                                              .fetchInto(ProgramBreedingMethodEntity.class);
 
         List<ProgramBreedingMethodEntity> ret = new ArrayList<>();

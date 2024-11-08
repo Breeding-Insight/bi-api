@@ -25,10 +25,7 @@ import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.auth.ProgramSecured;
-import org.breedinginsight.api.auth.ProgramSecuredRole;
-import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
@@ -37,6 +34,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
+import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.services.ImportConfigManager;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
@@ -76,14 +74,14 @@ public class ImportController {
         Pagination pagination = new Pagination(configs.size(), 1, 1, 0);
         Metadata metadata = new Metadata(pagination, metadataStatus);
 
-        Response<DataResponse<ImportConfigResponse>> response = new Response(metadata, new DataResponse<>(configs));
+        Response<DataResponse<ImportConfigResponse>> response = new Response<>(metadata, new DataResponse<>(configs));
         return HttpResponse.ok(response);
     }
 
     @Get("/programs/{programId}/import/mappings{?draft}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<ImportMapping>>> getMappings(@PathVariable UUID programId,
                                                                            @QueryValue(defaultValue = "false") Boolean draft) {
 
@@ -95,7 +93,7 @@ public class ImportController {
             Pagination pagination = new Pagination(result.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            Response<DataResponse<ImportMapping>> response = new Response(metadata, new DataResponse<>(result));
+            Response<DataResponse<ImportMapping>> response = new Response<>(metadata, new DataResponse<>(result));
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
@@ -116,7 +114,7 @@ public class ImportController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportMapping result = fileImportService.createMapping(programId, actingUser, file);
-            Response<ImportMapping> response = new Response(result);
+            Response<ImportMapping> response = new Response<>(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
@@ -140,7 +138,7 @@ public class ImportController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportMapping result = fileImportService.updateMappingFile(programId, mappingId, actingUser, file);
-            Response<ImportMapping> response = new Response(result);
+            Response<ImportMapping> response = new Response<>(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
@@ -165,7 +163,7 @@ public class ImportController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportMapping result = fileImportService.updateMapping(programId, actingUser, mappingId, mapping, validate);
-            Response<ImportMapping> response = new Response(result);
+            Response<ImportMapping> response = new Response<>(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
@@ -205,7 +203,30 @@ public class ImportController {
         Pagination pagination = new Pagination(result.size(), result.size(), 1, 0);
         Metadata metadata = new Metadata(pagination, metadataStatus);
 
-        Response<DataResponse<ImportMapping>> response = new Response(metadata, new DataResponse<>(result));
+        Response<DataResponse<ImportMapping>> response = new Response<>(metadata, new DataResponse<>(result));
+        return HttpResponse.ok(response);
+    }
+
+    @Get("/import/mappings/{mappingId}/workflows")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    public HttpResponse<Response<DataResponse<ImportWorkflow>>> getWorkflowsForSystemMapping(@PathVariable UUID mappingId) {
+
+        List<ImportWorkflow> workflows = null;
+        try {
+            workflows = fileImportService.getWorkflowsForSystemMapping(mappingId);
+        } catch (DoesNotExistException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        }
+
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        Pagination pagination = new Pagination(workflows.size(), workflows.size(), 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+
+        Response<DataResponse<ImportWorkflow>> response = new Response<>(metadata, new DataResponse<>(workflows));
         return HttpResponse.ok(response);
     }
 }

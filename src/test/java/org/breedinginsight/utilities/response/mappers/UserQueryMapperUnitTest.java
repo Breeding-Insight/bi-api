@@ -49,7 +49,7 @@ public class UserQueryMapperUnitTest {
                 .name("Test User")
                 .email("test@user.com")
                 .orcid("000000-000000-000000-00000")
-                .systemRoles(List.of(SystemRole.builder().domain("admin").build()))
+                .systemRoles(List.of(SystemRole.builder().domain("System Administrator").build()))
                 .programRoles(List.of(ProgramUser.builder().program(Program.builder().name("Test program").build()).build()))
                 .active(false)
                 .createdAt(OffsetDateTime.now())

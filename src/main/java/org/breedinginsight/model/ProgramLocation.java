@@ -30,6 +30,8 @@ import org.breedinginsight.dao.db.tables.pojos.*;
 import org.geojson.Feature;
 import org.jooq.Record;
 
+import java.util.Objects;
+
 import static org.breedinginsight.dao.db.Tables.PLACE;
 
 @Getter
@@ -103,5 +105,24 @@ public class ProgramLocation extends PlaceEntity {
                 .build();
 
         return location;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ProgramLocation that = (ProgramLocation) o;
+        return Objects.equals(getCountry(), that.getCountry()) &&
+                Objects.equals(getAccessibility(), that.getAccessibility()) &&
+                Objects.equals(getEnvironmentType(), that.getEnvironmentType()) &&
+                Objects.equals(getTopography(), that.getTopography()) &&
+                Objects.equals(getLocationDbId(), that.getLocationDbId()) &&
+                Objects.equals(getCreatedByUser(), that.getCreatedByUser()) &&
+                Objects.equals(getUpdatedByUser(), that.getUpdatedByUser());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getCountry(), getAccessibility(), getEnvironmentType(), getTopography(), getLocationDbId(), getCreatedByUser(), getUpdatedByUser());
     }
 }

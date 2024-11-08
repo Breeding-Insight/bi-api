@@ -31,6 +31,7 @@ public interface TraitValidatorErrorInterface {
     ValidationError getMissingScaleUnitMsg();
     ValidationError getMissingScaleDataTypeMsg();
     ValidationError getMissingObsVarNameMsg();
+    ValidationError getInvalidCharObsVarNameMsg();
     ValidationError getMissingTraitEntityMsg();
     ValidationError getMissingTraitAttributeMsg();
     ValidationError getMissingTraitDescriptionMsg();

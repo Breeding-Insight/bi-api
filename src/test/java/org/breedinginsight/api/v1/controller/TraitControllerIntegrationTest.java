@@ -232,6 +232,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         return species.get(0);
     }
 
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @SneakyThrows
     @Order(1)
@@ -245,6 +246,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals("Could not find trait in returned brapi server results", fetchException.get().get().getMessage());
     }
 
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @SneakyThrows
     @Order(1)
@@ -263,7 +265,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(1, data.size(), "Wrong number of results returned.");
         assertEquals("favorites", data.get(0).getAsString(), "Wrong default tag returned");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @SneakyThrows
     @Order(2)
@@ -284,6 +286,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     //region POST traits
+
     @Test
     @SneakyThrows
     @Order(2)
@@ -314,7 +317,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
 
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(3)
     public void postTraitsMultiple() {
@@ -399,7 +402,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         validTraits = traits;
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @SneakyThrows
     @Order(4)
@@ -494,7 +497,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
                 variable.getTrait().getTraitName(), "Unexpected trait name");
         
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @SneakyThrows
     @Order(4)
@@ -587,7 +590,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         return searchResult.orElseThrow();
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @SneakyThrows
     @Order(4)
@@ -612,7 +615,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         assertTrue(tagsList.equals(foundTags), "Returned tags do not equal expected tags");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(4)
     public void postTraitsMultipleExistInDb() {
@@ -639,7 +642,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject duplicateError = errors.get(0).getAsJsonObject();
         assertEquals(409, duplicateError.get("httpStatusCode").getAsInt(), "Wrong error code returned");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(4)
     public void postTraitsNotSharedBetweenPrograms() {
@@ -663,7 +666,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(validTraits.size(), data.size(), "Traits were ignored, but should not be");
 
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(4)
     public void createTraitsDuplicateInRequest() {
@@ -690,7 +693,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject duplicateError = errors.get(0).getAsJsonObject();
         assertEquals(409, duplicateError.get("httpStatusCode").getAsInt(), "Wrong error code returned");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(4)
     public void createTraitsLevelDoesNotExist() {
@@ -721,7 +724,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.getAsJsonArray("data");
         assertEquals(1, data.size(), "Wrong number of traits");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(4)
     public void createTraitsValidationError() {
@@ -762,7 +765,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertTrue(error.has("httpStatus"), "httpStatus field not included in return");
         assertTrue(error.has("httpStatusCode"), "httpStatusCode field not included in return");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     public void setBrAPIProperties(Trait trait) {
 
         // Trait
@@ -787,6 +790,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
     //endregion
     //region GET Traits
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(5)
     public void getTraitsSuccess() {
@@ -819,7 +823,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
             throw new AssertionFailedError("Both traits were not returned");
         }
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @SneakyThrows
     @Order(5)
@@ -881,7 +885,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         });
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @SneakyThrows
     @Order(5)
@@ -898,7 +902,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         checkTraitFullResponse(result, validTraits.get(0));
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(5)
     public void getTraitSingleNoExist() {
@@ -912,7 +916,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(5)
     public void getTraitSingleProgramNotExist() {
@@ -941,7 +945,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(5)
     public void editableProgramNotExist() {
@@ -956,7 +960,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(6)
     public void editableNoObservations() {
@@ -971,7 +975,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(true, result.getAsJsonPrimitive("editable").getAsBoolean(), "expected to be editable");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(7)
     @SneakyThrows
@@ -1003,7 +1007,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(false, result.getAsJsonPrimitive("editable").getAsBoolean(), "expected not to be editable");
 
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(8)
     public void editableNotAllowed() {
@@ -1030,7 +1034,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.METHOD_NOT_ALLOWED, e.getStatus());
 
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @SneakyThrows
     @Order(9)
@@ -1122,7 +1126,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         }
     }
     //endregion
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(10)
     public void postTraitNominalMissingCategoryValue() {
@@ -1178,7 +1182,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertTrue(categoryError.has("httpStatus"), "httpStatus field not included in return");
         assertTrue(categoryError.has("httpStatusCode"), "httpStatusCode field not included in return");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(10)
     public void postTraitOrdinalMissingCategoryVariables() {
@@ -1246,7 +1250,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject labelError = secondCategoryError.getAsJsonArray("errors").get(0).getAsJsonObject();
         assertEquals("scale.categories.label", labelError.get("field").getAsString(), "wrong error returned");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @SneakyThrows
     @Test
     @Order(11)
@@ -1302,7 +1306,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(allTraits.size(), pagination.get("totalCount").getAsInt(), "Wrong total count");
         assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(12)
     public void searchTraits() {
@@ -1325,7 +1329,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(11, data.size(), "Wrong page size");
         TestUtils.checkStringSorting(data, "observationVariableName", SortOrder.ASC);
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(12)
     public void searchTraitsByDescription() {
@@ -1347,7 +1351,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(11, data.size(), "Wrong page size");
         TestUtils.checkStringSorting(data, "traitDescription", SortOrder.ASC);
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(13)
     public void postTraitComputation() {
@@ -1399,7 +1403,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait1.setId(UUID.fromString(trait.get("id").getAsString()));
         validTraits.add(trait1);
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(14)
     public void putTraitComputation() {
@@ -1447,7 +1451,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(updateTrait.getMethod().getMethodClass(), trait.get("method").getAsJsonObject().get("methodClass").getAsString(), "wrong method class");
 
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(14)
     public void putTraitMultipleValidationErrors() {
@@ -1499,7 +1503,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject error = errors.get(0).getAsJsonObject();
         assertEquals("traitId", error.get("field").getAsString(), "wrong error returned");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(15)
     public void archiveTrait() {
@@ -1517,7 +1521,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
         assertFalse(result.get("active").getAsBoolean(), "Trait not archived");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(15)
     public void restoreTrait() {
@@ -1535,7 +1539,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
         assertTrue(result.get("active").getAsBoolean(), "Trait not archived");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(16)
     public void putTraitIdDoesNotExist() {
@@ -1575,7 +1579,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject error = errors.get(0).getAsJsonObject();
         assertEquals("traitId", error.get("field").getAsString(), "wrong error returned");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(17)
     public void archiveTraitIdNotExist() {

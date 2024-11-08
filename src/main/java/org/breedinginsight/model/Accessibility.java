@@ -26,6 +26,8 @@ import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.AccessibilityOptionEntity;
 import org.jooq.Record;
 
+import java.util.Objects;
+
 import static org.breedinginsight.dao.db.Tables.ACCESSIBILITY_OPTION;
 
 @Getter
@@ -45,5 +47,18 @@ public class Accessibility extends AccessibilityOptionEntity {
                 .id(record.getValue(ACCESSIBILITY_OPTION.ID))
                 .name(record.getValue(ACCESSIBILITY_OPTION.NAME))
                 .build();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Accessibility that = (Accessibility) o;
+        return Objects.equals(getId(), that.getId()) && Objects.equals(getName(), that.getName());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), getName());
     }
 }

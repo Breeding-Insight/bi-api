@@ -94,6 +94,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
+    private String newExperimentWorkflowId;
     private final Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
                     (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
@@ -102,6 +103,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
     void setup() throws Exception {
         FannyPack fp = FannyPack.fill("src/test/resources/sql/ImportControllerIntegrationTest.sql");
         ImportTestUtils importTestUtils = new ImportTestUtils();
+        newExperimentWorkflowId = importTestUtils.getExperimentWorkflowId(client, 0);
         FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
         FannyPack brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
@@ -183,13 +185,14 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         rows.add(row2);
 
         // Import test experiment, environments, and any observations
-        JsonObject importResult = importTestUtils.uploadAndFetch(
+        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
                 writeDataToFile(rows, traits),
                 null,
                 true,
                 client,
                 program,
-                mappingId);
+                mappingId,
+                newExperimentWorkflowId);
         experimentId = importResult
                 .get("preview").getAsJsonObject()
                 .get("rows").getAsJsonArray()
@@ -257,7 +260,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void testGetObsTableNotFound() {
+    public void testGetObsTableOK() {
         Flowable<HttpResponse<String>> getCall = client.exchange(
                 GET(String.format("/programs/%s/brapi/v2/observations/table",
                         program.getId().toString()))
@@ -265,10 +268,8 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
                         .bearerAuth("test-registered-user"), String.class
         );
 
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = getCall.blockingFirst();
-        });
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        HttpResponse<String> response = getCall.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
     }
 
     @Test
@@ -337,7 +338,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
                 .get("brAPIObject").getAsJsonObject()
                 .get("externalReferences").getAsJsonArray()
                 .get(2).getAsJsonObject()
-                .get("referenceID").getAsString();
+                .get("referenceId").getAsString();
     }
 
     private List<BrAPIGermplasm> createGermplasm(int numToCreate) {

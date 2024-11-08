@@ -36,10 +36,12 @@ import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
+import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
+import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingEntity;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingProgramEntity;
 import org.breedinginsight.model.Program;
@@ -167,21 +169,6 @@ public class FileImportService {
             }
         } else {
             throw new UnsupportedTypeException("Unsupported mime type");
-        }
-
-        // replace "." with "" in column names to deal with json flattening issue in tablesaw
-        List<String> columnNames = df.columnNames();
-        List<String> namesToReplace = new ArrayList<>();
-        for (String name : columnNames) {
-            if (name.contains(".")) {
-                namesToReplace.add(name);
-            }
-        }
-
-        List<Column<?>> columns = df.columns(namesToReplace.stream().toArray(String[]::new));
-        for (int i=0; i<columns.size(); i++) {
-            Column<?> column = columns.get(i);
-            column.setName(namesToReplace.get(i).replace(".",""));
         }
 
         return df;
@@ -322,7 +309,7 @@ public class FileImportService {
         return response;
     }
 
-    public ImportResponse updateUpload(UUID programId, UUID uploadId, AuthenticatedUser actingUser, Map<String, Object> userInput, Boolean commit) throws
+    public ImportResponse updateUpload(UUID programId, UUID uploadId, String workflow, AuthenticatedUser actingUser, Map<String, Object> userInput, Boolean commit) throws
             DoesNotExistException, UnprocessableEntityException, AuthorizationException {
 
         Program program = validateRequest(programId, actingUser);
@@ -372,7 +359,7 @@ public class FileImportService {
             } else {
                 brAPIImportList = mappingManager.map(mappingConfig, data);
             }
-            processFile(brAPIImportList, data, program, upload, user, commit, importService, actingUser);
+            processFile(workflow, brAPIImportList, data, program, upload, user, commit, importService, actingUser);
         } catch (UnprocessableEntityException e) {
             log.error(e.getMessage(), e);
             ImportProgress progress = upload.getProgress();
@@ -418,13 +405,22 @@ public class FileImportService {
         return newUpload;
     }
 
-    private void processFile(List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
-                                   ImportUpload upload, User user, Boolean commit, BrAPIImportService importService,
-                                   AuthenticatedUser actingUser) {
+    private void processFile(String workflowId, List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
+                             ImportUpload upload, User user, Boolean commit, BrAPIImportService importService,
+                             AuthenticatedUser actingUser) {
         // Spin off new process for processing the file
         CompletableFuture.supplyAsync(() -> {
             try {
-                importService.process(finalBrAPIImportList, data, program, upload, user, commit);
+                ImportServiceContext context = ImportServiceContext.builder()
+                        .workflowId(workflowId)
+                        .brAPIImports(finalBrAPIImportList)
+                        .data(data)
+                        .program(program)
+                        .upload(upload)
+                        .user(user)
+                        .commit(commit)
+                        .build();
+                importService.process(context);
             } catch (UnprocessableEntityException e) {
                 log.error(e.getMessage(), e);
                 ImportProgress progress = upload.getProgress();
@@ -558,5 +554,26 @@ public class FileImportService {
     public List<ImportMapping> getSystemMappingByName(String name) {
         List<ImportMapping> importMappings = importMappingDAO.getSystemMappingByName(name);
         return importMappings;
+    }
+
+    /**
+     * Retrieves the list of import workflows associated with a specific system mapping.
+     *
+     * @param mappingId The ID of the system mapping for which to retrieve workflows
+     * @return A list of ImportWorkflow objects representing the workflows for the specified system mapping
+     * @throws DoesNotExistException If the system mapping with the given ID does not exist
+     */
+    public List<ImportWorkflow> getWorkflowsForSystemMapping(UUID mappingId) throws DoesNotExistException {
+        // Retrieve the import mapping configuration based on the provided mapping ID
+
+        ImportMapping mappingConfig = importMappingDAO.getMapping(mappingId)
+                .orElseThrow(() -> new DoesNotExistException("Cannot find mapping config associated with upload."));
+
+        // Get the import service associated with the import type ID from the configuration manager
+        BrAPIImportService importService = configManager.getImportServiceById(mappingConfig.getImportTypeId())
+                .orElseThrow(() -> new DoesNotExistException("Config with that id does not exist"));
+
+        // Retrieve and return the list of import workflows for the specified system mapping
+        return importService.getWorkflows();
     }
 }

@@ -93,6 +93,8 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
+    private String newExperimentWorkflowId;
+
     private final Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
                     (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
@@ -101,6 +103,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
     void setup() throws Exception {
         FannyPack fp = FannyPack.fill("src/test/resources/sql/ImportControllerIntegrationTest.sql");
         ImportTestUtils importTestUtils = new ImportTestUtils();
+        newExperimentWorkflowId = importTestUtils.getExperimentWorkflowId(client, 0);
         FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
         FannyPack brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
@@ -156,7 +159,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
         List<BrAPIGermplasm> germplasm = createGermplasm(1);
         BrAPIExternalReference newReference = new BrAPIExternalReference();
         newReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
-        newReference.setReferenceID(program.getId().toString());
+        newReference.setReferenceId(program.getId().toString());
 
         germplasm.forEach(germ -> germ.getExternalReferences().add(newReference));
 
@@ -184,13 +187,14 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
         rows.add(row2);
 
         // Import test experiment, environments, and any observations
-        JsonObject importResult = importTestUtils.uploadAndFetch(
+        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
                 writeDataToFile(rows, expTraits),
                 null,
                 true,
                 client,
                 program,
-                mappingId);
+                mappingId,
+                newExperimentWorkflowId);
         experimentId = importResult
                 .get("preview").getAsJsonObject()
                 .get("rows").getAsJsonArray()
@@ -344,7 +348,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
                 .get("brAPIObject").getAsJsonObject()
                 .get("externalReferences").getAsJsonArray()
                 .get(2).getAsJsonObject()
-                .get("referenceID").getAsString();
+                .get("referenceId").getAsString();
     }
 
     private List<BrAPIGermplasm> createGermplasm(int numToCreate) {
@@ -363,7 +367,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
             List<BrAPIExternalReference> externalRef = new ArrayList<>();
             BrAPIExternalReference testReference = new BrAPIExternalReference();
             testReference.setReferenceSource(BRAPI_REFERENCE_SOURCE);
-            testReference.setReferenceID(UUID.randomUUID().toString());
+            testReference.setReferenceId(UUID.randomUUID().toString());
             externalRef.add(testReference);
             testGermplasm.setExternalReferences(externalRef);
             germplasm.add(testGermplasm);

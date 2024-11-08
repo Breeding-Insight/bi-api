@@ -26,13 +26,13 @@ join bi_user on bi_user.name = 'system' limit 1;
 insert into program_user_role(program_id, user_id, role_id, active, created_by, updated_by)
 select program.id, bi_user.id, role.id, 'true', bi_user.id, bi_user.id from program
 join bi_user on bi_user.name = 'Test User'
-join role on role.domain = 'breeder' limit 1;
+join role on role.domain = 'Program Administrator' limit 1;
 
 -- name: InsertInactiveProgramUser
 insert into program_user_role(program_id, user_id, role_id, active, created_by, updated_by)
 select program.id, bi_user.id, role.id, 'false', bi_user.id, bi_user.id from program
 join bi_user on bi_user.name = 'Another Test User'
-join role on role.domain = 'breeder' limit 1;
+join role on role.domain = 'Program Administrator' limit 1;
 
 -- name: InsertProgramObservationLevel
 insert into program_observation_level(program_id, name, created_by, updated_by)

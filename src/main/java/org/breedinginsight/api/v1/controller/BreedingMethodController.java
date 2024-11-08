@@ -58,7 +58,7 @@ public class BreedingMethodController {
 
     @Post("programs/{programId}/breeding-methods")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse<?> createProgramBreedingMethod(@PathVariable UUID programId, @Body ProgramBreedingMethodEntity breedingMethod) throws ApiException{
         log.debug("Saving new program breeding method");
 
@@ -85,7 +85,7 @@ public class BreedingMethodController {
     @Get("programs/{programId}/breeding-methods{?inUse}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<ProgramBreedingMethodEntity>>> getProgramBreedingMethods(@PathVariable UUID programId, @QueryValue(defaultValue = "false") Boolean inUse) {
         log.debug(String.format("fetching breeding methods for program: %s", programId));
 
@@ -106,7 +106,7 @@ public class BreedingMethodController {
 
     @Put("programs/{programId}/breeding-methods/{breedingMethodId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse<?> updateProgramBreedingMethod(@PathVariable UUID programId, @PathVariable UUID breedingMethodId, @Body ProgramBreedingMethodEntity breedingMethod) throws ApiException {
         log.debug("Saving new program breeding method");
 
@@ -152,7 +152,7 @@ public class BreedingMethodController {
     }
 
     @Delete("programs/{programId}/breeding-methods/{breedingMethodId}")
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse deleteProgramBreedingMethod(@PathVariable UUID programId, @PathVariable UUID breedingMethodId) throws BadRequestException, ApiException {
         try {
             AuthenticatedUser user = securityService.getUser();

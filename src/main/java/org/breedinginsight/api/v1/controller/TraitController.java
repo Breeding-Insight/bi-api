@@ -77,7 +77,7 @@ public class TraitController {
 
     @Get("/programs/{programId}/traits{?traitsQuery*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<Trait>>> getTraits(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid TraitsQuery traitsQuery) {
@@ -93,7 +93,7 @@ public class TraitController {
 
     @Get("/programs/{programId}/traits/export{?fileExtension,isActive}")
     @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse getTraitsExport(
             @PathVariable("programId") UUID programId, @QueryValue(defaultValue = "XLSX") String fileExtension, @QueryValue(defaultValue = "true") Boolean isActive) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
@@ -113,7 +113,7 @@ public class TraitController {
 
     @Post("/programs/{programId}/traits/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<Program>>> postTraitsSearch(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid QueryParams queryParams,
@@ -130,7 +130,7 @@ public class TraitController {
     @Get("/programs/{programId}/traits/{traitId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<Trait>> getTrait(@PathVariable UUID programId, @PathVariable UUID traitId) {
 
         try {
@@ -151,7 +151,7 @@ public class TraitController {
     @Get("/programs/{programId}/traits/{traitId}/editable")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<Editable>> getTraitEditable(@PathVariable UUID programId, @PathVariable UUID traitId) {
 
         Editable editable = traitService.getEditable(programId, traitId);
@@ -162,7 +162,7 @@ public class TraitController {
 
     @Post("/programs/{programId}/traits")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse createTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
@@ -190,7 +190,7 @@ public class TraitController {
 
     @Put("/programs/{programId}/traits")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse updateTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
@@ -219,7 +219,7 @@ public class TraitController {
     @Put("/programs/{programId}/traits/{traitId}/archive{?active}")
     @AddMetadata
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse<Response<Trait>> archiveTrait(@PathVariable UUID programId, @PathVariable UUID traitId, @QueryValue(defaultValue = "false") Boolean active) {
 
         AuthenticatedUser actingUser = securityService.getUser();
@@ -235,7 +235,7 @@ public class TraitController {
 
     @Get("/programs/{programId}/traits/tags")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<String>>> getAllTraitTags(
             @PathVariable UUID programId) {
 

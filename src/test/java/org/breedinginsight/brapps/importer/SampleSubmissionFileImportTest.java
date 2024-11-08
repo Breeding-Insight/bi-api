@@ -28,6 +28,7 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.typeAdapters.PaginationTypeAdapter;
 import org.brapi.v2.model.BrAPIExternalReference;
@@ -81,6 +82,7 @@ import static org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields.S
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Slf4j
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -146,6 +148,8 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
                                          .registerTypeAdapter(BrAPIPagination.class, new PaginationTypeAdapter())
                                          .create();
 
+    private String newExperimentWorkflowId;
+
     @BeforeAll
     public void setup() {
         importTestUtils = new ImportTestUtils();
@@ -153,7 +157,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
         mappingId = (String) setupObjects.get("mappingId");
         testUser = (BiUserEntity) setupObjects.get("testUser");
         securityFp = (FannyPack) setupObjects.get("securityFp");
-
+        newExperimentWorkflowId = importTestUtils.getExperimentWorkflowId(client, 0);
     }
 
     /*
@@ -169,6 +173,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
     @Test
     @SneakyThrows
     public void importGIDSuccess() {
+        log.debug("importGIDSuccess");
         Program program = createProgram("Import GID Success", "GIDS", "GIDS", BRAPI_REFERENCE_SOURCE, createGermplasm(96), null);
         List<Map<String, Object>> validFile = new ArrayList<>();
 
@@ -215,6 +220,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
     @Test
     @SneakyThrows
     public void importObsUnitIdSuccess() {
+        log.debug("importObsUnitIdSuccess");
         Program program = createProgram("Import ObsUnitID success", "OBSID", "OBSID", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
 
         var experimentId = createExperiment(program);
@@ -265,6 +271,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void importMissingGIDAndObsUnitIdFailure(boolean commit) {
+        log.debug("importMissingGIDAndObsUnitIdFailure");
         Program program = createProgram("Missing GID/ObsUnit ID " + (commit ? "C" : "P"), "MGIOB"+ (commit ? "C" : "P"), "MGIOB"+ (commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, null, null);
         List<Map<String, Object>> validFile = new ArrayList<>();
 
@@ -288,6 +295,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void verifyMissingDataThrowsError(boolean commit) {
+        log.debug("verifyMissingDataThrowsError");
         Program program = createProgram("Missing Req Cols "+(commit ? "C" : "P"), "MISS"+(commit ? "C" : "P"), "MISS"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(96), null);
         Map<String, Object> base = new HashMap<>();
         base.put(Columns.PLATE_ID, "valid_1");
@@ -312,6 +320,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void importInvalidGIDFailure(boolean commit) {
+        log.debug("importInvalidGIDFailure");
         Program program = createProgram("Invalid GID " + (commit ? "C" : "P"), "INGID"+ (commit ? "C" : "P"), "INGID"+ (commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, null, null);
         List<Map<String, Object>> validFile = new ArrayList<>();
 
@@ -335,6 +344,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void importInvalidObsUnitIdFailure(boolean commit) {
+        log.debug("importInvalidObsUnitIdFailure");
         Program program = createProgram("Invalid ObsUnit ID " + (commit ? "C" : "P"), "INOBS"+ (commit ? "C" : "P"), "INOBS"+ (commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, null, null);
         List<Map<String, Object>> validFile = new ArrayList<>();
 
@@ -358,6 +368,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void importConflictingWellsFailure(boolean commit) {
+        log.debug("importConflictingWellsFailure");
         Program program = createProgram("Conflicting Wells " + (commit ? "C" : "P"), "WELL"+ (commit ? "C" : "P"), "WELL"+ (commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(2), null);
         List<Map<String, Object>> validFile = new ArrayList<>();
 
@@ -556,13 +567,14 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
                 .getAsJsonArray("data")
                 .get(0).getAsJsonObject().get("id").getAsString();
 
-        JsonObject importResult = importTestUtils.uploadAndFetch(
+        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
                 importTestUtils.writeExperimentDataToFile(List.of(makeExpImportRow("Env1")), null),
                 null,
                 true,
                 client,
                 program,
-                expMappingId);
+                expMappingId,
+                newExperimentWorkflowId);
         return importResult
                 .get("preview").getAsJsonObject()
                 .get("rows").getAsJsonArray()

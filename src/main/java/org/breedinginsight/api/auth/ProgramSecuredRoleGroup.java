@@ -17,13 +17,10 @@
 
 package org.breedinginsight.api.auth;
 
-import org.apache.commons.collections4.ListUtils;
-
 import java.util.List;
 
 public enum ProgramSecuredRoleGroup {
-    ALL_PROGRAM_ROLES(List.of(ProgramSecuredRole.MEMBER, ProgramSecuredRole.BREEDER)),
-    ALL(ListUtils.union(ALL_PROGRAM_ROLES.getProgramRoles(), List.of(ProgramSecuredRole.SYSTEM_ADMIN)));
+    PROGRAM_SCOPED_ROLES(List.of(ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN));
 
     private List<ProgramSecuredRole> programRoles;
 

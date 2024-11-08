@@ -30,10 +30,7 @@ import okhttp3.*;
 import org.brapi.v2.model.core.BrAPIServerInfo;
 import org.brapi.v2.model.core.BrAPIService;
 import org.brapi.v2.model.core.response.BrAPIServerInfoResponse;
-import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.auth.ProgramSecured;
-import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
-import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.auth.*;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
@@ -42,6 +39,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -115,6 +113,7 @@ public class BrAPIV2Controller {
                 .setBase("variables").GET().addPath("{observationVariableDbId}").GET().withSearch()
                 .setBase("observationunits").GET().addPath("{observationUnitDbId}").GET().setPath("table").GET().withSearch()
                 .setBase("observations").GET().addPath("{observationDbId}").GET().setPath("table").GET().withSearch()
+                .setBase("observations").addPath("tables").GET()
                 .setBase("observationlevels").GET().build()
                 //GENOTYPING - TODO
 //                .setBase("calls").GET().withSearch()
@@ -168,9 +167,21 @@ public class BrAPIV2Controller {
         serverInfo.setDocumentationURL("https://brapi.org/specification");
     }
 
+    // Explicit match for /seasons GET endpoint, to allow Experimental Collaborator access.
+    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/seasons{?queryParams}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR})
+    public HttpResponse<?> getSeasons(@PathVariable("programId") UUID programId, HttpRequest<String> request, @PathVariable Optional<String> queryParams) {
+        String path = "seasons";
+        if (queryParams.isPresent()) {
+            path = path + queryParams.get();
+        }
+        return executeRequest(path, programId, request, "GET");
+    }
+
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> getCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<String> request) {
         return executeRequest(path, programId, request, "GET");
     }
@@ -178,7 +189,7 @@ public class BrAPIV2Controller {
     @Post("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Consumes(MediaType.ALL)
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<String> postCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<byte[]> request,
                                              @Header("Content-Type") String contentType) {
         return executeByteRequest(path, programId, request, contentType, "POST");
@@ -187,7 +198,7 @@ public class BrAPIV2Controller {
     @Put("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Consumes(MediaType.ALL)
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<String> putCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<byte[]> request,
                                             @Header("Content-Type") String contentType) {
         return executeByteRequest(path, programId, request, contentType, "PUT");

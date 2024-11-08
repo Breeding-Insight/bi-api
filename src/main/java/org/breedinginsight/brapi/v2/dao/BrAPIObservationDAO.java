@@ -183,6 +183,27 @@ public class BrAPIObservationDAO {
         );
     }
 
+    /**
+     * Retrieves a list of observations based on their database IDs and a specific program.
+     *
+     * @param dbIds A list of database IDs representing the observations to retrieve.
+     * @param program The Program object for which the observations belong.
+     * @return A List of BrAPIObservation objects filtered by the provided database IDs.
+     * @throws ApiException if an error occurs during the retrieval process.
+     */
+    public List<BrAPIObservation> getObservationsByDbIds(List<String> dbIds, Program program) throws ApiException {
+        // Check if the dbIds list is empty and return an empty list if so
+        if(dbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Filter the observations based on the provided program ID and the provided list of dbIds
+        // Collect the filtered observations into a List and return the result
+        return getProgramObservations(program.getId()).values().stream()
+                .filter(o -> dbIds.contains(o.getObservationDbId()))
+                .collect(Collectors.toList());
+    }
+
     public List<BrAPIObservation> getObservationsByTrialDbId(List<String> trialDbIds, Program program) throws ApiException {
         if(trialDbIds.isEmpty()) {
             return Collections.emptyList();
@@ -202,6 +223,24 @@ public class BrAPIObservationDAO {
         }
         return getProgramObservations(program.getId()).values().stream()
                 .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()) && variableDbIds.contains(o.getObservationVariableDbId()))
+                .collect(Collectors.toList());
+    }
+
+    public List<BrAPIObservation> getObservationsByObservationUnits(Collection<String> ouDbIds, Program program) throws ApiException {
+        if(ouDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return getProgramObservations(program.getId()).values().stream()
+                .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()))
+                .collect(Collectors.toList());
+    }
+
+    public List<BrAPIObservation> getObservationsByObservationUnitsAndStudies(Collection<String> ouDbIds, Collection<String> studyDbIds, Program program) throws ApiException {
+        if(ouDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return getProgramObservations(program.getId()).values().stream()
+                .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()) && studyDbIds.contains(o.getStudyDbId()))
                 .collect(Collectors.toList());
     }
 
@@ -254,6 +293,63 @@ public class BrAPIObservationDAO {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
+        }
+    }
+
+    // This method overloads updateBrAPIObservation(String dbId, BrAPIObservation observation, UUID programId)
+    // It was added to increase efficiency.  It insures that ProgramCache<BrAPIObservation>.populate() is called only once
+    // not once per observation.
+    public List<BrAPIObservation> updateBrAPIObservation(Map<String, BrAPIObservation> mutatedObservationByDbId, UUID programId) throws ApiException {
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
+        var program = programDAO.fetchOneById(programId);
+
+        List <BrAPIObservation> updatedObservations = new ArrayList<>();
+        try {
+            for (Map.Entry<String, BrAPIObservation> entry : mutatedObservationByDbId.entrySet()) {
+                String dbId = entry.getKey();
+                BrAPIObservation observation = entry.getValue();
+                if (observation == null) {
+                    throw new Exception("Null observation");
+                }
+
+                ApiResponse<BrAPIObservationSingleResponse> response = null;
+                try {
+                    response = api.observationsObservationDbIdPut(dbId, observation);
+                } catch (ApiException e) {
+                    throw new RuntimeException(e);
+                }
+                if (response == null) {
+                    throw new ApiException("Response is null", 0, null, null);
+                }
+                BrAPIObservationSingleResponse body = response.getBody();
+                if (body == null) {
+                    throw new ApiException("Response is missing body", 0, response.getHeaders(), null);
+                }
+                BrAPIObservation updatedObservation = body.getResult();
+                if (updatedObservation == null) {
+                    throw new ApiException("Response body is missing result", 0, response.getHeaders(), response.getBody().toString());
+                }
+                updatedObservations.add(updatedObservation);
+
+                if (!Objects.equals(observation.getValue(), updatedObservation.getValue())
+                        || !Objects.equals(observation.getObservationTimeStamp(), updatedObservation.getObservationTimeStamp())) {
+                    String message;
+                    if (!Objects.equals(observation.getValue(), updatedObservation.getValue())) {
+                        message = String.format("Updated observation, %s, from BrAPI service does not match requested update %s.", updatedObservation.getValue(), observation.getValue());
+                    } else {
+                        message = String.format("Updated observation timestamp, %s, from BrAPI service does not match requested update timestamp %s.", updatedObservation.getObservationTimeStamp(), observation.getObservationTimeStamp());
+                    }
+                    throw new Exception(message);
+                }
+            }
+            Map<String, BrAPIObservation> processedObservations = processObservationsForCache(updatedObservations, program.getKey());
+            return programObservationCache.postThese(programId,processedObservations);
+        } catch (ApiException e) {
+            log.error("Error updating observation: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Error updating observation: ", e);
+            throw new InternalServerException(e.getMessage(), e);
         }
     }
 }

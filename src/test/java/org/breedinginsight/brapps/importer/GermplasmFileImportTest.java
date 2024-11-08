@@ -81,6 +81,7 @@ public class GermplasmFileImportTest extends BrAPITest {
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
                                                .create();
 
+
     @BeforeAll
     public void setup() {
         importTestUtils = new ImportTestUtils();
@@ -89,28 +90,6 @@ public class GermplasmFileImportTest extends BrAPITest {
         germplasmMappingId = (String) setupObjects.get("mappingId");
         testUser = (BiUserEntity) setupObjects.get("testUser");
     }
-
-    // Tests
-    // Minimum import required fields, success
-    // Female parent not exist db id, throw error
-    // Female parent not exist entry number, throw error
-    // Male parent not exist db id, throw error
-    // Female parent not exist entry number, throw error
-    // Bad breeding method, throw error
-    // Some entry numbers, throw an error
-    // Numerical entry numbers
-    // Required fields missing, throw error
-    // Missing required headers
-    // Missing optional headers
-    // No entry numbers, automatic generation
-    // Full import, success
-    // Preview, non-preview fields not shown
-    // Male db, no female db id, pedigree string is null
-    // Circular parent dependency
-    // Name and description success
-    // Name only success
-    // Dup list name test
-    // Missing required fields tests
 
     @Test
     @SneakyThrows
@@ -132,8 +111,6 @@ public class GermplasmFileImportTest extends BrAPITest {
         for (int i = 0; i < previewRows.size(); i++) {
             JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
             germplasmNames.add(germplasm.get("germplasmName").getAsString());
-            int finalI = i;
-            gson.fromJson(germplasm.getAsJsonObject("additionalInfo").getAsJsonObject("listEntryNumbers"), Map.class).forEach((listId, entryNumber) -> assertEquals(Integer.toString(finalI +1), entryNumber, "Wrong entry number"));
         }
 
         // Check the germplasm list
@@ -144,18 +121,13 @@ public class GermplasmFileImportTest extends BrAPITest {
     @SneakyThrows
     @Order(2)
     public void fullImportPreviewSuccess() {
-        File file = new File("src/test/resources/files/germplasm_import/full_import.csv");
-        Table fileData = Table.read().file("src/test/resources/files/germplasm_import/full_import.csv");
+
+        String pathname = "src/test/resources/files/germplasm_import/full_import.csv";
+        Table fileData = Table.read().file(pathname);
         String listName = "FullList";
         String listDescription = "A full import";
 
-        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(file, Map.of(GERM_LIST_NAME, listName, GERM_LIST_DESC, listDescription), false, client, validProgram, germplasmMappingId);
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
-        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
-
-        HttpResponse<String> upload = importTestUtils.getUploadedFile(importId, client, validProgram, germplasmMappingId);
-        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonObject result = importGermplasm(pathname, listName, listDescription, false);
         assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
 
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
@@ -204,18 +176,13 @@ public class GermplasmFileImportTest extends BrAPITest {
     @SneakyThrows
     @Order(3)
     public void fullImportCommitSuccess() {
-        File file = new File("src/test/resources/files/germplasm_import/full_import.csv");
-        Table fileData = Table.read().file("src/test/resources/files/germplasm_import/full_import.csv");
 
+        String pathname = "src/test/resources/files/germplasm_import/full_import.csv";
+        Table fileData = Table.read().file(pathname);
         String listName = "FullList";
         String listDescription = "A full import";
-        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(file, Map.of(GERM_LIST_NAME, listName, GERM_LIST_DESC, listDescription), true, client, validProgram, germplasmMappingId);
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
-        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
 
-        HttpResponse<String> upload = importTestUtils.getUploadedFile(importId, client, validProgram, germplasmMappingId);
-        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonObject result = importGermplasm(pathname, listName, listDescription, true);
         assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
 
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
@@ -307,6 +274,130 @@ public class GermplasmFileImportTest extends BrAPITest {
 
     @Test
     @SneakyThrows
+    @Order(5)
+    public void duplicateListEntriesSuccess() {
+        // Test that a germplasm list import referencing existing germplasm by GID can have duplicate entries.
+
+        String pathname = "src/test/resources/files/germplasm_import/valid_duplicate_entries.csv";
+        Table fileData = Table.read().file(pathname);
+        String listName = "Duplicates";
+        String listDescription = "New list referencing existing germplasm by GID with duplicate entries";
+
+        JsonObject result = importGermplasm(pathname, listName, listDescription, true);
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        List<String> germplasmNames = new ArrayList<>();
+        for (int i = 0; i < previewRows.size(); i++) {
+            JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            germplasmNames.add(germplasm.get("germplasmName").getAsString());
+            checkBasicResponse(germplasm, fileData, i);
+
+            // Germplasm name (display name)
+            String expectedGermplasmName = String.format("%s [%s-%s]", fileData.getString(i, "Germplasm Name"), validProgram.getKey(), germplasm.get("accessionNumber").getAsString());
+            assertEquals(expectedGermplasmName, germplasm.get("germplasmName").getAsString());
+            // Created Date
+            JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
+            assertTrue(additionalInfo.has(BrAPIAdditionalInfoFields.CREATED_DATE), "createdDate is missing");
+            // Accession Number
+            assertTrue(germplasm.has("accessionNumber"), "accessionNumber missing");
+            // Pedigree (germplasm names)
+            String pedigree = germplasm.get("pedigree").getAsString();
+            String mother = !pedigree.isBlank() ? pedigree.split("/")[0] : null;
+            String father = !pedigree.isBlank() && pedigree.split("/").length > 1 ? pedigree.split("/")[1] : null;
+            String regexMatcher = "^(.*\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
+
+            // External Reference germplasm
+            JsonArray externalReferences = germplasm.getAsJsonArray("externalReferences");
+            boolean referenceFound = false;
+            for (JsonElement reference: externalReferences) {
+                String referenceSource = reference.getAsJsonObject().get("referenceSource").getAsString();
+                if (referenceSource.equals(BRAPI_REFERENCE_SOURCE)) {
+                    referenceFound = true;
+                    break;
+                }
+            }
+            assertTrue(referenceFound, "Germplasm UUID reference not found");
+
+            // Synonyms
+            String[] splitGermplasmName = germplasm.get("germplasmName").getAsString().split(" ");
+            String scope = splitGermplasmName[splitGermplasmName.length - 1];
+            JsonArray synonyms = germplasm.getAsJsonArray("synonyms");
+            for (JsonElement synonym: synonyms) {
+                String synonymName = synonym.getAsJsonObject().get("synonym").getAsString();
+                assertNotNull(synonymName);
+                assertTrue(synonymName.contains(scope), "Germplasm synonym was not properly scoped");
+            }
+        }
+
+        // Check the germplasm list
+        checkGermplasmList(Germplasm.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(6)
+    public void newAndExistingListEntriesSuccess() {
+        // Test that a germplasm list import that both creates new germplasm (GID empty) and references existing germplasm (by GID) succeeds.
+
+        String pathname = "src/test/resources/files/germplasm_import/new_and_existing_list_entries.csv";
+        Table fileData = Table.read().file(pathname);
+        String listName = "New and Existing Germplasm";
+        String listDescription = "New list containing both new and existing germplasm";
+
+        JsonObject result = importGermplasm(pathname, listName, listDescription, true);
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        List<String> germplasmNames = new ArrayList<>();
+        for (int i = 0; i < previewRows.size(); i++) {
+            JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            germplasmNames.add(germplasm.get("germplasmName").getAsString());
+            checkBasicResponse(germplasm, fileData, i);
+
+            // Germplasm name (display name)
+            String expectedGermplasmName = String.format("%s [%s-%s]", fileData.getString(i, "Germplasm Name"), validProgram.getKey(), germplasm.get("accessionNumber").getAsString());
+            assertEquals(expectedGermplasmName, germplasm.get("germplasmName").getAsString());
+            // Created Date
+            JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
+            assertTrue(additionalInfo.has(BrAPIAdditionalInfoFields.CREATED_DATE), "createdDate is missing");
+            // Accession Number
+            assertTrue(germplasm.has("accessionNumber"), "accessionNumber missing");
+            // Pedigree (germplasm names)
+            String pedigree = germplasm.get("pedigree").getAsString();
+            String mother = !pedigree.isBlank() ? pedigree.split("/")[0] : null;
+            String father = !pedigree.isBlank() && pedigree.split("/").length > 1 ? pedigree.split("/")[1] : null;
+            String regexMatcher = "^(.*\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
+
+            // External Reference germplasm
+            JsonArray externalReferences = germplasm.getAsJsonArray("externalReferences");
+            boolean referenceFound = false;
+            for (JsonElement reference: externalReferences) {
+                String referenceSource = reference.getAsJsonObject().get("referenceSource").getAsString();
+                if (referenceSource.equals(BRAPI_REFERENCE_SOURCE)) {
+                    referenceFound = true;
+                    break;
+                }
+            }
+            assertTrue(referenceFound, "Germplasm UUID reference not found");
+
+            // Synonyms
+            String[] splitGermplasmName = germplasm.get("germplasmName").getAsString().split(" ");
+            String scope = splitGermplasmName[splitGermplasmName.length - 1];
+            JsonArray synonyms = germplasm.getAsJsonArray("synonyms");
+            for (JsonElement synonym: synonyms) {
+                String synonymName = synonym.getAsJsonObject().get("synonym").getAsString();
+                assertNotNull(synonymName);
+                assertTrue(synonymName.contains(scope), "Germplasm synonym was not properly scoped");
+            }
+        }
+
+        // Check the germplasm list
+        checkGermplasmList(Germplasm.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
+    }
+
+    @Test
+    @SneakyThrows
     public void OnlyMaleParentPreviewSuccess() {
         File file = new File("src/test/resources/files/germplasm_import/no_female_parent_blank_pedigree.csv");
 
@@ -370,7 +461,7 @@ public class GermplasmFileImportTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
         List<String> missingDbIds = List.of("1000", "1001", "1002");
-        assertEquals(String.format(GermplasmProcessor.missingParentalDbIdsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(missingDbIds)),
+        assertEquals(String.format(GermplasmProcessor.missingParentalGIDsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(missingDbIds)),
                 result.getAsJsonObject("progress").get("message").getAsString());
     }
 
@@ -404,7 +495,7 @@ public class GermplasmFileImportTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
         List<String> missingDbIds = List.of("100", "101", "102");
-        assertEquals(String.format(GermplasmProcessor.missingParentalDbIdsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(missingDbIds)),
+        assertEquals(String.format(GermplasmProcessor.missingParentalGIDsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(missingDbIds)),
                 result.getAsJsonObject("progress").get("message").getAsString());
     }
 
@@ -562,8 +653,6 @@ public class GermplasmFileImportTest extends BrAPITest {
         for (int i = 0; i < previewRows.size(); i++) {
             JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
             germplasmNames.add(germplasm.get("germplasmName").getAsString());
-            int finalI = i;
-            gson.fromJson(germplasm.getAsJsonObject("additionalInfo").getAsJsonObject("listEntryNumbers"), Map.class).forEach((listId, entryNumber) -> assertEquals(Integer.toString(finalI +1), entryNumber, "Wrong entry number"));
         }
 
         // Check the germplasm list
@@ -644,13 +733,22 @@ public class GermplasmFileImportTest extends BrAPITest {
         assertEquals(GermplasmProcessor.circularDependency, result.getAsJsonObject("progress").get("message").getAsString());
     }
 
+    private JsonObject importGermplasm(String pathname, String listName, String listDescription, Boolean commit) throws InterruptedException {
+        File file = new File(pathname);
+
+        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(file, Map.of(GERM_LIST_NAME, listName, GERM_LIST_DESC, listDescription), commit, client, validProgram, germplasmMappingId);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = importTestUtils.getUploadedFile(importId, client, validProgram, germplasmMappingId);
+        return JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+    }
 
     public void checkBasicResponse(JsonObject germplasm, Table fileData, Integer i) {
 
         // Germplasm display name
         assertEquals(fileData.getString(i, "Germplasm Name"), germplasm.get("defaultDisplayName").getAsString(), "Wrong display name");
-        // Entry Number
-        gson.fromJson(germplasm.getAsJsonObject("additionalInfo").getAsJsonObject("listEntryNumbers"), Map.class).forEach((listId, entryNumber) -> assertEquals(fileData.getString(i, "Entry No"), entryNumber, "Wrong entry number"));
         JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
         // Created By User ID
         assertEquals(testUser.getId().toString(), additionalInfo.getAsJsonObject(BrAPIAdditionalInfoFields.CREATED_BY).get(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID).getAsString(), "Wrong createdBy userId");
@@ -725,6 +823,8 @@ public class GermplasmFileImportTest extends BrAPITest {
             JsonObject detailResult = JsonParser.parseString(detailResponse.body()).getAsJsonObject().getAsJsonObject("result");
             JsonArray germplasmList = detailResult.getAsJsonArray("data");
             List<Boolean> found = new ArrayList<>();
+            // Check that the list size is correct.
+            assertEquals(germplasmNames.size(), germplasmList.size());
             for (String germplasmName: germplasmNames) {
                 for (JsonElement listElement: germplasmList) {
                     if (listElement.getAsString().equals(germplasmName)) {

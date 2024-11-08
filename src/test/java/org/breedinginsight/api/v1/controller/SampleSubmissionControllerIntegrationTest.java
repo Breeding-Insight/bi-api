@@ -90,11 +90,13 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
+    private String newExperimentWorkflowId;
     private final Gson gson = new BrAPIClient().getJSON().getGson();
 
     @BeforeAll
     void setup() throws Exception {
         importTestUtils = new ImportTestUtils();
+        newExperimentWorkflowId = importTestUtils.getExperimentWorkflowId(client, 0);
         FannyPack fp = FannyPack.fill("src/test/resources/sql/ImportControllerIntegrationTest.sql");
         FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
         FannyPack brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
@@ -404,13 +406,14 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
                 .getAsJsonArray("data")
                 .get(0).getAsJsonObject().get("id").getAsString();
 
-        JsonObject importResult = importTestUtils.uploadAndFetch(
+        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
                 importTestUtils.writeExperimentDataToFile(List.of(makeExpImportRow("Env1")), null),
                 null,
                 true,
                 client,
                 program,
-                expMappingId);
+                expMappingId,
+                newExperimentWorkflowId);
         return importResult
                 .get("preview").getAsJsonObject()
                 .get("rows").getAsJsonArray()

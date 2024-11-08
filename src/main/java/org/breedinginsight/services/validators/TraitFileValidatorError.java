@@ -66,6 +66,11 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getInvalidCharObsVarNameMsg() {
+        return new ValidationError("Name", "Periods and brackets are invalid", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
     public ValidationError getMissingObsVarNameMsg() {
         return new ValidationError("Name", "Missing name", HttpStatus.UNPROCESSABLE_ENTITY);
     }

@@ -56,13 +56,13 @@ public class UploadController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                              @Part("file") CompletedFileUpload file) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportResponse result = fileImportService.uploadData(programId, mappingId, actingUser, file);
-            Response<ImportResponse> response = new Response(result);
+            Response<ImportResponse> response = new Response<>(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
@@ -88,13 +88,13 @@ public class UploadController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> getUploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                              @PathVariable UUID uploadId, @QueryValue(defaultValue = "false") Boolean mapping) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             Pair<HttpStatus, ImportResponse> result = fileImportService.getDataUpload(uploadId, mapping);
-            Response<ImportResponse> response = new Response(result.getRight());
+            Response<ImportResponse> response = new Response<>(result.getRight());
             if (result.getLeft().equals(HttpStatus.ACCEPTED)) {
                 return HttpResponse.ok(response).status(result.getLeft());
             } else {
@@ -109,12 +109,12 @@ public class UploadController {
     @Put("programs/{programId}/import/mappings/{mappingId}/data/{uploadId}/commit")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> commitData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                              @PathVariable UUID uploadId, @Body @Nullable Map<String, Object> userInput) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, userInput, true);
+            ImportResponse result = fileImportService.updateUpload(programId, uploadId, null, actingUser, userInput, true);
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {
@@ -135,12 +135,65 @@ public class UploadController {
     @Put("programs/{programId}/import/mappings/{mappingId}/data/{uploadId}/preview")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> previewData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                               @PathVariable UUID uploadId) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, null, false);
+            ImportResponse result = fileImportService.updateUpload(programId, uploadId, null, actingUser, null, false);
+            Response<ImportResponse> response = new Response<>(result);
+            return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
+        } catch (DoesNotExistException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.notFound();
+        } catch (AuthorizationException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (UnprocessableEntityException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (HttpStatusException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.status(e.getStatus(), e.getMessage());
+        }
+    }
+
+    @Put("programs/{programId}/import/mappings/{mappingId}/workflows/{workflowId}/data/{uploadId}/preview")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
+    public HttpResponse<Response<ImportResponse>> previewData(@PathVariable UUID programId, @PathVariable UUID mappingId,
+                                                              @PathVariable String workflowId, @PathVariable UUID uploadId) {
+        try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            ImportResponse result = fileImportService.updateUpload(programId, uploadId, workflowId, actingUser, null, false);
+            Response<ImportResponse> response = new Response(result);
+            return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
+        } catch (DoesNotExistException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.notFound();
+        } catch (AuthorizationException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (UnprocessableEntityException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (HttpStatusException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.status(e.getStatus(), e.getMessage());
+        }
+    }
+
+    @Put("programs/{programId}/import/mappings/{mappingId}/workflows/{workflowId}/data/{uploadId}/commit")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
+    public HttpResponse<Response<ImportResponse>> commitData(@PathVariable UUID programId, @PathVariable UUID mappingId,
+                                                             @PathVariable String workflowId, @PathVariable UUID uploadId,
+                                                             @Body @Nullable Map<String, Object> userInput) {
+        try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            ImportResponse result = fileImportService.updateUpload(programId, uploadId, workflowId, actingUser, userInput, true);
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {

@@ -77,7 +77,7 @@ public class BrAPIObservationLevelsController {
     }
 
     @Get("/observationlevels")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIObservationLevelListResponse> observationlevelsGet(@PathVariable("programId") UUID programId,
                                                                                 @Nullable @QueryValue("trialDbId") String experimentId,
                                                                                 @Nullable @QueryValue("studyDbId") String environmentId,

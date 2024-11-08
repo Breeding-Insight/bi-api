@@ -18,6 +18,8 @@
 package org.breedinginsight.brapi.v2;
 
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
@@ -31,6 +33,7 @@ import org.brapi.v2.model.core.response.BrAPIProgramSingleResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
@@ -125,8 +128,17 @@ public class BrAPIProgramsController {
 
 
     //START - endpoints for within the context of a program
+    /* Retrieves a list of programs
+        * If programId supplied will only ever return one program.
+        *
+        * @param programId The ID of the program.
+        *
+        * @return HttpResponse containing BrAPIProgramListResponse
+        * Returns HttpResponse.NOT_FOUND if the program is not found.
+    */
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIProgramListResponse> programsGet(@PathVariable("programId") UUID programId,
                                     @QueryValue("abbreviation") Optional<String> abbreviation,
                                     @QueryValue("programType") Optional<String> programType,
@@ -139,7 +151,14 @@ public class BrAPIProgramsController {
                                     @QueryValue("page") Optional<Integer> page,
                                     @QueryValue("pageSize") Optional<Integer> pageSize) {
 
-        List<BrAPIProgram> programs = programService.getById(programId).stream().filter(program -> {
+        //If programId supplied, check if program exists
+        if (programId != null) {
+            Optional<Program> optProgram = programService.getById(programId);
+            if (optProgram.isEmpty()) {
+                return HttpResponse.status(HttpStatus.NOT_FOUND, "Program not found");
+            }
+
+        List<BrAPIProgram> programs = optProgram.stream().filter(program -> {
             boolean matches = abbreviation.map(abbr -> abbr.equals(program.getKey())).orElse(true);
             matches = matches && programDbId.map(id -> id.equals(program.getId().toString())).orElse(true);
             return matches && programName.map(name -> name.equals(program.getName())).orElse(true);
@@ -150,17 +169,20 @@ public class BrAPIProgramsController {
                                                                                                                                 .totalCount(programs.size())
                                                                                                                                 .pageSize(programs.size())))
                                                              .result(new BrAPIProgramListResponseResult().data(programs)));
+        } else {
+            return HttpResponse.status(HttpStatus.NOT_FOUND, "Program not found");
+        }
     }
 
     @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> programsPost(@PathVariable("programId") UUID programId, @Body List<BrAPIProgram> body) {
         //DO NOT IMPLEMENT - Users should only be able to create new programs via the DeltaBreed UI
         return HttpResponse.notFound();
     }
 
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs/{programDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIProgramSingleResponse> programsProgramDbIdGet(@PathVariable("programId") UUID programId, @PathVariable("programDbId") String programDbId) {
         Optional<BrAPIProgram> program = programService.getById(programId)
                                                        .stream()
@@ -172,7 +194,7 @@ public class BrAPIProgramsController {
     }
 
     @Put("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs/{programDbId}")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<?> programsProgramDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("programDbId") String programDbId, @Body BrAPIProgram body) {
         //DO NOT IMPLEMENT - Users should only be able to update programs via the DeltaBreed UI
         return HttpResponse.notFound();

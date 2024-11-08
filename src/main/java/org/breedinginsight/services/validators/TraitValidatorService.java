@@ -26,6 +26,8 @@ import org.breedinginsight.model.Trait;
 
 import javax.inject.Inject;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -206,7 +208,26 @@ public class TraitValidatorService {
         }
         return errors;
     }
+    public ValidationErrors checkTraitFieldsFormat(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
 
+        ValidationErrors errors = new ValidationErrors();
+
+        for (int i = 0; i < traits.size(); i++) {
+
+            Trait trait = traits.get(i);
+            String name = trait.getObservationVariableName();
+
+            Pattern pattern = Pattern.compile("[\\.\\]\\[]");
+            Matcher matcher = pattern.matcher(name);
+            boolean containsInvalidCharacter = matcher.find();
+
+            if (name != null && containsInvalidCharacter){
+                ValidationError error = traitValidatorErrors.getInvalidCharObsVarNameMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+        }
+        return errors;
+    }
     public List<Trait> checkDuplicateTraitsExistingByName(UUID programId, List<Trait> traits){
 
         List<Trait> duplicates = new ArrayList<>();
@@ -273,7 +294,8 @@ public class TraitValidatorService {
         ValidationErrors dataConsistencyErrors = checkTraitDataConsistency(traits, traitValidatorError);
         ValidationErrors duplicateTraitsInFile = checkDuplicateTraitsInFile(traits, traitValidatorError);
         ValidationErrors fieldLengthError =  checkTraitFieldsLength(traits, traitValidatorError);
-        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraitsInFile, fieldLengthError);
+        ValidationErrors fieldFormatErrors =  checkTraitFieldsFormat(traits, traitValidatorError);
+        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraitsInFile, fieldLengthError, fieldFormatErrors);
 
         if (validationErrors.hasErrors()){
             return Optional.of(validationErrors);
