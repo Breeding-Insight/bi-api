@@ -178,7 +178,7 @@ public class BrAPIGermplasmController {
         Pattern programKeyPattern = Utilities.getRegexPatternMatchAllProgramKeysAnyAccession(programKey);
         germplasmList.parallelStream().forEach(germplasm -> {
             // Set dbId
-            germplasm.germplasmDbId(Utilities.getExternalReference(germplasm.getExternalReferences(), "breedinginsight.org")
+            germplasm.germplasmDbId(Utilities.getExternalReference(germplasm.getExternalReferences(), "breeding-insight.net")
                     .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
                     .getReferenceId());
             // Process synonyms
