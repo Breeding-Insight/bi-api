@@ -92,6 +92,8 @@
         <brapi-java-client.version>2.1-SNAPSHOT</brapi-java-client.version>
         <commons-io.version>2.11.0</commons-io.version>
         <tika-app.version>2.9.2</tika-app.version>
+        <!-- Hard-coded version of transitive dependency commons compress seems to be needed. -->
+        <commons-compress.version>1.26.1</commons-compress.version>
         <javaxmail.version>1.6.2</javaxmail.version>
         <st4.version>4.3.1</st4.version>
         <tablesaw.version>1.0.0-SNAPSHOT</tablesaw.version>
@@ -379,6 +381,11 @@
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-app</artifactId>
             <version>${tika-app.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>${commons-compress.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.mail</groupId>
