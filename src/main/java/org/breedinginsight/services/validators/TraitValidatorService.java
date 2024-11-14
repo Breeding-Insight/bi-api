@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.services.validators;
 
+import io.micronaut.http.HttpStatus;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -228,6 +229,7 @@ public class TraitValidatorService {
         }
         return errors;
     }
+
     public List<Trait> checkDuplicateTraitsExistingByName(UUID programId, List<Trait> traits){
 
         List<Trait> duplicates = new ArrayList<>();

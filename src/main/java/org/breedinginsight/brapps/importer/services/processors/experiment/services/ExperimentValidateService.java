@@ -27,6 +27,7 @@ import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
@@ -78,7 +79,7 @@ public class ExperimentValidateService {
                     .map(TraitEntity::getObservationVariableName)
                     .collect(Collectors.toSet());
             List<String> differences = varNames.stream()
-                    .filter(var -> !returnedVarNames.contains(var))
+                    .filter(var -> !Utilities.containsCaseInsensitive(var, returnedVarNames))
                     .collect(Collectors.toList());
             //TODO convert this to a ValidationError
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,

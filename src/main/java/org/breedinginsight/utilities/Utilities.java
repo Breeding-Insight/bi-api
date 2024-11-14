@@ -27,10 +27,7 @@ import org.flywaydb.core.api.migration.Context;
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -48,10 +45,10 @@ public class Utilities {
      * Case insensitive search for string in string list
      *
      * @param target - string to search for
-     * @param list - list of strings to search in
+     * @param list - collection of strings to search in
      * @return true if case insensitive match, false otherwise
      */
-    public static boolean containsCaseInsensitive(String target, List<String> list){
+    public static boolean containsCaseInsensitive(String target, Collection<String> list){
         return list.stream().anyMatch(x -> x.equalsIgnoreCase(target));
     }
 
