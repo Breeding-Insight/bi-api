@@ -17,6 +17,7 @@
 
 package org.breedinginsight.utilities;
 
+import io.micronaut.context.annotation.Property;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
@@ -24,6 +25,7 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
 import org.flywaydb.core.api.migration.Context;
 
+import javax.inject.Inject;
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.sql.Statement;
