@@ -26,7 +26,8 @@ INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '13', 'O
 INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '14', 'Citrus') ON CONFLICT DO NOTHING;
 INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '15', 'Sugar Cane') ON CONFLICT DO NOTHING;
 INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '16', 'Strawberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '17', 'Honey') ON CONFLICT DO NOTHING;
+-- for the Honey Bee case, want to overwrite name, not preserve existing
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '17', 'Honey Bee') ON CONFLICT (id) DO UPDATE SET crop_name = EXCLUDED.crop_name;
 INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '18', 'Pecan') ON CONFLICT DO NOTHING;
 INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '19', 'Lettuce') ON CONFLICT DO NOTHING;
 INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '20', 'Cotton') ON CONFLICT DO NOTHING;
