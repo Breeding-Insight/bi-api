@@ -29,7 +29,7 @@ import java.sql.Statement;
 import java.util.*;
 
 @Slf4j
-public class V1_31_0__Set_Dev_Admin_Email extends BaseJavaMigration {
+public class V1_32_0__Set_Dev_Admin_Email extends BaseJavaMigration {
 
     @Inject
     private DSLContext dsl;
