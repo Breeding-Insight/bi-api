@@ -228,6 +228,7 @@ public class TraitValidatorService {
         }
         return errors;
     }
+
     public List<Trait> checkDuplicateTraitsExistingByName(UUID programId, List<Trait> traits){
 
         List<Trait> duplicates = new ArrayList<>();
