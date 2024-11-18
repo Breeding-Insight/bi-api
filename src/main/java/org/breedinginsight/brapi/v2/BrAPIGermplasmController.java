@@ -209,7 +209,8 @@ public class BrAPIGermplasmController {
                 germplasmQueryMapper.setDateDisplayFormat(dateFormatParam);
             }
 
-            List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
+            // Fetch all germplasm in the program unless a list id is supplied to return only germplasm in that collection
+            List<BrAPIGermplasm> germplasm = queryParams.getList() == null ? germplasmService.getGermplasm(programId) : germplasmService.getGermplasmByList(programId, queryParams.getList());;
             SearchRequest searchRequest = queryParams.constructSearchRequest();
             return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams, searchRequest);
         } catch (ApiException e) {

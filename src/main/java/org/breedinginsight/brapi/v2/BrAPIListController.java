@@ -13,6 +13,7 @@ import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
@@ -24,13 +25,11 @@ import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.delta.DeltaListDetails;
-import org.breedinginsight.services.ListService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 import org.breedinginsight.utilities.response.mappers.ListQueryMapper;
-import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 
 import javax.inject.Inject;
 import javax.validation.ConstraintViolation;
@@ -47,21 +46,19 @@ import java.util.stream.Collectors;
 public class BrAPIListController {
     private final ProgramService programService;
     private final BrAPIListService brapiListService;
-    private final ListService listService;
     private final ListQueryMapper listQueryMapper;
     private final Validator validator;
 
     @Inject
-    public BrAPIListController(ProgramService programService, BrAPIListService brapiListService, ListService listService,
+    public BrAPIListController(ProgramService programService, BrAPIListService brapiListService,
                                ListQueryMapper listQueryMapper, Validator validator) {
         this.programService = programService;
         this.brapiListService = brapiListService;
-        this.listService = listService;
         this.listQueryMapper = listQueryMapper;
         this.validator = validator;
     }
 
-    @Get("/deltalists{?queryParams*}")
+    @Get("/lists{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<Object>>> getLists(
@@ -101,7 +98,7 @@ public class BrAPIListController {
         }
     }
 
-    @Delete("/deltalists/{listDbId}")
+    @Delete("/lists/{listDbId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<Object>>> deleteListById(
@@ -115,7 +112,7 @@ public class BrAPIListController {
             hardDelete = "true".equals(paramValue);
         }
         try {
-            listService.deleteBrAPIList(listDbId, programId, hardDelete);
+            brapiListService.deleteBrAPIList(listDbId, programId, hardDelete);
             return HttpResponse.status(HttpStatus.NO_CONTENT);
         } catch (Exception e) {
             log.info(e.getMessage(), e);
@@ -123,7 +120,7 @@ public class BrAPIListController {
         }
     }
 
-    @Get("/deltalists/{listDbId}")
+    @Get("/lists/{listDbId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @SuppressWarnings("unchecked")
@@ -133,7 +130,7 @@ public class BrAPIListController {
             HttpRequest<?> request) {
         try {
             // Get the list from the BrAPI service
-            DeltaListDetails details = listService.getDeltaListDetails(listDbId, programId);
+            DeltaListDetails details = brapiListService.getDeltaListDetails(listDbId, programId);
 
             // Get a new instance of BrAPI query matching the type of list contents
             T queryParams = (T) details.getQuery();
@@ -167,7 +164,7 @@ public class BrAPIListController {
         }
     }
 
-    @Get("/deltalists/{listDbId}/export{?fileExtension}")
+    @Get("/lists/{listDbId}/export{?fileExtension}")
     @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<StreamedFile> germplasmListExport(
@@ -175,7 +172,7 @@ public class BrAPIListController {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
             // Get the list from the BrAPI service
-            DeltaListDetails details = listService.getDeltaListDetails(listDbId, programId);
+            DeltaListDetails details = brapiListService.getDeltaListDetails(listDbId, programId);
 
             FileType extension = Enum.valueOf(FileType.class, fileExtension);
             DownloadFile listContentsFile = details.exportListObjects(extension);
