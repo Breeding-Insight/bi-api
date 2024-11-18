@@ -667,6 +667,12 @@ public class BrAPITrialService {
         return experiments.get(0);
     }
 
+    public boolean deleteExperiment(Program program, UUID experimentId, boolean hard) throws ApiException {
+        // TODO: make BrAPI request to delete experiment.
+        // TODO: make BrAPI request to delete list for default observation dataset.
+
+    }
+
     private Map<String, Object> createExportRow(
             BrAPITrial experiment,
             Program program,
