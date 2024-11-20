@@ -25,7 +25,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.model.queryParams.core.ListQueryParams;
 import org.brapi.client.v2.modules.core.ListsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.BrAPIResponse;
@@ -34,15 +33,15 @@ import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
-import org.brapi.v2.model.core.response.*;
-import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.brapi.v2.model.core.response.BrAPIListsListResponse;
+import org.brapi.v2.model.core.response.BrAPIListsListResponseResult;
+import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
-import org.breedinginsight.model.delta.DeltaEntityFactory;
-import org.breedinginsight.model.delta.DeltaListDetails;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -52,7 +51,10 @@ import org.breedinginsight.utilities.Utilities;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -62,16 +64,14 @@ public class BrAPIListDAO {
     private ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
-    private final DeltaEntityFactory deltaEntityFactory;
     private final ProgramService programService;
 
     @Inject
-    public BrAPIListDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider, DeltaEntityFactory deltaEntityFactory, ProgramService programService) {
+    public BrAPIListDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider, ProgramService programService) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
-        this.deltaEntityFactory = deltaEntityFactory;
         this.programService = programService;
     }
 
@@ -211,19 +211,8 @@ public class BrAPIListDAO {
         throw new ApiException("No response after creating list");
     }
 
-    public DeltaListDetails getDeltaListDetailsByDbId(String listDbId, UUID programId) throws ApiException {
-        ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
-        ApiResponse<BrAPIListsSingleResponse> response = api.listsListDbIdGet(listDbId);
-        if (Objects.isNull(response.getBody()) || Objects.isNull(response.getBody().getResult()))
-        {
-            throw new ApiException();
-        }
-
-        BrAPIListDetails details = response.getBody().getResult();
-        return deltaEntityFactory.makeDeltaListDetailsBean(details);
-    }
-
     public void deleteBrAPIList(String listDbId, UUID programId, boolean hardDelete) throws ApiException {
+        // TODO: Switch to using the ListsApi from the BrAPI client library once the delete endpoints are merged into it
         var programBrAPIBaseUrl = getProgramBrAPIBaseUrl(programId);
         var requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/lists/" + listDbId).newBuilder();
         requestUrl.addQueryParameter("hardDelete", Boolean.toString(hardDelete));
