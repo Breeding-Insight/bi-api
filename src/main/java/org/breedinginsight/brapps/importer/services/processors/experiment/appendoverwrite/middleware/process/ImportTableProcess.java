@@ -22,6 +22,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
@@ -112,6 +114,14 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
         ImportUpload upload = context.getImportContext().getUpload();
         Table data = context.getImportContext().getData();
         String[] dynamicColNames = upload.getDynamicColumnNames();
+
+        // don't allow periods (.) or square brackets in Dynamic Column Names
+        for (String dynamicColumnName: dynamicColNames) {
+            if(dynamicColumnName.contains(".") || dynamicColumnName.contains("[") || dynamicColumnName.contains("]")){
+                String errorMsg = String.format("Observation columns may not contain periods or square brackets (see column '%s')", dynamicColumnName);
+                throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, errorMsg);
+            }
+        }
         List<Column<?>> dynamicCols = data.columns(dynamicColNames);
 
         // Collect the columns for observation variable data

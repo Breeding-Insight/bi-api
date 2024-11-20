@@ -16,6 +16,8 @@
  */
 package org.breedinginsight.brapps.importer.services.processors.experiment;
 
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.Getter;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
@@ -35,6 +37,15 @@ public class DynamicColumnParser {
      * @return A DynamicColumnParseResult object containing the parsed phenotype and timestamp columns.
      */
     public static DynamicColumnParseResult parse(Table data, String[] dynamicColumnNames) {
+
+        // don't allow periods (.) or square brackets in Dynamic Column Names
+        for (String dynamicColumnName: dynamicColumnNames) {
+            if(dynamicColumnName.contains(".") || dynamicColumnName.contains("[") || dynamicColumnName.contains("]")){
+                String errorMsg = String.format("Observation columns may not contain periods or square brackets (see column '%s')", dynamicColumnName);
+                throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, errorMsg);
+            }
+        }
+
         List<Column<?>> dynamicCols = data.columns(dynamicColumnNames);
         List<Column<?>> phenotypeCols = new ArrayList<>();
         List<Column<?>> timestampCols = new ArrayList<>();
