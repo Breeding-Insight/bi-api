@@ -90,7 +90,6 @@
         <okhttp.version>4.9.3</okhttp.version>
         <mockito.version>4.3.1</mockito.version>
         <brapi-java-client.version>2.1-SNAPSHOT</brapi-java-client.version>
-        <commons-io.version>2.11.0</commons-io.version>
         <tika-app.version>2.9.2</tika-app.version>
         <!-- Hard-coded version of transitive dependency commons compress seems to be needed. -->
         <commons-compress.version>1.26.1</commons-compress.version>
