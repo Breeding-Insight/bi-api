@@ -12,7 +12,6 @@ import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.delta.DeltaListDetails;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.Utilities;
 
@@ -89,10 +88,6 @@ public class BrAPIListService {
         }
 
         return programLists;
-    }
-
-    public DeltaListDetails getDeltaListDetails(String listDbId, UUID programId) throws ApiException {
-        return listDAO.getDeltaListDetailsByDbId(listDbId, programId);
     }
 
     public void deleteBrAPIList(String listDbId, UUID programId, boolean hardDelete) throws ApiException {

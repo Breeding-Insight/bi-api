@@ -1,5 +1,6 @@
 package org.breedinginsight.brapi.v2;
 
+import com.drew.lang.annotations.Nullable;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
@@ -19,10 +20,11 @@ import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.BrAPIStatus;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.*;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
-import org.brapi.v2.model.germ.response.*;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmPedigreeResponse;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmProgenyResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -33,27 +35,25 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
-import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.services.ProgramService;
-import org.breedinginsight.utilities.Utilities;
-import org.breedinginsight.utilities.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.GermplasmGenotype;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.geno.GenotypeService;
+import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.ResponseUtils;
+import org.breedinginsight.utilities.response.mappers.GermplasmQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
@@ -222,15 +222,17 @@ public class BrAPIGermplasmController {
         }
     }
 
-    @Get("/programs/{programId}/germplasm/export{?fileExtension}")
+    @Get("/programs/{programId}/germplasm/export{?fileExtension,list}")
     @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<StreamedFile> germplasmExport(
-            @PathVariable("programId") UUID programId, @QueryValue(defaultValue = "XLSX") String fileExtension) {
+            @PathVariable("programId") UUID programId,
+            @QueryValue(defaultValue = "XLSX") String fileExtension,
+            @QueryValue Optional<String> list) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
             FileType extension = Enum.valueOf(FileType.class, fileExtension);
-            DownloadFile germplasmListFile = germplasmService.exportGermplasm(programId, extension);
+            DownloadFile germplasmListFile = list.isEmpty() ? germplasmService.exportGermplasm(programId, extension) : germplasmService.exportGermplasmList(programId, list.get(), extension);
             HttpResponse<StreamedFile> germplasmExport = HttpResponse.ok(germplasmListFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename="+germplasmListFile.getFileName()+extension.getExtension());
             return germplasmExport;
         }
