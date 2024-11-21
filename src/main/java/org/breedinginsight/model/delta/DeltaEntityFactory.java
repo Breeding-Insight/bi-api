@@ -2,19 +2,14 @@ package org.breedinginsight.model.delta;
 
 import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import lombok.NonNull;
-import org.brapi.v2.model.core.BrAPIListSummary;
-import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
-import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
-import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationUnitService;
 import org.breedinginsight.model.ProgramLocation;
 
