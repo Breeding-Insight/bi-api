@@ -145,9 +145,7 @@ public class ListControllerIntegrationTest extends BrAPITest {
         newExp.put(traits.get(0).getObservationVariableName(), "1");
 
         JsonObject result = importTestUtils.uploadAndFetchWorkflow(
-                importTestUtils.writeExperimentDataToFile(List.of(newExp), traits), null, true, client, program, mappingId, newExperimentWorkflowId
-        );
-
+                importTestUtils.writeExperimentDataToFile(List.of(newExp), traits), null, true, client, program, mappingId, newExperimentWorkflowId);
     }
 
     @Test
@@ -189,5 +187,4 @@ public class ListControllerIntegrationTest extends BrAPITest {
             }
         }
     }
-
 }
