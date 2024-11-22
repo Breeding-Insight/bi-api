@@ -16,7 +16,6 @@
  */
 package org.breedinginsight.services.validators;
 
-import io.micronaut.http.HttpStatus;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -209,7 +208,6 @@ public class TraitValidatorService {
         }
         return errors;
     }
-
     public ValidationErrors checkTraitFieldsFormat(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
 
         ValidationErrors errors = new ValidationErrors();
@@ -219,12 +217,12 @@ public class TraitValidatorService {
             Trait trait = traits.get(i);
             String name = trait.getObservationVariableName();
 
-            Pattern pattern = Pattern.compile("\\.");
+            Pattern pattern = Pattern.compile("[\\.\\]\\[]");
             Matcher matcher = pattern.matcher(name);
             boolean containsInvalidCharacter = matcher.find();
 
             if (name != null && containsInvalidCharacter){
-                ValidationError error = traitValidatorErrors.getPeriodObsVarNameMsg();
+                ValidationError error = traitValidatorErrors.getInvalidCharObsVarNameMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
         }

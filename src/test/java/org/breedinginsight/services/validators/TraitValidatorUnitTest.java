@@ -370,6 +370,4 @@ public class TraitValidatorUnitTest {
         assertEquals(0, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
     }
 
-
-
 }
