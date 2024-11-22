@@ -638,7 +638,7 @@ public class BrAPITrialService {
     }
 
     public List<Trait> getDatasetObsVars(String datasetId, Program program) throws ApiException, DoesNotExistException {
-        List<BrAPIListSummary> lists = listDAO.getListByTypeAndExternalRef(
+        List<BrAPIListSummary> lists = listDAO.getListsByTypeAndExternalRef(
                 BrAPIListTypes.OBSERVATIONVARIABLES,
                 program.getId(),
                 String.format("%s/%s", referenceSource, ExternalReferenceSource.DATASET.getName()),

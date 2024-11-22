@@ -53,7 +53,7 @@ public class BrAPIListService {
         if (xrefId != null && !xrefId.isEmpty()) {
             searchRequest.externalReferenceIDs(List.of(xrefId));
         }
-        List<BrAPIListSummary> lists = listDAO.getListBySearch(searchRequest, program.getId());
+        List<BrAPIListSummary> lists = listDAO.getListsBySearch(searchRequest, program.getId());
         if (lists == null) {
             throw new DoesNotExistException("list not returned from BrAPI service");
         }

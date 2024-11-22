@@ -20,7 +20,6 @@ package org.breedinginsight.brapi.v2.dao;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.model.queryParams.core.ListQueryParams;
 import org.brapi.client.v2.modules.core.ListsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.BrAPIResponse;
@@ -30,7 +29,6 @@ import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
 import org.brapi.v2.model.core.response.*;
-import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
@@ -82,7 +80,7 @@ public class BrAPIListDAO {
         return response.getBody();
     }
 
-    public List<BrAPIListSummary> getListBySearch(@NotNull BrAPIListSearchRequest searchRequest, UUID programId) throws ApiException {
+    public List<BrAPIListSummary> getListsBySearch(@NotNull BrAPIListSearchRequest searchRequest, UUID programId) throws ApiException {
         ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
         List<BrAPIListSummary> programLists = brAPIDAOUtil.search(api::searchListsPost, api::searchListsSearchResultsDbIdGet, searchRequest);
         if (searchRequest.getExternalReferenceSources() != null && searchRequest.getExternalReferenceIDs() != null) {
@@ -94,7 +92,7 @@ public class BrAPIListDAO {
 
     }
 
-    public List<BrAPIListSummary> getListByTypeAndExternalRef(@NotNull BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
+    public List<BrAPIListSummary> getListsByTypeAndExternalRef(@NotNull BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
         BrAPIListSearchRequest searchRequest = new BrAPIListSearchRequest()
                 .externalReferenceIDs(List.of(externalReferenceId.toString()))
                 .externalReferenceSources(List.of(externalReferenceSource))
