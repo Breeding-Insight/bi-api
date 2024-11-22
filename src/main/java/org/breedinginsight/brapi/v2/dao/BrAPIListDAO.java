@@ -18,6 +18,7 @@
 package org.breedinginsight.brapi.v2.dao;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.NotImplementedException;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.ListsApi;
@@ -193,5 +194,9 @@ public class BrAPIListDAO {
         }
 
         throw new ApiException("No response after creating list");
+    }
+
+    public void deleteBrAPIList(String listDbId, UUID id, boolean hard) {
+        throw new NotImplementedException();
     }
 }
