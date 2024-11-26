@@ -282,7 +282,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
 
     @Override
     public void deleteBrAPITrial(Program program, BrAPITrial trial, boolean hard) throws ApiException {
-        var programBrAPIBaseUrl = getProgramBrAPIBaseUrl(program.getId());
+        var programBrAPIBaseUrl = brAPIDAOUtil.getProgramBrAPIBaseUrl(program.getId());
         var requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/trials/" + trial.getTrialDbId()).newBuilder();
         requestUrl.addQueryParameter("hardDelete", Boolean.toString(hard));
         HttpUrl url = requestUrl.build();
@@ -291,6 +291,6 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
                 .addHeader("Content-Type", "application/json")
                 .build();
 
-        makeCall(brapiRequest);
+        brAPIDAOUtil.makeCall(brapiRequest);
     }
 }
