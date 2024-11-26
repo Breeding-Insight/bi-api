@@ -18,25 +18,33 @@
 package org.breedinginsight.utilities;
 
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.reactivex.functions.*;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.*;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.germ.response.BrAPIGermplasmSingleResponse;
+import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.model.ProgramBrAPIEndpoints;
+import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
@@ -48,16 +56,19 @@ public class BrAPIDAOUtil {
     private final Duration searchTimeout;
     private final int pageSize;
     private final int postGroupSize;
+    private final ProgramService programService;
 
     @Inject
     public BrAPIDAOUtil(@Property(name = "brapi.search.wait-time") int searchWaitTime,
                         @Property(name = "brapi.read-timeout") Duration searchTimeout,
                         @Property(name = "brapi.page-size") int pageSize,
-                        @Property(name = "brapi.post-group-size") int postGroupSize) {
+                        @Property(name = "brapi.post-group-size") int postGroupSize,
+                        ProgramService programService) {
         this.searchWaitTime = searchWaitTime;
         this.searchTimeout = searchTimeout;
         this.pageSize = pageSize;
         this.postGroupSize = postGroupSize;
+        this.programService = programService;
     }
 
     public <T, U extends BrAPISearchRequestParametersPaging, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
@@ -366,4 +377,32 @@ public class BrAPIDAOUtil {
         return post(brapiObjects, null, postMethod, null);
     }
 
+    public void makeCall(Request brapiRequest) throws ApiException {
+        OkHttpClient client = new OkHttpClient.Builder()
+                .readTimeout(5, TimeUnit.MINUTES)
+                .build();
+        try {
+            client.newCall(brapiRequest).execute();
+        } catch (IOException e) {
+            log.error("Error calling BrAPI Service", e);
+            throw new ApiException("Error calling BrAPI Service");
+        }
+    }
+
+    public String getProgramBrAPIBaseUrl(UUID programId) {
+        ProgramBrAPIEndpoints programBrAPIEndpoints;
+        try {
+            programBrAPIEndpoints = programService.getBrapiEndpoints(programId);
+        } catch (DoesNotExistException e) {
+            throw new HttpStatusException(HttpStatus.NOT_FOUND, "Program does not exist");
+        }
+
+        if(programBrAPIEndpoints.getCoreUrl().isEmpty()) {
+            log.error("Program: " + programId + " is missing BrAPI URL config");
+            throw new HttpStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "");
+        }
+        var programBrAPIBaseUrl = programBrAPIEndpoints.getCoreUrl().get();
+        programBrAPIBaseUrl = programBrAPIBaseUrl.endsWith("/") ? programBrAPIBaseUrl.substring(0, programBrAPIBaseUrl.length() - 1) : programBrAPIBaseUrl;
+        return programBrAPIBaseUrl.endsWith(BrapiVersion.BRAPI_V2) ? programBrAPIBaseUrl : programBrAPIBaseUrl + BrapiVersion.BRAPI_V2;
+    }
 }
