@@ -17,8 +17,12 @@
 
 package org.breedinginsight.brapi.v2.dao;
 
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.NotImplementedException;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.ListsApi;
@@ -29,20 +33,29 @@ import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
-import org.brapi.v2.model.core.response.*;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.brapi.v2.model.core.response.BrAPIListsListResponse;
+import org.brapi.v2.model.core.response.BrAPIListsListResponseResult;
+import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
+import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.model.ProgramBrAPIEndpoints;
+import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class BrAPIListDAO {
@@ -53,7 +66,10 @@ public class BrAPIListDAO {
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public BrAPIListDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider) {
+    public BrAPIListDAO(ProgramDAO programDAO,
+                        ImportDAO importDAO,
+                        BrAPIDAOUtil brAPIDAOUtil,
+                        BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
@@ -196,7 +212,18 @@ public class BrAPIListDAO {
         throw new ApiException("No response after creating list");
     }
 
-    public void deleteBrAPIList(String listDbId, UUID id, boolean hard) {
-        throw new NotImplementedException();
+    public void deleteBrAPIList(String listDbId, UUID programId, boolean hardDelete) throws ApiException {
+        // TODO: Switch to using the ListsApi from the BrAPI client library once the delete endpoints are merged into it
+        var programBrAPIBaseUrl = brAPIDAOUtil.getProgramBrAPIBaseUrl(programId);
+        var requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/lists/" + listDbId).newBuilder();
+        requestUrl.addQueryParameter("hardDelete", Boolean.toString(hardDelete));
+        HttpUrl url = requestUrl.build();
+        var brapiRequest = new Request.Builder().url(url)
+                .method("DELETE", null)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        brAPIDAOUtil.makeCall(brapiRequest);
     }
+
 }
