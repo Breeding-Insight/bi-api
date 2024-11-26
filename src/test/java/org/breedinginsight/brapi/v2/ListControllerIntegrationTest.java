@@ -49,6 +49,7 @@ import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.*;
 
+import static io.micronaut.http.HttpRequest.DELETE;
 import static io.micronaut.http.HttpRequest.GET;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -186,5 +187,36 @@ public class ListControllerIntegrationTest extends BrAPITest {
                 throw new AssertionFailedError("List type not found");
             }
         }
+    }
+
+
+    @Test
+    @SneakyThrows
+    public void deleteListSuccess() {
+        // A GET request to the brapi/v2/lists endpoint with no query params should return all lists.
+        Flowable<HttpResponse<String>> getCall = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/lists", program.getId().toString()))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        // Ensure 200 OK response for fetching lists.
+        HttpResponse<String> beforeResponse = getCall.blockingFirst();
+        assertEquals(HttpStatus.OK, beforeResponse.getStatus());
+
+        // Parse result.
+        JsonObject beforeResult = JsonParser.parseString(beforeResponse.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray beforeData = beforeResult.getAsJsonArray("data");
+
+        // A DELETE request to the brapi/v2/lists/<listDbId> endpoint with no query params should delete the list.
+        String deleteListDbId = beforeData.get(0).getAsJsonObject().get("listDbId").getAsString();
+        Flowable<HttpResponse<String>> deleteCall = client.exchange(
+                DELETE(String.format("/programs/%s/brapi/v2/lists/%s", program.getId().toString(), deleteListDbId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        // Ensure 204 NO_CONTENT response for deleting a list.
+        HttpResponse<String> deleteResponse = deleteCall.blockingFirst();
+        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+
     }
 }
