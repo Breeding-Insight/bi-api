@@ -21,7 +21,8 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.NotImplementedException;
+import okhttp3.HttpUrl;
+import okhttp3.Request;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.TrialsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
@@ -280,7 +281,16 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
     }
 
     @Override
-    public void deleteExperiment(UUID experimentId, boolean hard) {
-        throw new NotImplementedException();
+    public void deleteBrAPITrial(Program program, BrAPITrial trial, boolean hard) throws ApiException {
+        var programBrAPIBaseUrl = getProgramBrAPIBaseUrl(program.getId());
+        var requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/trials/" + trial.getTrialDbId()).newBuilder();
+        requestUrl.addQueryParameter("hardDelete", Boolean.toString(hard));
+        HttpUrl url = requestUrl.build();
+        var brapiRequest = new Request.Builder().url(url)
+                .method("DELETE", null)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        makeCall(brapiRequest);
     }
 }

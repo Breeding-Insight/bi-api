@@ -319,9 +319,12 @@ public class ExperimentController {
             if(program.isEmpty()) {
                 return HttpResponse.notFound();
             }
-
-            experimentService.deleteExperiment(program.get(), experimentId, hard);
-
+            // TODO: If hard and non-zero result, return 409 Conflict.
+            int observationCount = experimentService.deleteExperiment(program.get(), experimentId, hard);
+            if (observationCount > 0 && hard) {
+                // 409 Conflict. https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
+                return HttpResponse.status(HttpStatus.CONFLICT);
+            }
             return HttpResponse.ok();
         } catch (Exception e) {
             log.error("Error deleting experiment.\n\tprogramId: " + programId +  "\n\texperimentId: " + experimentId + "\n\thard: " + hard);

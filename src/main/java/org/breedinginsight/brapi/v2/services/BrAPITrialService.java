@@ -667,10 +667,34 @@ public class BrAPITrialService {
         return experiments.get(0);
     }
 
-    public boolean deleteExperiment(Program program, UUID experimentId, boolean hard) throws ApiException {
-        // TODO: make BrAPI request to delete experiment.
-        // TODO: make BrAPI request to delete list for default observation dataset.
+    // TODO: create a result type for delete requests?
+    //       The caller could infer from the number of obs and hard whether delete succeeded.
+    public int deleteExperiment(Program program, UUID experimentId, boolean hard) throws ApiException {
+        // TODO: check for observations!
+        BrAPITrial trial = trialDAO.getTrialsByExperimentIds(List.of(experimentId), program).get(0);
+        List<BrAPIObservation> existingObservations = observationDAO.getObservationsByTrialDbId(List.of(trial.getTrialDbId()), program);
+        // If there are no observations or a soft delete is requested, proceed.
+        if (existingObservations.isEmpty() || !hard) {
+            // Make request to delete experiment.
+            trialDAO.deleteBrAPITrial(program, trial, hard);
+            // Get all lists for the trial.
+            List<BrAPIListSummary> lists = listDAO
+                    .getListsByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
+                            program.getId(),
+                            Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS),
+                            experimentId);
+            // TODO: replace with a single call to a batch delete method if that becomes available.
+            // Iterate over lists, delete each by listDbId.
+            for (BrAPIListSummary list : lists) {
+                listDAO.deleteBrAPIList(list.getListDbId(), program.getId(), hard);  // TODO: not yet implemented.
+            }
+        } else {
+            // Trying to hard delete a trial with existing observations, return 409 Conflict response.
+            // TODO: remove if unused.
+        }
 
+        // Successful or not, return the number of observations in this experiment.
+        return existingObservations.size();
     }
 
     private Map<String, Object> createExportRow(
