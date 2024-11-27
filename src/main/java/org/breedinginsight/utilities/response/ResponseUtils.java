@@ -193,6 +193,18 @@ public class ResponseUtils {
                     .collect(Collectors.toList());
         }
 
+        //To enable checking for the case of Germplasm Search when the filter is accessionNumber or list entry number and thereby needs to do exact match
+        String accessionNumFilter;
+        if (mapper.exists("accessionNumber")) accessionNumFilter = mapper.getField("accessionNumber").toString();
+        else {
+            accessionNumFilter = "";
+        }
+        String entryNumFilter;
+        if (mapper.exists("importEntryNumber")) entryNumFilter = mapper.getField("importEntryNumber").toString();
+        else {
+            entryNumFilter = "";
+        }
+
         if (filterFields.size() > 0){
             // Apply filters
             List<FilterField> finalFilterFields = filterFields;
@@ -211,6 +223,16 @@ public class ResponseUtils {
                                     return recordList.stream()
                                             .anyMatch(listValue ->
                                                     listValue.toString().toLowerCase().contains(filterField.getValue().toLowerCase()));
+                                }
+                                else if (!accessionNumFilter.isEmpty() && filterField.getField().toString().equals(accessionNumFilter)) {
+                                    //enable exact match in case of GID
+                                    return filterField.getField().apply(record).toString()
+                                            .toLowerCase().equalsIgnoreCase(filterField.getValue().toLowerCase());
+                                }
+                                else if (!entryNumFilter.isEmpty() && filterField.getField().toString().equals(entryNumFilter)) {
+                                    //enable exact match in case of entry number
+                                    return filterField.getField().apply(record).toString()
+                                            .toLowerCase().equalsIgnoreCase(filterField.getValue().toLowerCase());
                                 } else {
                                     return filterField.getField().apply(record).toString()
                                             .toLowerCase().contains(filterField.getValue().toLowerCase());
