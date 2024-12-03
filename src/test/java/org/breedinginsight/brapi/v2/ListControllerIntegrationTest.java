@@ -23,6 +23,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
@@ -191,6 +192,7 @@ public class ListControllerIntegrationTest extends BrAPITest {
 
 
     @Test
+    @Disabled("Delete-list tests are temporarily disabled until the delete endpoints are merged into the develop branch of breedinginsight:brapi-java-test-server")
     @SneakyThrows
     public void deleteListSuccess() {
         // A GET request to the brapi/v2/lists endpoint with no query params should return all lists.
@@ -217,6 +219,17 @@ public class ListControllerIntegrationTest extends BrAPITest {
         // Ensure 204 NO_CONTENT response for deleting a list.
         HttpResponse<String> deleteResponse = deleteCall.blockingFirst();
         assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+
+
+        // A DELETE request to the brapi/v2/lists/<listDbId> endpoint with invalid dbId.
+        Flowable<HttpResponse<String>> invalidDeleteCall = client.exchange(
+                DELETE(String.format("/programs/%s/brapi/v2/lists/%s", program.getId().toString(), "NOT-VALID-DBID"))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        // Ensure 404 NOT_FOUND response for requesting to delete a non-existant list.
+        HttpResponse<String> invalidDeleteResponse = invalidDeleteCall.blockingFirst();
+        assertEquals(HttpStatus.NOT_FOUND, invalidDeleteResponse.getStatus());
 
     }
 }

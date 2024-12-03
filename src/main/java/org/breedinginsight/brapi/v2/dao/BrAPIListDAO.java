@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapi.v2.dao;
 
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,8 @@ import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.core.response.BrAPIListsListResponseResult;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
+import org.breedinginsight.api.model.v1.response.DataResponse;
+import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -212,7 +215,7 @@ public class BrAPIListDAO {
         throw new ApiException("No response after creating list");
     }
 
-    public void deleteBrAPIList(String listDbId, UUID programId, boolean hardDelete) throws ApiException {
+    public HttpResponse<String> deleteBrAPIList(String listDbId, UUID programId, boolean hardDelete) throws ApiException {
         // TODO: Switch to using the ListsApi from the BrAPI client library once the delete endpoints are merged into it
         var programBrAPIBaseUrl = brAPIDAOUtil.getProgramBrAPIBaseUrl(programId);
         var requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/lists/" + listDbId).newBuilder();
@@ -223,7 +226,7 @@ public class BrAPIListDAO {
                 .addHeader("Content-Type", "application/json")
                 .build();
 
-        brAPIDAOUtil.makeCall(brapiRequest);
+        return brAPIDAOUtil.makeCall(brapiRequest);
     }
 
 }

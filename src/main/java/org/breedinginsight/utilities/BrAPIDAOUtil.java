@@ -18,6 +18,7 @@
 package org.breedinginsight.utilities;
 
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
@@ -25,11 +26,13 @@ import io.reactivex.functions.*;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.*;
+import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
@@ -377,15 +380,25 @@ public class BrAPIDAOUtil {
         return post(brapiObjects, null, postMethod, null);
     }
 
-    public void makeCall(Request brapiRequest) throws ApiException {
+    public HttpResponse<String> makeCall(Request brapiRequest) {
+        // Create OkHttpClient with timeout
         OkHttpClient client = new OkHttpClient.Builder()
                 .readTimeout(5, TimeUnit.MINUTES)
                 .build();
-        try {
-            client.newCall(brapiRequest).execute();
+
+        try (Response brapiResponse = client.newCall(brapiRequest).execute()) {
+            int statusCode = brapiResponse.code();
+
+            if (!brapiResponse.isSuccessful()) {
+                return HttpResponse.status(HttpStatus.valueOf(statusCode));
+            }
+
+            String responseBody = brapiResponse.body() != null ? brapiResponse.body().string() : "";
+            return HttpResponse.status(HttpStatus.valueOf(statusCode), responseBody);
+
         } catch (IOException e) {
             log.error("Error calling BrAPI Service", e);
-            throw new ApiException("Error calling BrAPI Service");
+            throw new HttpStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error calling BrAPI Service");
         }
     }
 
