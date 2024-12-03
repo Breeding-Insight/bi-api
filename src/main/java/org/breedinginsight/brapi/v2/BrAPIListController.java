@@ -93,7 +93,7 @@ public class BrAPIListController {
     @Delete("/lists/{listDbId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
-    public HttpResponse<Response<DataResponse<Object>>> deleteListById(
+    public HttpResponse deleteListById(
             @PathVariable("programId") UUID programId,
             @PathVariable("listDbId") String listDbId,
             HttpRequest<Void> request
@@ -104,11 +104,10 @@ public class BrAPIListController {
             hardDelete = "true".equals(paramValue);
         }
         try {
-            brapiListService.deleteBrAPIList(listDbId, programId, hardDelete);
-            return HttpResponse.status(HttpStatus.NO_CONTENT);
+            return brapiListService.deleteBrAPIList(listDbId, programId, hardDelete);
         } catch (Exception e) {
             log.info(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm list records");
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error deleting germplasm list");
         }
     }
 }
