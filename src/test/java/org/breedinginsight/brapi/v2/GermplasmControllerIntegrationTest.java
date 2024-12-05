@@ -245,7 +245,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         String germplasmListDbId = fetchGermplasmListDbId(programId);
 
         // Build the endpoint to get germplasm by germplasm list.
-        String endpoint = String.format("/programs/%s/germplasm/lists/%s/records", programId, germplasmListDbId);
+        String endpoint = String.format("/programs/%s/brapi/v2/germplasm?list=%s", programId, germplasmListDbId);
 
         // Get germplasm by list.
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -258,7 +258,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
 
-        assertEquals(data.size(), 3, "Wrong number of germplasm were returned");
+        assertEquals(3, data.size(), "Wrong number of germplasm were returned");
     }
 
     @Test

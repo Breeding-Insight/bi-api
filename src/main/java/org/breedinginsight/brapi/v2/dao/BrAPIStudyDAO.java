@@ -30,7 +30,6 @@ import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.daos.cache.ProgramCache;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
@@ -46,7 +45,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
-public class BrAPIStudyDAO {
+public class BrAPIStudyDAO extends BrAPICachedDAO<BrAPIStudy> {
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
     @Property(name = "micronaut.bi.api.run-scheduled-tasks")
@@ -56,8 +55,6 @@ public class BrAPIStudyDAO {
     private ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
-    private final ProgramCache<BrAPIStudy> programStudyCache;
-
 
     @Inject
     public BrAPIStudyDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider, ProgramCacheProvider programCacheProvider) {
@@ -65,7 +62,7 @@ public class BrAPIStudyDAO {
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
-        this.programStudyCache = programCacheProvider.getProgramCache(this::fetchProgramStudy, BrAPIStudy.class);
+        this.programCache = programCacheProvider.getProgramCache(this::fetchProgramStudy, BrAPIStudy.class);
     }
 
     @Scheduled(initialDelay = "2s")
@@ -77,7 +74,7 @@ public class BrAPIStudyDAO {
         log.debug("populating study cache");
         List<Program> programs = programDAO.getActive();
         if(programs != null) {
-            programStudyCache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
+            programCache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
         }
     }
 
@@ -115,7 +112,7 @@ public class BrAPIStudyDAO {
      * @throws ApiException
      */
     public List<BrAPIStudy> getStudies(UUID programId) throws ApiException {
-        return new ArrayList<>(programStudyCache.get(programId).values());
+        return new ArrayList<>(programCache.get(programId).values());
     }
 
     public Optional<BrAPIStudy> getStudyByName(String studyName, Program program) throws ApiException {
@@ -153,7 +150,7 @@ public class BrAPIStudyDAO {
     }
 
     public List<BrAPIStudy> getStudiesByEnvironmentIds(@NotNull Collection<UUID> environmentIds, Program program) throws ApiException {
-        return programStudyCache.get(program.getId())
+        return programCache.get(program.getId())
                                 .entrySet()
                                 .stream()
                                 .filter(entry -> environmentIds.contains(UUID.fromString(entry.getKey())))
@@ -193,7 +190,7 @@ public class BrAPIStudyDAO {
                             .post(brAPIStudyList, upload, api::studiesPost, importDAO::update);
                     return environmentById(postedStudies);
                 };
-                createdStudies.addAll(programStudyCache.post(programId, postCallback));
+                createdStudies.addAll(programCache.post(programId, postCallback));
             }
 
             return createdStudies;

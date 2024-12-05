@@ -2091,7 +2091,7 @@ public class ExperimentProcessor implements Processor {
 
             try {
                 List<BrAPIListSummary> existingDatasets = brAPIListDAO
-                        .getListByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
+                        .getListsByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
                                 program.getId(),
                                 String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()),
                                 UUID.fromString(datasetId));
@@ -2121,7 +2121,7 @@ public class ExperimentProcessor implements Processor {
                     ).getId().toString();
           try {
             List<BrAPIListSummary> existingDatasets = brAPIListDAO
-                    .getListByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
+                    .getListsByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
                     program.getId(),
                     String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()),
                     UUID.fromString(datasetId));

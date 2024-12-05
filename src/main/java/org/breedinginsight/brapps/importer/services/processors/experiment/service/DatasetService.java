@@ -23,21 +23,17 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
-import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.Trait;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -74,7 +70,7 @@ public class DatasetService {
 
         // Retrieve existing dataset summaries based on program ID and external reference
         List<BrAPIListSummary> existingDatasets = brAPIListDAO
-                .getListByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
+                .getListsByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
                         program.getId(),
                         String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()),
                         UUID.fromString(id));

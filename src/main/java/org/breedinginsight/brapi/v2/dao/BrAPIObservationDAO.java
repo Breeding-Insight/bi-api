@@ -36,7 +36,6 @@ import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.daos.cache.ProgramCache;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
@@ -54,7 +53,7 @@ import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
 @Singleton
 @Slf4j
-public class BrAPIObservationDAO {
+public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
@@ -63,7 +62,6 @@ public class BrAPIObservationDAO {
     private final BrAPIEndpointProvider brAPIEndpointProvider;
     private final String referenceSource;
     private boolean runScheduledTasks;
-    private final ProgramCache<BrAPIObservation> programObservationCache;
 
     @Inject
     public BrAPIObservationDAO(ProgramDAO programDAO,
@@ -81,7 +79,7 @@ public class BrAPIObservationDAO {
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.referenceSource = referenceSource;
         this.runScheduledTasks = runScheduledTasks;
-        this.programObservationCache = programCacheProvider.getProgramCache(this::fetchProgramObservations, BrAPIObservation.class);
+        this.programCache = programCacheProvider.getProgramCache(this::fetchProgramObservations, BrAPIObservation.class);
     }
 
     @Scheduled(initialDelay = "3s")
@@ -93,7 +91,7 @@ public class BrAPIObservationDAO {
         log.debug("populating observation cache");
         List<Program> programs = programDAO.getActive();
         if (programs != null) {
-            programObservationCache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
+            programCache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
         }
     }
 
@@ -163,7 +161,7 @@ public class BrAPIObservationDAO {
      * Get all observations for a program from the cache.
      */
     private Map<String, BrAPIObservation> getProgramObservations(UUID programId) throws ApiException {
-        return programObservationCache.get(programId);
+        return programCache.get(programId);
     }
 
     // Note: not using cache, because unique studyName (with "[ProgramKey-ExtraInfo]") is not stored directly on Observation.
@@ -259,7 +257,7 @@ public class BrAPIObservationDAO {
                     List<BrAPIObservation> postResponse = brAPIDAOUtil.post(brAPIObservationList, upload, api::observationsPost, importDAO::update);
                     return processObservationsForCache(postResponse, program.getKey());
                 };
-                return programObservationCache.post(programId, postFunction);
+                return programCache.post(programId, postFunction);
             }
             return new ArrayList<>();
         } catch (Exception e) {
@@ -287,7 +285,7 @@ public class BrAPIObservationDAO {
                     }
                     return processObservationsForCache(List.of(updatedObservation), program.getKey());
             };
-            return programObservationCache.post(programId, postFunction).get(0);
+            return programCache.post(programId, postFunction).get(0);
         } catch (ApiException e) {
             log.error(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
@@ -343,7 +341,7 @@ public class BrAPIObservationDAO {
                 }
             }
             Map<String, BrAPIObservation> processedObservations = processObservationsForCache(updatedObservations, program.getKey());
-            return programObservationCache.postThese(programId,processedObservations);
+            return programCache.postThese(programId,processedObservations);
         } catch (ApiException e) {
             log.error("Error updating observation: " + Utilities.generateApiExceptionLogMessage(e), e);
             throw e;

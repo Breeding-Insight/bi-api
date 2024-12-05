@@ -27,6 +27,9 @@ public class GermplasmQuery extends BrapiQuery {
     // This is a meta-parameter, it describes the display format of any date fields.
     private String dateDisplayFormat;
 
+    // The list id used to get a collection of germplasm
+    private String list;
+
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();
         if (!StringUtils.isBlank(getImportEntryNumber())) {

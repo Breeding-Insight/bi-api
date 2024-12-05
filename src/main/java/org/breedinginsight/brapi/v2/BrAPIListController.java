@@ -1,22 +1,6 @@
-/*
- * See the NOTICE file distributed with this work for additional information
- * regarding copyright ownership.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.breedinginsight.brapi.v2;
 
+import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -44,28 +28,29 @@ import org.breedinginsight.utilities.response.mappers.ListQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import javax.validation.Validator;
 import java.util.List;
 import java.util.UUID;
 
 @Slf4j
-@Controller
+@Controller("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2)
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class BrAPIListController {
-
     private final ProgramService programService;
-    private final BrAPIListService listService;
+    private final BrAPIListService brapiListService;
     private final ListQueryMapper listQueryMapper;
+    private final Validator validator;
 
     @Inject
-    public BrAPIListController(ProgramService programService, BrAPIListService listService,
-                               ListQueryMapper listQueryMapper) {
+    public BrAPIListController(ProgramService programService, BrAPIListService brapiListService,
+                               ListQueryMapper listQueryMapper, Validator validator) {
         this.programService = programService;
-        this.listService = listService;
+        this.brapiListService = brapiListService;
         this.listQueryMapper = listQueryMapper;
+        this.validator = validator;
     }
 
-    //@Get(BrapiVersion.BRAPI_V2 + "/lists")
-    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/lists{?queryParams*}")
+    @Get("/lists{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<Response<DataResponse<Object>>> getLists(
@@ -77,7 +62,6 @@ public class BrAPIListController {
                     .getById(programId)
                     .orElseThrow(() -> new DoesNotExistException("Program does not exist"));
 
-            // get germplasm lists by default
             BrAPIListTypes type = BrAPIListTypes.fromValue(queryParams.getListType());
             String source = null;
             String id = null;
@@ -93,7 +77,7 @@ public class BrAPIListController {
             if (dateFormatParam != null) {
                 listQueryMapper.setDateDisplayFormat(dateFormatParam);
             }
-            List<BrAPIListSummary> brapiLists = listService.getListSummariesByTypeAndXref(type, source, id, program);
+            List<BrAPIListSummary> brapiLists = brapiListService.getListSummariesByTypeAndXref(type, source, id, program);
             SearchRequest searchRequest = queryParams.constructSearchRequest();
 
             return ResponseUtils.getBrapiQueryResponse(brapiLists, listQueryMapper, queryParams, searchRequest);
@@ -103,6 +87,28 @@ public class BrAPIListController {
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Delete("/lists/{listDbId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    public HttpResponse<Response<DataResponse<Object>>> deleteListById(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("listDbId") String listDbId,
+            HttpRequest<Void> request
+    ) {
+        boolean hardDelete = false;
+        if (request.getParameters().contains("hardDelete")) {
+            String paramValue = request.getParameters().get("hardDelete");
+            hardDelete = "true".equals(paramValue);
+        }
+        try {
+            brapiListService.deleteBrAPIList(listDbId, programId, hardDelete);
+            return HttpResponse.status(HttpStatus.NO_CONTENT);
+        } catch (Exception e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm list records");
         }
     }
 }
