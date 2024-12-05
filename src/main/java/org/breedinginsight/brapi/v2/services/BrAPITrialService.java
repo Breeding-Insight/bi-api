@@ -688,6 +688,12 @@ public class BrAPITrialService {
             for (BrAPIListSummary list : lists) {
                 listDAO.deleteBrAPIList(list.getListDbId(), program.getId(), hard);  // TODO: not yet implemented.
             }
+            // TODO: if performance is poor, implement more precise invalidation, possibly using hierarchical cache keys.
+            // Invalidate and repopulate cache for Trial, Study, Observation, ObservationUnit.
+            trialDAO.repopulateCache(program.getId());
+            studyDAO.repopulateCache(program.getId());
+            observationDAO.repopulateCache(program.getId());
+            observationUnitDAO.repopulateCache(program.getId());
         } else {
             // Trying to hard delete a trial with existing observations, return 409 Conflict response.
             // TODO: remove if unused.
