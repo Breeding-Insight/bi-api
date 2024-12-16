@@ -216,7 +216,7 @@ public class BrAPIListDAO {
     }
 
     public HttpResponse<String> deleteBrAPIList(String listDbId, UUID programId, boolean hardDelete) throws ApiException {
-        // TODO: Switch to using the ListsApi from the BrAPI client library once the delete endpoints are merged into it
+        // TODO: Switch to using the ListsApi from the BrAPI client library once the delete endpoints from BI-2397 are merged.
         var programBrAPIBaseUrl = brAPIDAOUtil.getProgramBrAPIBaseUrl(programId);
         var requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/lists/" + listDbId).newBuilder();
         requestUrl.addQueryParameter("hardDelete", Boolean.toString(hardDelete));
