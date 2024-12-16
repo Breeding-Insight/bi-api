@@ -1,6 +1,7 @@
 package org.breedinginsight.brapi.v2.services;
 
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.HttpResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
@@ -8,6 +9,8 @@ import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
+import org.breedinginsight.api.model.v1.response.DataResponse;
+import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
@@ -19,6 +22,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -87,5 +91,9 @@ public class BrAPIListService {
         }
 
         return programLists;
+    }
+
+    public HttpResponse<String> deleteBrAPIList(String listDbId, UUID programId, boolean hardDelete) throws ApiException {
+        return listDAO.deleteBrAPIList(listDbId, programId, hardDelete);
     }
 }
