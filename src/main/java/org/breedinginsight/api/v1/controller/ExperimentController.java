@@ -325,7 +325,8 @@ public class ExperimentController {
                 // 409 Conflict. https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
                 return HttpResponse.status(HttpStatus.CONFLICT);
             }
-            return HttpResponse.ok();
+            // 204 No Content indicates successful delete. https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/204
+            return HttpResponse.noContent();
         } catch (Exception e) {
             log.error("Error deleting experiment.\n\tprogramId: " + programId +  "\n\texperimentId: " + experimentId + "\n\thard: " + hard);
             throw e;
