@@ -319,7 +319,6 @@ public class ExperimentController {
             if(program.isEmpty()) {
                 return HttpResponse.notFound();
             }
-            // TODO: If hard and non-zero result, return 409 Conflict.
             int observationCount = experimentService.deleteExperiment(program.get(), experimentId, hard);
             if (observationCount > 0 && hard) {
                 // 409 Conflict. https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
@@ -327,11 +326,14 @@ public class ExperimentController {
             }
             // 204 No Content indicates successful delete. https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/204
             return HttpResponse.noContent();
-        } catch (Exception e) {
+        } catch (ApiException e) {
             log.error("Error deleting experiment.\n\tprogramId: " + programId +  "\n\texperimentId: " + experimentId + "\n\thard: " + hard);
-            throw e;
+            if (e.getCode() == 404) {
+                return HttpResponse.notFound();
+            } else {
+                return HttpResponse.serverError();
+            }
         }
-
     }
 
 
