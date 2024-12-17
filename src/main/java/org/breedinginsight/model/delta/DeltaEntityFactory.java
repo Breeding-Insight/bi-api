@@ -4,14 +4,13 @@ import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Prototype;
 import lombok.NonNull;
-import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationUnitService;
-
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationUnitService;
 import org.breedinginsight.model.ProgramLocation;
 
 import javax.inject.Inject;

@@ -73,6 +73,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private List<Trait> traits;
     private User testUser;
     private User otherTestUser;
+    private String mappingId;
+    private final String experimentTitle = "Test Exp";
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -145,7 +147,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
         HttpResponse<String> response = call.blockingFirst();
-        String mappingId = JsonParser.parseString(Objects.requireNonNull(response.body())).getAsJsonObject()
+        mappingId = JsonParser.parseString(Objects.requireNonNull(response.body())).getAsJsonObject()
                 .getAsJsonObject("result")
                 .getAsJsonArray("data")
                 .get(0).getAsJsonObject().get("id").getAsString();
@@ -171,8 +173,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         germplasmDAO.createBrAPIGermplasm(germplasm, program.getId(), null);
 
         // Make test experiment import
-        Map<String, Object> row1 = makeExpImportRow("Env1");
-        Map<String, Object> row2 = makeExpImportRow("Env2");
+        Map<String, Object> row1 = makeExpImportRow(experimentTitle, "Env1");
+        Map<String, Object> row2 = makeExpImportRow(experimentTitle, "Env2");
 
         // Add test observation data
         for (Trait trait : traits) {
@@ -207,6 +209,37 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         // Add environmentIds.
         envIds.add(getEnvId(importResult, 0));
         envIds.add(getEnvId(importResult, 1));
+    }
+
+    // Create an experiment with no observations.
+    private String uploadExperimentWithoutObs() throws Exception {
+        ImportTestUtils importTestUtils = new ImportTestUtils();
+        List<Map<String, Object>> expRows = new ArrayList<>();
+
+        // Make test experiment import.
+        Map<String, Object> row1 = makeExpImportRow("Without Obs", "NewEnv1");
+        Map<String, Object> row2 = makeExpImportRow("Without Obs", "NewEnv2");
+
+        expRows.add(row1);
+        expRows.add(row2);
+
+        // Import test experiment, environments.
+        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
+                writeDataToFile(expRows, null),
+                null,
+                true,
+                client,
+                program,
+                mappingId,
+                newExperimentWorkflowId);
+        String expId = importResult
+                .get("preview").getAsJsonObject()
+                .get("rows").getAsJsonArray()
+                .get(0).getAsJsonObject()
+                .get("trial").getAsJsonObject()
+                .get("id").getAsString();
+
+        return expId;
     }
 
     /**
@@ -690,6 +723,92 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         dsl.execute(securityFp.get("DeleteProgramUser"), otherTestUser.getId().toString());
     }
 
+    /**
+     * A delete request with an invalid trialDbId should result in a 404 Not Found response.
+     */
+    @Test
+    @SneakyThrows
+    public void deleteExperimentInvalid() {
+        // A DELETE request endpoint with an invalid experimentId.
+        Flowable<HttpResponse<String>> invalidDeleteCall = client.exchange(
+                DELETE(String.format("/programs/%s/experiments/%s", program.getId().toString(), "00000000-1111-2222-3333-444444444444"))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        // Ensure 404 NOT_FOUND response for requesting to delete a non-existant trial.
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = invalidDeleteCall.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    /* Test the following 4 Cases:
+    *   1. hard delete with obs - failure
+    *   2. soft delete with obs - success
+    *   3. hard delete without obs - success
+    *   4. soft delete without obs - success
+    */
+    @ParameterizedTest
+    @CsvSource(value = {"true,true", "false,true", "true,false", "false,false"})
+    @SneakyThrows
+    public void deleteExperimentSuccess(boolean hardDelete, boolean withObservations) {
+        // Set up a test trial and get the trialDbId.
+        String trialDbId;
+        if (withObservations) {
+            JsonArray beforeData = getProgramTrials(program.getId().toString());
+
+            // The trial created by setup has observations.
+            trialDbId = beforeData.get(0).getAsJsonObject().get("trialDbId").getAsString();
+        } else {
+            // Create a trial without observations.
+            trialDbId = uploadExperimentWithoutObs();
+        }
+
+        // A DELETE request should delete an experiment with observations unless there are observations and hardDelete = true.
+        Flowable<HttpResponse<String>> deleteCall = client.exchange(
+                DELETE(String.format("/programs/%s/experiments/%s?hard=%s", program.getId().toString(), trialDbId, hardDelete))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        // Ensure 204 NO_CONTENT response after successfully deleting a trial,
+        // unless there are observations and hard delete is requested, then ensure 409 Conflict response.
+        if (hardDelete && withObservations) {
+            // Ensure 404 NOT_FOUND response for requesting to delete a non-existant trial.
+            HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+                HttpResponse<String> response = deleteCall.blockingFirst();
+            });
+            assertEquals(HttpStatus.CONFLICT, e.getStatus());
+
+            // Check that the trial was not deleted.
+            JsonArray trials = getProgramTrials(program.getId().toString());
+            assertEquals(1, trials.size());
+
+            // Check that the studies were not deleted.
+            JsonArray studies = getProgramStudies(program.getId().toString());
+            assertEquals(2, studies.size());
+
+            // Check that lists were not deleted.
+            JsonArray lists = getProgramObsVarLists(program.getId().toString());
+            assertEquals(1, lists.size());
+        } else {
+            HttpResponse<String> deleteResponse = deleteCall.blockingFirst();
+
+            assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+
+            // Check that the trial was deleted.
+            JsonArray trials = getProgramTrials(program.getId().toString());
+            assertEquals(0, trials.size());
+
+            // Check that the studies were deleted.
+            JsonArray studies = getProgramStudies(program.getId().toString());
+            assertEquals(0, studies.size());
+
+            // Check that the BrAPI lists were deleted.
+            JsonArray lists = getProgramObsVarLists(program.getId().toString());
+            assertEquals(0, lists.size());
+        }
+
+    }
 
     private List<Map<String, Object>> buildSubEntityRows(List<Map<String, Object>> topLevelRows, String entityName, int repeatedMeasures) {
         List<Map<String, Object>> plantRows = new ArrayList<>();
@@ -726,11 +845,11 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         return file;
     }
 
-    private Map<String, Object> makeExpImportRow(String environment) {
+    private Map<String, Object> makeExpImportRow(String title, String environment) {
         Map<String, Object> row = new HashMap<>();
         row.put(ExperimentObservation.Columns.GERMPLASM_GID, "1");
         row.put(ExperimentObservation.Columns.TEST_CHECK, "T");
-        row.put(ExperimentObservation.Columns.EXP_TITLE, "Test Exp");
+        row.put(ExperimentObservation.Columns.EXP_TITLE, title);
         row.put(ExperimentObservation.Columns.EXP_UNIT, "Plot");
         //row.put(ExperimentObservation.Columns.SUB_OBS_UNIT, "");
         row.put(ExperimentObservation.Columns.EXP_TYPE, "Phenotyping");
@@ -931,4 +1050,39 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 .get("referenceId").getAsString();
     }
 
+    private JsonArray getProgramTrials(String programId) {
+        Flowable<HttpResponse<String>> getCall = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/trials", programId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = getCall.blockingFirst();
+
+        // Parse result.
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        return result.getAsJsonArray("data");
+    }
+
+    private JsonArray getProgramStudies(String programId) {
+        Flowable<HttpResponse<String>> getCall = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/studies", programId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = getCall.blockingFirst();
+
+        // Parse result.
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        return result.getAsJsonArray("data");
+    }
+
+    private JsonArray getProgramObsVarLists(String programId) {
+        Flowable<HttpResponse<String>> getCall = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/lists?listType=observationVariables", programId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = getCall.blockingFirst();
+
+        // Parse result.
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        return result.getAsJsonArray("data");
+    }
 }

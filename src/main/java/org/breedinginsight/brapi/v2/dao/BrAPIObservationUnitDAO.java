@@ -41,7 +41,6 @@ import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.daos.cache.ProgramCache;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
@@ -61,7 +60,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
-public class BrAPIObservationUnitDAO {
+public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit> {
     private final ProgramDAO programDAO;
     private final ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
@@ -74,8 +73,6 @@ public class BrAPIObservationUnitDAO {
 
     private final Gson gson = new JSON().getGson();
     private final Type treatmentlistType = new TypeToken<ArrayList<BrAPIObservationTreatment>>(){}.getType();
-
-    private final ProgramCache<BrAPIObservationUnit> programObservationUnitCache;
 
     @Inject
     public BrAPIObservationUnitDAO(ProgramDAO programDAO,
@@ -95,7 +92,7 @@ public class BrAPIObservationUnitDAO {
         this.runScheduledTasks = runScheduledTasks;
         this.programService = programService;
         this.germplasmService = germplasmService;
-        this.programObservationUnitCache = programCacheProvider.getProgramCache(this::fetchProgramObservationUnits, BrAPIObservationUnit.class);
+        this.programCache = programCacheProvider.getProgramCache(this::fetchProgramObservationUnits, BrAPIObservationUnit.class);
     }
 
     @Scheduled(initialDelay = "3s")
@@ -107,7 +104,7 @@ public class BrAPIObservationUnitDAO {
         log.debug("populating observation unit cache");
         List<Program> programs = programDAO.getActive();
         if(programs != null) {
-            programObservationUnitCache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
+            programCache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
         }
     }
 
@@ -157,7 +154,7 @@ public class BrAPIObservationUnitDAO {
      * Get all observation units for a program from the cache.
      */
     private Map<String, BrAPIObservationUnit> getProgramObservationUnits(UUID programId) throws ApiException {
-        return programObservationUnitCache.get(programId);
+        return programCache.get(programId);
     }
 
     public List<BrAPIObservationUnit> getObservationUnitByName(List<String> observationUnitNames, Program program) throws ApiException {
@@ -183,7 +180,7 @@ public class BrAPIObservationUnitDAO {
                     List<BrAPIObservationUnit> ous = brAPIDAOUtil.post(brAPIObservationUnitList, upload, api::observationunitsPost, importDAO::update);
                     return processObservationUnitsForCache(ous, program, false);
                 };
-                return programObservationUnitCache.post(programId, postFunction);
+                return programCache.post(programId, postFunction);
             }
             return new ArrayList<>();
         } catch (Exception e) {
@@ -205,7 +202,7 @@ public class BrAPIObservationUnitDAO {
                     List<BrAPIObservationUnit> ous = brAPIDAOUtil.post(brAPIObservationUnitList, api::observationunitsPost);
                     return processObservationUnitsForCache(ous, program, false);
                 };
-                return programObservationUnitCache.post(programId, postFunction);
+                return programCache.post(programId, postFunction);
             }
             return new ArrayList<>();
         } catch (Exception e) {

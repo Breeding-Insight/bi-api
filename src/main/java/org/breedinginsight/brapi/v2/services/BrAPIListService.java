@@ -19,6 +19,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -53,7 +54,7 @@ public class BrAPIListService {
         if (xrefId != null && !xrefId.isEmpty()) {
             searchRequest.externalReferenceIDs(List.of(xrefId));
         }
-        List<BrAPIListSummary> lists = listDAO.getListBySearch(searchRequest, program.getId());
+        List<BrAPIListSummary> lists = listDAO.getListsBySearch(searchRequest, program.getId());
         if (lists == null) {
             throw new DoesNotExistException("list not returned from BrAPI service");
         }
@@ -87,5 +88,9 @@ public class BrAPIListService {
         }
 
         return programLists;
+    }
+
+    public void deleteBrAPIList(String listDbId, UUID programId, boolean hardDelete) throws ApiException {
+        listDAO.deleteBrAPIList(listDbId, programId, hardDelete);
     }
 }
