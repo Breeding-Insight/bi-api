@@ -97,6 +97,11 @@ public class ObservationService {
         }
         return true;
     }
+
+    public boolean validText(String value){
+        return (value != null) && (!value.equalsIgnoreCase("null"));
+    }
+
     public String getObservationHash(String observationUnitName, String variableName, String studyName) {
         String concat = DigestUtils.sha256Hex(observationUnitName) +
                 DigestUtils.sha256Hex(variableName) +

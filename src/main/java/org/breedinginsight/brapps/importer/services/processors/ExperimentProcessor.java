@@ -2428,6 +2428,13 @@ public class ExperimentProcessor implements Processor {
                     addRowError(columnHeader, "Undefined nominal category detected", validationErrors, row);
                 }
                 break;
+            case TEXT:
+                //due to null as free text value messing stuff up in backend
+                if (!validText(value)) {
+                    addRowError(columnHeader, "'Null' is not a valid value", validationErrors, row);
+
+                }
+                break;
             default:
                 break;
         }
@@ -2475,6 +2482,10 @@ public class ExperimentProcessor implements Processor {
                                                .map(category -> category.getValue().toLowerCase())
                                                .collect(Collectors.toSet());
         return categoryValues.contains(value.toLowerCase());
+    }
+
+    private boolean validText(String value){
+        return (value != null) && (!value.equalsIgnoreCase("null"));
     }
 
     /**
