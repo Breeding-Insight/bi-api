@@ -530,7 +530,7 @@ public class ExperimentUtilities {
             case NUMERICAL:
                 Optional<BigDecimal> number = validNumericValue(value);
                 if (number.isEmpty()) {
-                    addRowError(columnHeader, "Non-numeric text detected detected", validationErrors, row);
+                    addRowError(columnHeader, "Non-numeric text detected", validationErrors, row);
                 } else if (!validNumericRange(number.get(), variable.getScale())) {
                     addRowError(columnHeader, "Value outside of min/max range detected", validationErrors, row);
                 }
@@ -548,6 +548,11 @@ public class ExperimentUtilities {
             case NOMINAL:
                 if (!validCategory(variable.getScale().getCategories(), value)) {
                     addRowError(columnHeader, "Undefined nominal category detected", validationErrors, row);
+                }
+                break;
+            case TEXT:
+                if (!validText(value)) {
+                    addRowError(columnHeader, "'Null' is not a valid value", validationErrors, row);
                 }
                 break;
             default:
@@ -587,6 +592,10 @@ public class ExperimentUtilities {
                 .map(category -> category.getValue().toLowerCase())
                 .collect(Collectors.toSet());
         return categoryValues.contains(value.toLowerCase());
+    }
+
+    public static boolean validText(String value){
+        return (value != null) && (!value.equalsIgnoreCase("null"));
     }
 
     public static boolean isNAObservation(String value){
