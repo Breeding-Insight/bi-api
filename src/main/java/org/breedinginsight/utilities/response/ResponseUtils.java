@@ -18,6 +18,7 @@
 package org.breedinginsight.utilities.response;
 
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpResponseFactory;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.exceptions.HttpStatusException;
