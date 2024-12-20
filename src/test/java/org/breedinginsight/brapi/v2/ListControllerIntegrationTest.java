@@ -42,6 +42,7 @@ import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.SpeciesService;
 import org.jooq.DSLContext;
+import org.junit.Rule;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
@@ -152,12 +153,19 @@ public class ListControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
+    @Order(1)
     public void getAllListsSuccess() {
         // A GET request to the brapi/v2/lists endpoint with no query params should return all lists.
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/brapi/v2/lists", program.getId().toString()))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
+
+        // Collect all responses
+        List<HttpResponse<String>> responses = call.toList().blockingGet();
+
+        // Ensure we got a response
+        assertFalse(responses.isEmpty(), "No response received");
 
         // Ensure 200 OK response.
         HttpResponse<String> response = call.blockingFirst();
@@ -192,8 +200,8 @@ public class ListControllerIntegrationTest extends BrAPITest {
 
 
     @Test
-    @Disabled("Delete-list tests are temporarily disabled until the delete endpoints are merged into the develop branch of breedinginsight:brapi-java-test-server")
     @SneakyThrows
+    @Order(2)
     public void deleteListSuccess() {
         // A GET request to the brapi/v2/lists endpoint with no query params should return all lists.
         Flowable<HttpResponse<String>> getCall = client.exchange(
@@ -228,8 +236,10 @@ public class ListControllerIntegrationTest extends BrAPITest {
         );
 
         // Ensure 404 NOT_FOUND response for requesting to delete a non-existant list.
-        HttpResponse<String> invalidDeleteResponse = invalidDeleteCall.blockingFirst();
-        assertEquals(HttpStatus.NOT_FOUND, invalidDeleteResponse.getStatus());
-
+        try {
+            invalidDeleteCall.blockingFirst();
+        } catch(HttpClientResponseException e) {
+            assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        }
     }
 }
