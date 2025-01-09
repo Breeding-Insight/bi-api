@@ -281,4 +281,43 @@ public class SampleSubmissionController {
             return HttpResponse.serverError();
         }
     }
+
+    /**
+     * Removes
+     * @param programId
+     * @param submissionId
+     * @return
+     * @throws ApiException
+     */
+    @Delete("programs/{programId}/submissions/{submissionId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    // only sys admin allowed on post & put so kept same permissions for delete
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN})
+    public HttpResponse deleteSubmissionById(@PathVariable UUID programId, @PathVariable UUID submissionId) throws ApiException {
+
+        // program validation
+        Optional<Program> program = programService.getById(programId);
+        if(program.isEmpty()) {
+            log.info(String.format("programId not found: %s", programId.toString()));
+            return HttpResponse.notFound();
+        }
+
+        // sample status validation
+        Optional<SampleSubmission> submissionOpt = sampleSubmissionService.getSampleSubmission(program.get(), submissionId, false);
+
+        if(submissionOpt.isEmpty()) {
+            return HttpResponse.notFound();
+        }
+        SampleSubmission submission = submissionOpt.get();
+        // if submission has status of submitted do not allow deletion
+        // if the user changes the status to not submitted then they can delete
+        if (!submission.isDeletable()) {
+            return HttpResponse.notAllowed();
+        }
+
+        sampleSubmissionService.deleteSampleSubmission(program.get(), submissionId);
+
+        return HttpResponse.ok();
+    }
+
 }

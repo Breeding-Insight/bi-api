@@ -25,6 +25,7 @@ import io.reactivex.functions.*;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
@@ -386,6 +387,28 @@ public class BrAPIDAOUtil {
         } catch (IOException e) {
             log.error("Error calling BrAPI Service", e);
             throw new ApiException("Error calling BrAPI Service");
+        }
+    }
+
+    /**
+     * TODO: replace with brapi client methods when available, will do timeout spec from config at that point
+     * @param brapiRequest
+     * @return
+     * @throws ApiException
+     */
+    public String makeCallWithResponse(Request brapiRequest) throws ApiException {
+        OkHttpClient client = new OkHttpClient.Builder()
+                .readTimeout(5, TimeUnit.MINUTES)
+                .build();
+
+        // autoclose Response
+        try (Response response = client.newCall(brapiRequest).execute()) {
+            if (!response.isSuccessful()) {
+                throw new ApiException("Request failed with status code: " + response.code());
+            }
+            return response.body().string();
+        } catch (IOException e) {
+            throw new ApiException(e);
         }
     }
 

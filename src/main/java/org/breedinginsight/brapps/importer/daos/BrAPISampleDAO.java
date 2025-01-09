@@ -17,8 +17,14 @@
 
 package org.breedinginsight.brapps.importer.daos;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.micronaut.context.annotation.Property;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.*;
+import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.genotype.SamplesApi;
 import org.brapi.v2.model.geno.BrAPISample;
@@ -33,9 +39,9 @@ import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @Singleton
@@ -47,6 +53,7 @@ public class BrAPISampleDAO {
     private final ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
+    private final Gson gson = new JSON().getGson();
 
     @Inject
     public BrAPISampleDAO(ProgramDAO programDAO,
@@ -102,4 +109,80 @@ public class BrAPISampleDAO {
         SamplesApi samplesApi = brAPIEndpointProvider.get(programDAO.getSampleClient(program.getId()), SamplesApi.class);
         return brAPIDAOUtil.search(samplesApi::searchSamplesPost, samplesApi::searchSamplesSearchResultsDbIdGet, searchRequest);
     }
+
+    /**
+     * Deletes all samples specified in the brapi server
+     * @param program
+     * @param sampleDbIds
+     * @throws ApiException
+     */
+    public void deleteSamples(Program program, List<String> sampleDbIds) throws ApiException {
+        // create batch of samples, not yet included in brapi client TODO: switch to brapi client when available
+        String programBrAPIBaseUrl = brAPIDAOUtil.getProgramBrAPIBaseUrl(program.getId());
+        String batchDbId = postSamplesBatch(programBrAPIBaseUrl, sampleDbIds);
+
+        // delete samples specified in batch
+        deleteSamplesBatch(programBrAPIBaseUrl, batchDbId);
+
+        // TODO: delete plates associated with submission, could potentially only require brapi server side change if deleting a sample cascades
+    }
+
+    private String postSamplesBatch(String programBrAPIBaseUrl, List<String> sampleDbIds) throws ApiException {
+        HttpUrl.Builder requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/batchDeletes").newBuilder();
+        //requestUrl.addQueryParameter("hardDelete", Boolean.toString(hard));
+
+        BatchDeleteRequest requestBody = new BatchDeleteRequest(sampleDbIds);
+        String json = gson.toJson(requestBody);
+        RequestBody body = RequestBody.create(json, MediaType.get("application/json"));
+
+        HttpUrl url = requestUrl.build();
+        Request brapiRequest = new Request.Builder()
+                .url(url)
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        String jsonResponse = brAPIDAOUtil.makeCallWithResponse(brapiRequest);
+        JsonElement rootElement = JsonParser.parseString(jsonResponse);
+        JsonObject rootObject = rootElement.getAsJsonObject();
+        JsonObject resultObject = rootObject.getAsJsonObject("result");
+        String batchDeleteDbId = resultObject.get("batchDeleteDbId").getAsString();
+        return batchDeleteDbId;
+    }
+
+    private void deleteSamplesBatch(String programBrAPIBaseUrl, String batchDbId) throws ApiException {
+        HttpUrl.Builder requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/batchDeletes/" + batchDbId).newBuilder();
+        requestUrl.addQueryParameter("hardDelete", "true");
+
+        HttpUrl url = requestUrl.build();
+        Request brapiRequest = new Request.Builder()
+                .url(url)
+                .method("DELETE", null)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        brAPIDAOUtil.makeCall(brapiRequest);
+    }
+
+    /**
+     * TODO: temporary minimal model here until brapi client is updated with delete models
+     */
+    public class BatchDeleteRequest {
+        private String batchDeleteType;
+        private Search search;
+
+        public BatchDeleteRequest(List<String> sampleDbIds) {
+            this.batchDeleteType = "samples";
+            this.search = new Search(sampleDbIds);
+        }
+
+        private class Search {
+            private List<String> sampleDbIds;
+
+            public Search(List<String> sampleDbIds) {
+                this.sampleDbIds = sampleDbIds;
+            }
+        }
+    }
+
 }

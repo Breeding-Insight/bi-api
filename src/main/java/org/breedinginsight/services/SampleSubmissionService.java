@@ -427,4 +427,34 @@ public class SampleSubmissionService {
 
         return submissionOptional;
     }
+
+    /**
+     * Deletes BrAPI plates and submission objects as well as sample submission record in bidb
+     * We do not currently cache plates or samples so don't need to worry about that
+     * @param submissionId sample submission UUID to delete
+     * @exception ApiException if a BrAPI call fails
+     */
+    public void deleteSampleSubmission(Program program, UUID submissionId) throws ApiException {
+
+        // delete BrAPI data
+        // delete samples
+        // delete plates
+
+        // create a batch of sampleIds to delete
+
+        // get samples with the samble submission xref
+        List<BrAPISample> samples = sampleDAO.readSamplesBySubmissionIds(program, List.of(submissionId.toString()));
+
+        // extract sampleDbIds to include in batch
+        List<String> sampleDbIds = samples.stream().map(BrAPISample::getSampleDbId).collect(Collectors.toList());
+
+        // create batch of samples, not yet included in brapi client TODO: switch to brapi client when available
+        sampleDAO.deleteSamples(program, sampleDbIds);
+
+        // TODO: delete plates, not yet supported in brapi server
+
+        // delete sample submission record from bidb
+        submissionDAO.deleteById(submissionId);
+    }
+
 }
