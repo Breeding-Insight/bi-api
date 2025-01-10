@@ -61,6 +61,7 @@ import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.GermplasmGenotype;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.brapi.BrAPIProvider;
@@ -193,10 +194,14 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         return mock(BrAPITrialDAOImpl.class);
     }
 
+    @MockBean(ProgramService.class)
+    ProgramService programService() {
+        return mock(ProgramService.class);
+    }
 
     @MockBean(BrAPIDAOUtil.class)
     BrAPIDAOUtil brAPIDAOUtil() {
-        return spy(new BrAPIDAOUtil(1000, Duration.of(10, ChronoUnit.MINUTES), 1000, 100));
+        return spy(new BrAPIDAOUtil(1000, Duration.of(10, ChronoUnit.MINUTES), 1000, 100, programService()));
     }
 
     @MockBean(SimpleStorageService.class)
