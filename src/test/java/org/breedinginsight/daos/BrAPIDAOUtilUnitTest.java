@@ -1,6 +1,7 @@
 package org.breedinginsight.daos;
 
 import com.google.gson.JsonObject;
+import io.micronaut.test.annotation.MockBean;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
@@ -11,6 +12,7 @@ import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponseResult;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +23,8 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import static org.mockito.Mockito.mock;
+
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class BrAPIDAOUtilUnitTest {
@@ -30,6 +34,10 @@ public class BrAPIDAOUtilUnitTest {
     private Program testProgram;
     private List<BrAPIGermplasm>  paginatedGermplasm;
     private BrAPIGermplasmSearchRequest germplasmSearch;
+    @MockBean(ProgramService.class)
+    ProgramService programService() {
+        return mock(ProgramService.class);
+    }
 
     public Integer fetchPaginatedGermplasm(int page, int pageSize) {
         paginatedGermplasm = new ArrayList<>();
@@ -62,7 +70,7 @@ public class BrAPIDAOUtilUnitTest {
     @BeforeEach
     void setup() {
         //Create instance of DAO
-        brAPIDAOUtil = new BrAPIDAOUtil(1000, Duration.of(10, ChronoUnit.MINUTES), 1, 100);
+        brAPIDAOUtil = new BrAPIDAOUtil(1000, Duration.of(10, ChronoUnit.MINUTES), 1, 100, programService());
 
         //Set the page size field
         Field pageSize = BrAPIDAOUtil.class.getDeclaredField("pageSize");
