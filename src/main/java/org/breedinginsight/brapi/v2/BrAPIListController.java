@@ -7,7 +7,9 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
+import io.reactivex.rxjava3.core.Single;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
@@ -25,11 +27,14 @@ import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.ListQueryMapper;
+import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
 import javax.validation.Validator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -93,7 +98,7 @@ public class BrAPIListController {
     @Delete("/lists/{listDbId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
-    public HttpResponse<Response<DataResponse<Object>>> deleteListById(
+    public HttpResponse deleteListById(
             @PathVariable("programId") UUID programId,
             @PathVariable("listDbId") String listDbId,
             HttpRequest<Void> request
@@ -104,11 +109,10 @@ public class BrAPIListController {
             hardDelete = "true".equals(paramValue);
         }
         try {
-            brapiListService.deleteBrAPIList(listDbId, programId, hardDelete);
-            return HttpResponse.status(HttpStatus.NO_CONTENT);
+            return brapiListService.deleteBrAPIList(listDbId, programId, hardDelete);
         } catch (Exception e) {
             log.info(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm list records");
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error deleting germplasm list");
         }
     }
 }

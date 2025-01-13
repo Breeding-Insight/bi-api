@@ -178,7 +178,7 @@ public class GermplasmProcessor implements Processor {
             try {
                 Germplasm row = importRows.get(0).getGermplasm();
                 String listName = Germplasm.constructGermplasmListName(row.getListName(), program);
-                List<BrAPIListSummary> existingLists = brAPIListDAO.getListByName(List.of(listName), program.getId());
+                List<BrAPIListSummary> existingLists = brAPIListDAO.getListsByName(List.of(listName), program.getId());
                 for (BrAPIListSummary existingList: existingLists) {
                     if (existingList.getListName().equals(listName)) {
                         listNameDup = true;

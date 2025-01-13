@@ -28,7 +28,7 @@ public class GermplasmQuery extends BrapiQuery {
     private String dateDisplayFormat;
 
     // The list id used to get a collection of germplasm
-    private String list;
+    private String listDbId;
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();

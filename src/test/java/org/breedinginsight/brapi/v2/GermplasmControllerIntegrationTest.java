@@ -245,7 +245,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         String germplasmListDbId = fetchGermplasmListDbId(programId);
 
         // Build the endpoint to get germplasm by germplasm list.
-        String endpoint = String.format("/programs/%s/brapi/v2/germplasm?list=%s", programId, germplasmListDbId);
+        String endpoint = String.format("/programs/%s/brapi/v2/germplasm?listDbId=%s", programId, germplasmListDbId);
 
         // Get germplasm by list.
         Flowable<HttpResponse<String>> call = client.exchange(
