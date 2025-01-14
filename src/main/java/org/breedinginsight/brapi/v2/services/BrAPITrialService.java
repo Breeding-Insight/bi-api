@@ -688,7 +688,7 @@ public class BrAPITrialService {
             // TODO: replace with a single call to a batch delete method if that becomes available.
             // Iterate over lists, delete each by listDbId.
             for (BrAPIListSummary list : lists) {
-                listDAO.deleteBrAPIList(list.getListDbId(), program.getId(), hard);  // TODO: not yet implemented.
+                listDAO.deleteBrAPIList(list.getListDbId(), program.getId(), hard);
             }
             // TODO: if performance is poor, implement more precise invalidation, possibly using hierarchical cache keys.
             // Invalidate and repopulate cache for Trial, Study, Observation, ObservationUnit.
