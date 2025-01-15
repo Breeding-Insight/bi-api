@@ -201,10 +201,7 @@ public class ListControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-<<<<<<< HEAD
-=======
     @Order(2)
->>>>>>> develop
     public void deleteListSuccess() {
         // A GET request to the brapi/v2/lists endpoint with no query params should return all lists.
         Flowable<HttpResponse<String>> getCall = client.exchange(
@@ -231,9 +228,6 @@ public class ListControllerIntegrationTest extends BrAPITest {
         HttpResponse<String> deleteResponse = deleteCall.blockingFirst();
         assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
 
-<<<<<<< HEAD
-=======
-
         // A DELETE request to the brapi/v2/lists/<listDbId> endpoint with invalid dbId.
         Flowable<HttpResponse<String>> invalidDeleteCall = client.exchange(
                 DELETE(String.format("/programs/%s/brapi/v2/lists/%s", program.getId().toString(), "NOT-VALID-DBID"))
@@ -246,6 +240,6 @@ public class ListControllerIntegrationTest extends BrAPITest {
         } catch(HttpClientResponseException e) {
             assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
         }
->>>>>>> develop
+
     }
 }

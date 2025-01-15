@@ -246,6 +246,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
         // Build the endpoint to get germplasm by germplasm list.
         String endpoint = String.format("/programs/%s/brapi/v2/germplasm?listDbId=%s", programId, germplasmListDbId);
+
         // Get germplasm by list.
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(endpoint).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class

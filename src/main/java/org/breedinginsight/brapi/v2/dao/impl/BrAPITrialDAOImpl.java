@@ -282,6 +282,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
 
     @Override
     public void deleteBrAPITrial(Program program, BrAPITrial trial, boolean hard) throws ApiException {
+        // TODO: Switch to using the TrialsApi from the BrAPI client library once the delete endpoints are merged into it.
         var programBrAPIBaseUrl = brAPIDAOUtil.getProgramBrAPIBaseUrl(program.getId());
         var requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/trials/" + trial.getTrialDbId()).newBuilder();
         requestUrl.addQueryParameter("hardDelete", Boolean.toString(hard));
@@ -292,5 +293,11 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
                 .build();
 
         brAPIDAOUtil.makeCall(brapiRequest);
+    }
+
+    @Override
+    public void repopulateCache(UUID programId) {
+        this.programExperimentCache.invalidate(programId);
+        this.programExperimentCache.populate(programId);
     }
 }

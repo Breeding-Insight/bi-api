@@ -667,11 +667,13 @@ public class BrAPITrialService {
         return experiments.get(0);
     }
 
-    // TODO: create a result type for delete requests?
-    //       The caller could infer from the number of obs and hard whether delete succeeded.
     public int deleteExperiment(Program program, UUID experimentId, boolean hard) throws ApiException {
-        // TODO: check for observations!
-        BrAPITrial trial = trialDAO.getTrialsByExperimentIds(List.of(experimentId), program).get(0);
+        List<BrAPITrial> trials = trialDAO.getTrialsByExperimentIds(List.of(experimentId), program);
+        if (trials.isEmpty()) {
+            throw new ApiException(404, "Experiment with UUID " + experimentId + " not found");
+        }
+        BrAPITrial trial = trials.get(0);
+
         List<BrAPIObservation> existingObservations = observationDAO.getObservationsByTrialDbId(List.of(trial.getTrialDbId()), program);
         // If there are no observations or a soft delete is requested, proceed.
         if (existingObservations.isEmpty() || !hard) {
@@ -686,11 +688,14 @@ public class BrAPITrialService {
             // TODO: replace with a single call to a batch delete method if that becomes available.
             // Iterate over lists, delete each by listDbId.
             for (BrAPIListSummary list : lists) {
-                listDAO.deleteBrAPIList(list.getListDbId(), program.getId(), hard);  // TODO: not yet implemented.
+                listDAO.deleteBrAPIList(list.getListDbId(), program.getId(), hard);
             }
-        } else {
-            // Trying to hard delete a trial with existing observations, return 409 Conflict response.
-            // TODO: remove if unused.
+            // TODO: if performance is poor, implement more precise invalidation, possibly using hierarchical cache keys.
+            // Invalidate and repopulate cache for Trial, Study, Observation, ObservationUnit.
+            trialDAO.repopulateCache(program.getId());
+            studyDAO.repopulateCache(program.getId());
+            observationDAO.repopulateCache(program.getId());
+            observationUnitDAO.repopulateCache(program.getId());
         }
 
         // Successful or not, return the number of observations in this experiment.
