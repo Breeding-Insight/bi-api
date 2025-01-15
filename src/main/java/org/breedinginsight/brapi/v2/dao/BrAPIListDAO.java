@@ -18,11 +18,8 @@
 package org.breedinginsight.brapi.v2.dao;
 
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -38,27 +35,19 @@ import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.core.response.BrAPIListsListResponseResult;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
-import org.breedinginsight.api.model.v1.response.DataResponse;
-import org.breedinginsight.api.model.v1.response.Response;
-import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.model.ProgramBrAPIEndpoints;
-import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class BrAPIListDAO {
@@ -79,7 +68,7 @@ public class BrAPIListDAO {
         this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
-    public List<BrAPIListSummary> getListByName(List<String> listNames, UUID programId) throws ApiException {
+    public List<BrAPIListSummary> getListsByName(List<String> listNames, UUID programId) throws ApiException {
         if(listNames.isEmpty()) {
             return Collections.emptyList();
         }
@@ -100,7 +89,7 @@ public class BrAPIListDAO {
         return response.getBody();
     }
 
-    public List<BrAPIListSummary> getListBySearch(@NotNull BrAPIListSearchRequest searchRequest, UUID programId) throws ApiException {
+    public List<BrAPIListSummary> getListsBySearch(@NotNull BrAPIListSearchRequest searchRequest, UUID programId) throws ApiException {
         ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
         List<BrAPIListSummary> programLists = brAPIDAOUtil.search(api::searchListsPost, api::searchListsSearchResultsDbIdGet, searchRequest);
         if (searchRequest.getExternalReferenceSources() != null && searchRequest.getExternalReferenceIDs() != null) {
@@ -112,7 +101,7 @@ public class BrAPIListDAO {
 
     }
 
-    public List<BrAPIListSummary> getListByTypeAndExternalRef(@NotNull BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
+    public List<BrAPIListSummary> getListsByTypeAndExternalRef(@NotNull BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
         BrAPIListSearchRequest searchRequest = new BrAPIListSearchRequest()
                 .externalReferenceIDs(List.of(externalReferenceId.toString()))
                 .externalReferenceSources(List.of(externalReferenceSource))
