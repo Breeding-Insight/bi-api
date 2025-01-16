@@ -283,9 +283,11 @@ public class SampleSubmissionController {
     }
 
     /**
-     * Removes
-     * @param programId
-     * @param submissionId
+     * Delete sample submission.
+     * Currently deletes the bidb submission record and BrAPI samples, TODO: delete BrAPI plates once supported
+     * in BrAPI server, see BI-2431
+     * @param programId bi-api id of program
+     * @param submissionId bi-api id of submission
      * @return
      * @throws ApiException
      */
