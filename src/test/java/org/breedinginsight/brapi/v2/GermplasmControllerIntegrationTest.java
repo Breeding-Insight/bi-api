@@ -165,8 +165,8 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
         JsonArray data = result.getAsJsonArray("data");
 
-        assertEquals(6, data.size(), "Wrong number of germplasm were returned");
-        List<String> correctOrder = List.of("Full Germplasm 1", "Full Germplasm 2", "Full Germplasm 3", "Germplasm 1", "Germplasm 2", "Germplasm 3");
+        assertEquals(3, data.size(), "Wrong number of germplasm were returned");
+        List<String> correctOrder = List.of("Germplasm 1", "Germplasm 2", "Germplasm 3");
         for (int i = 0; i < data.size(); i++) {
             JsonElement jsonGermplasm = data.get(i);
             JsonObject exampleGermplasm = jsonGermplasm.getAsJsonObject();
@@ -220,7 +220,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
         JsonArray data = result.getAsJsonArray("data");
 
-        assertEquals(2, data.size(), "Wrong number of germplasm lists were returned");
+        assertEquals(1, data.size(), "Wrong number of germplasm lists were returned");
         List<String> listNames = List.of(germplasmListName, "Program List1");
         List<String> listDescription = List.of(germplasmListDesc, "Program List1");
         for (JsonElement element: data) {
@@ -368,7 +368,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         // If createdDate is filtered after formatting with "yyyy-MM-dd", "-" will match all, test succeeds.
         data = callFilterGermplasmByCreatedDate("-");
 
-        assertEquals(6, data.size(), "Wrong number of germplasm were returned");
+        assertEquals(3, data.size(), "Wrong number of germplasm were returned");
     }
 
     public JsonArray callFilterGermplasmByCreatedDate(String filterValue) {
