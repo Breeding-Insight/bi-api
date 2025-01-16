@@ -240,6 +240,5 @@ public class ListControllerIntegrationTest extends BrAPITest {
         } catch(HttpClientResponseException e) {
             assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
         }
-
     }
 }
