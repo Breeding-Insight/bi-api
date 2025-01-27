@@ -22,6 +22,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.brapi.client.v2.JSON;
@@ -146,8 +147,35 @@ public class BrAPISampleDAO {
         JsonElement rootElement = JsonParser.parseString(jsonResponse);
         JsonObject rootObject = rootElement.getAsJsonObject();
         JsonObject resultObject = rootObject.getAsJsonObject("result");
-        String batchDeleteDbId = resultObject.get("batchDeleteDbId").getAsString();
-        return batchDeleteDbId;
+
+        // check to see if immediate response or searchResultId
+        if(resultObject.has("batchDeleteDbId")) {
+            return resultObject.get("batchDeleteDbId").getAsString();
+        } else if (resultObject.has("searchResultsDbId")) {
+            // TODO: once api stuff is in client use BrAPIDAOUtil::search to handle retries, for now just request once
+            // could maybe be an issue for large number of samples
+            return getBatchDeleteDbIdFromSearchResult(programBrAPIBaseUrl, resultObject.get("searchResultsDbId").getAsString());
+        } else {
+            throw new InternalServerException("Expected batchDeleteDbId or searchResultsDbId but got " + resultObject);
+        }
+
+    }
+
+    private String getBatchDeleteDbIdFromSearchResult(String programBrAPIBaseUrl, String searchResultDbId) throws ApiException {
+        HttpUrl.Builder requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/search/batchDeletes/" + searchResultDbId).newBuilder();
+
+        HttpUrl url = requestUrl.build();
+        Request brapiRequest = new Request.Builder()
+                .url(url)
+                .method("GET", null)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        String jsonResponse = brAPIDAOUtil.makeCallWithResponse(brapiRequest);
+        JsonElement rootElement = JsonParser.parseString(jsonResponse);
+        JsonObject rootObject = rootElement.getAsJsonObject();
+        JsonObject resultObject = rootObject.getAsJsonObject("result");
+        return resultObject.get("batchDeleteDbId").getAsString();
     }
 
     private void deleteSamplesBatch(String programBrAPIBaseUrl, String batchDbId) throws ApiException {
