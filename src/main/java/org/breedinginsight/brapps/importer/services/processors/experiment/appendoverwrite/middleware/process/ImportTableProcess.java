@@ -386,6 +386,11 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
             // Add the pending observation map to the context for use in processing the import
             context.getAppendOverwriteWorkflowContext().setPendingObservationByHash(pendingObservationByHash);
 
+            // Make sure the workflow statistic is not null.
+            if (context.getAppendOverwriteWorkflowContext().getStatistic() == null) {
+                context.getAppendOverwriteWorkflowContext().setStatistic(statistic);
+            }
+
             return processNext(context);
         } catch (DoesNotExistException | ApiException | UnprocessableEntityException | ValidatorException | IllegalStateException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
