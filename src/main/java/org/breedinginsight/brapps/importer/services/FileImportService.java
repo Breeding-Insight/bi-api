@@ -449,7 +449,7 @@ public class FileImportService {
                 progress.setMessage(e.getMessage());
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
-            }catch (ValidatorException e) {
+            } catch (ValidatorException e) {
                 log.info("Validation errors: \n" + e);
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
@@ -563,7 +563,7 @@ public class FileImportService {
      * @return A list of ImportWorkflow objects representing the workflows for the specified system mapping
      * @throws DoesNotExistException If the system mapping with the given ID does not exist
      */
-    public List<ImportWorkflow> getWorkflowsForSystemMapping(UUID mappingId) throws DoesNotExistException {
+    public List<ImportWorkflow> getWorkflowsForSystemMapping(UUID mappingId) throws DoesNotExistException, UnprocessableEntityException {
         // Retrieve the import mapping configuration based on the provided mapping ID
 
         ImportMapping mappingConfig = importMappingDAO.getMapping(mappingId)

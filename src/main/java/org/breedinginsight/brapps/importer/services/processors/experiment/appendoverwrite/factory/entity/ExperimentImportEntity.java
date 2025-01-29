@@ -43,7 +43,7 @@ public interface ExperimentImportEntity<T> {
      * @return List of fetched entities
      * @throws ApiException if there is an issue with the API call
      */
-    public List<T> brapiRead() throws ApiException;
+    public List<T> brapiRead() throws ApiException, UnprocessableEntityException;
 
     /**
      * Commit objects changed by the workflow to the BrAPI service.

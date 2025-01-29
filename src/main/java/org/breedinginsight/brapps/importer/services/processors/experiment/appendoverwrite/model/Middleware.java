@@ -17,6 +17,8 @@
 
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model;
 
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+
 public abstract class Middleware<T> {
 
     Middleware next;
@@ -38,7 +40,7 @@ public abstract class Middleware<T> {
     /**
      * Subclasses will implement this local transaction.
      */
-    public abstract T process(T context);
+    public abstract T process(T context) throws UnprocessableEntityException;
     /**
      * Subclasses will implement this method to handle errors and possibly undo the local transaction.
      */
@@ -47,7 +49,7 @@ public abstract class Middleware<T> {
      * Processes the next local transaction or ends traversing if we're at the
      * last local transaction of the transaction.
      */
-    protected T processNext(T context) {
+    protected T processNext(T context) throws UnprocessableEntityException {
         if (next == null) {
             return context;
         }

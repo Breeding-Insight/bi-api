@@ -94,7 +94,7 @@ public class PendingObservationUnit implements ExperimentImportEntity<BrAPIObser
      * @throws ApiException if there is an issue with the API call
      */
     @Override
-    public List<BrAPIObservationUnit> brapiRead() throws ApiException {
+    public List<BrAPIObservationUnit> brapiRead() throws ApiException, UnprocessableEntityException {
         // Collect deltabreed-generated obs unit ids listed in the import
         Set<String> obsUnitIds = cache.getReferenceOUIds();
 

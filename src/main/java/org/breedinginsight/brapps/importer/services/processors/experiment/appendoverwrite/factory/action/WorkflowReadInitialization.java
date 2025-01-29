@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.BrAPIState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.entity.ExperimentImportEntity;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import java.util.List;
@@ -44,7 +45,7 @@ public class WorkflowReadInitialization<T> implements BrAPIAction<T> {
      * @return an Optional containing the BrAPIState representing the completed read workflow
      * @throws ApiException if an error occurs during execution
      */
-    public Optional<BrAPIState<T>> execute() throws ApiException {
+    public Optional<BrAPIState<T>> execute() throws ApiException, UnprocessableEntityException {
         try {
             List<T> fetchedMembers = entity.brapiRead();
             entity.initializeWorkflow(fetchedMembers);
@@ -52,6 +53,8 @@ public class WorkflowReadInitialization<T> implements BrAPIAction<T> {
         } catch(ApiException e) {
             log.error(String.format("Error fetching %s: %s", entity.getClass().getName(), Utilities.generateApiExceptionLogMessage(e)), e);
             throw new ApiException(e);
+        } catch (UnprocessableEntityException e) {
+            throw e;
         }
     }
 

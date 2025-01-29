@@ -24,12 +24,13 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.Experi
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 @Slf4j
 @Prototype
 public class AppendOverwriteIDValidation extends AppendOverwriteMiddleware {
     @Override
-    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
+    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) throws UnprocessableEntityException {
 
         try {
             context.getAppendOverwriteWorkflowContext().setReferenceOUIds(ExperimentUtilities.collateReferenceOUIds(context));

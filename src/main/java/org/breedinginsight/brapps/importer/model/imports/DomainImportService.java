@@ -22,6 +22,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 import org.breedinginsight.brapps.importer.model.workflow.Workflow;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Singleton;
 import java.util.List;
@@ -43,7 +44,7 @@ public abstract class DomainImportService implements BrAPIImportService {
         return "Column heading does not match template or ontology";
     }
     @Override
-    public List<ImportWorkflow> getWorkflows() {
+    public List<ImportWorkflow> getWorkflows() throws UnprocessableEntityException {
         return workflowNavigator.getWorkflows();
     }
 

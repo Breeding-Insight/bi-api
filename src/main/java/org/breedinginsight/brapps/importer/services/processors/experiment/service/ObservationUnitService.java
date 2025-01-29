@@ -28,6 +28,7 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
@@ -61,7 +62,7 @@ public class ObservationUnitService {
      * @throws ApiException if an error occurs during the retrieval of observation units
      * @throws IllegalStateException if the retrieved observation units do not match the provided observation unit IDs
      */
-    public List<BrAPIObservationUnit> getObservationUnitsByDbId(Set<String> obsUnitIds, Program program) throws ApiException, IllegalStateException {
+    public List<BrAPIObservationUnit> getObservationUnitsByDbId(Set<String> obsUnitIds, Program program) throws ApiException, IllegalStateException, UnprocessableEntityException {
         List<BrAPIObservationUnit> brapiUnits = null;
 
         // Retrieve reference Observation Units based on IDs
@@ -75,7 +76,7 @@ public class ObservationUnitService {
             missingIds.removeAll(brapiUnits.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toSet()));
 
             // Throw exception with missing IDs information
-            throw new IllegalStateException(ExperimentUtilities.UNMATCHED_COLUMN + String.join(COMMA_DELIMITER, missingIds));
+            throw new UnprocessableEntityException(ExperimentUtilities.INVALID_OBS_UNIT_ID_ERROR + String.join(COMMA_DELIMITER, missingIds));
         }
 
         return brapiUnits;

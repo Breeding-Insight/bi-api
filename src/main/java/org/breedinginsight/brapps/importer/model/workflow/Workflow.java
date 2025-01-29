@@ -19,6 +19,7 @@ package org.breedinginsight.brapps.importer.model.workflow;
 
 import io.micronaut.core.order.Ordered;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +39,7 @@ public interface Workflow extends Ordered {
      * @param context the ImportServiceContext object containing necessary information for the workflow
      * @return an Optional of ImportWorkflowResult representing the result of the workflow execution
      */
-    Optional<ImportWorkflowResult> process(ImportServiceContext context);
+    Optional<ImportWorkflowResult> process(ImportServiceContext context) throws UnprocessableEntityException;
 
     /**
      * Default method to get a list of workflows.
@@ -46,7 +47,7 @@ public interface Workflow extends Ordered {
      *
      * @return a List of ImportWorkflow containing workflows
      */
-    default List<ImportWorkflow> getWorkflows() {
+    default List<ImportWorkflow> getWorkflows() throws UnprocessableEntityException {
         // Default implementation for getWorkflows method
         return new ArrayList<>();
     }
