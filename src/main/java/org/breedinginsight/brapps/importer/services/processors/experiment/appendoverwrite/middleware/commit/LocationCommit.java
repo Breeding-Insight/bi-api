@@ -44,7 +44,7 @@ public class LocationCommit extends AppendOverwriteMiddleware {
         this.brAPICreationFactory = brAPICreationFactory;
     }
     @Override
-    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) throws UnprocessableEntityException {
+    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         try {
             WorkflowCreation<ProgramLocation> locationCreation = brAPICreationFactory.locationWorkflowCreationBean(context);
             log.info("creating new locationss in the Deltabreed database");

@@ -40,7 +40,7 @@ public abstract class Middleware<T> {
     /**
      * Subclasses will implement this local transaction.
      */
-    public abstract T process(T context) throws UnprocessableEntityException;
+    public abstract T process(T context);
     /**
      * Subclasses will implement this method to handle errors and possibly undo the local transaction.
      */
@@ -49,7 +49,7 @@ public abstract class Middleware<T> {
      * Processes the next local transaction or ends traversing if we're at the
      * last local transaction of the transaction.
      */
-    protected T processNext(T context) throws UnprocessableEntityException {
+    protected T processNext(T context) {
         if (next == null) {
             return context;
         }

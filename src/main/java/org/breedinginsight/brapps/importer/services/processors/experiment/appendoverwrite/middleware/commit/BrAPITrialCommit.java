@@ -50,7 +50,7 @@ public class BrAPITrialCommit extends AppendOverwriteMiddleware {
         this.brAPIUpdateFactory = brAPIUpdateFactory;
     }
     @Override
-    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) throws UnprocessableEntityException {
+    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         try {
             WorkflowCreation<BrAPITrial> brAPITrialCreation = brAPICreationFactory.trialWorkflowCreationBean(context);
 

@@ -51,7 +51,7 @@ public class WorkflowInitialization extends AppendOverwriteMiddleware {
         this.brAPIReadFactory = brAPIReadFactory;
     }
     @Override
-    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) throws UnprocessableEntityException {
+    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         brAPIObservationUnitReadWorkflowInitialization = brAPIReadFactory.observationUnitWorkflowReadInitializationBean(context);
         brAPITrialReadWorkflowInitialization = brAPIReadFactory.trialWorkflowReadInitializationBean(context);
         brAPIStudyReadWorkflowInitialization = brAPIReadFactory.studyWorkflowReadInitializationBean(context);
@@ -67,11 +67,9 @@ public class WorkflowInitialization extends AppendOverwriteMiddleware {
             locationReadWorkflowInitialization.execute();
             brAPIDatasetReadWorkflowInitialization.execute();
             brAPIGermplasmReadWorkflowInitialization.execute();
-        } catch (ApiException e) {
+        } catch (ApiException | UnprocessableEntityException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);
-        } catch (UnprocessableEntityException e) {
-            throw e;
         }
 
         return processNext(context);

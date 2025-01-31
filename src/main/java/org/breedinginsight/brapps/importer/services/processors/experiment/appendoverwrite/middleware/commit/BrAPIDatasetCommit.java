@@ -50,7 +50,7 @@ public class BrAPIDatasetCommit extends AppendOverwriteMiddleware {
         this.brAPIUpdateFactory = brAPIUpdateFactory;
     }
     @Override
-    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) throws UnprocessableEntityException {
+    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
 
         try {
             WorkflowCreation<BrAPIListDetails> datasetCreation = brAPICreationFactory.datasetWorkflowCreationBean(context);

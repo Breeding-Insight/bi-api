@@ -30,7 +30,7 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 @Prototype
 public class AppendOverwriteIDValidation extends AppendOverwriteMiddleware {
     @Override
-    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) throws UnprocessableEntityException {
+    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
 
         try {
             context.getAppendOverwriteWorkflowContext().setReferenceOUIds(ExperimentUtilities.collateReferenceOUIds(context));

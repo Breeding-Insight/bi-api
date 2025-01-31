@@ -49,7 +49,7 @@ public class BrAPICommit extends AppendOverwriteMiddleware {
     }
 
     @Override
-    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) throws UnprocessableEntityException {
+    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         log.debug("starting post of experiment data to BrAPI server");
 
         return this.middleware.process(context);

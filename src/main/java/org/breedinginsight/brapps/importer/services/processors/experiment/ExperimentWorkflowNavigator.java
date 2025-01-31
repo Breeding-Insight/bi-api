@@ -54,7 +54,7 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
      * @return An Optional containing the first non-empty ImportWorkflowResult from the executed workflows, or an empty Optional if no non-empty result is found
      */
     @Override
-    public Optional<ImportWorkflowResult> process(ImportServiceContext context) throws UnprocessableEntityException {
+    public Optional<ImportWorkflowResult> process(ImportServiceContext context) {
         /**
          * Have each workflow in order process the context, returning the first non-empty result
          */
@@ -75,7 +75,7 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
      *
      * @return List of ImportWorkflow objects with workflow metadata
      */
-    public List<ImportWorkflow> getWorkflows() throws UnprocessableEntityException {
+    public List<ImportWorkflow> getWorkflows() {
         // Process each workflow with a null context
         // Filter out any workflows that do not return a result
         // Extract the result from Optional

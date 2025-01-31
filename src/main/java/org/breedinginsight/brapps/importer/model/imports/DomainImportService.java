@@ -44,7 +44,7 @@ public abstract class DomainImportService implements BrAPIImportService {
         return "Column heading does not match template or ontology";
     }
     @Override
-    public List<ImportWorkflow> getWorkflows() throws UnprocessableEntityException {
+    public List<ImportWorkflow> getWorkflows() {
         return workflowNavigator.getWorkflows();
     }
 

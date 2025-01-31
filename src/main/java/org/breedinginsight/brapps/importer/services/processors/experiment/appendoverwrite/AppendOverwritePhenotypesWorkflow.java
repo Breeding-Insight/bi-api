@@ -78,7 +78,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
      * @return Optional containing ImportWorkflowResult with workflow metadata and import preview response if successful, else empty Optional.
      */
     @Override
-    public Optional<ImportWorkflowResult> process(ImportServiceContext context) throws UnprocessableEntityException {
+    public Optional<ImportWorkflowResult> process(ImportServiceContext context) {
 
         // Metadata about this workflow processing the context
         ImportWorkflow workflow = ImportWorkflow.builder()

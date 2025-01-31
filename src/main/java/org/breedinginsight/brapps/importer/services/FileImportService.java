@@ -563,7 +563,7 @@ public class FileImportService {
      * @return A list of ImportWorkflow objects representing the workflows for the specified system mapping
      * @throws DoesNotExistException If the system mapping with the given ID does not exist
      */
-    public List<ImportWorkflow> getWorkflowsForSystemMapping(UUID mappingId) throws DoesNotExistException, UnprocessableEntityException {
+    public List<ImportWorkflow> getWorkflowsForSystemMapping(UUID mappingId) throws DoesNotExistException {
         // Retrieve the import mapping configuration based on the provided mapping ID
 
         ImportMapping mappingConfig = importMappingDAO.getMapping(mappingId)

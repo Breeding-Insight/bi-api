@@ -26,7 +26,7 @@ import java.util.List;
 public interface BrAPIImportService {
     String getImportTypeId();
     BrAPIImport getImportClass();
-    List<ImportWorkflow> getWorkflows() throws UnprocessableEntityException;
+    List<ImportWorkflow> getWorkflows();
     default String getInvalidIntegerMsg(String columnName) {
         return String.format("Column name \"%s\" must be integer type, but non-integer type provided.", columnName);
     }
