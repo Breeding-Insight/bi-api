@@ -22,7 +22,6 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
-import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;

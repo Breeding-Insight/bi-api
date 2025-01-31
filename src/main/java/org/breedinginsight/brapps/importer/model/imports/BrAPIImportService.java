@@ -19,7 +19,6 @@ package org.breedinginsight.brapps.importer.model.imports;
 
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import java.util.List;
 

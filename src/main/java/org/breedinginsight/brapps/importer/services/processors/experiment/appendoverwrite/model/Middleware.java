@@ -17,8 +17,6 @@
 
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model;
 
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-
 public abstract class Middleware<T> {
 
     Middleware next;

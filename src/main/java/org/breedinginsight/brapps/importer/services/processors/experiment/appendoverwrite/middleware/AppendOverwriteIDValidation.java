@@ -24,7 +24,6 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.Experi
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 @Slf4j
 @Prototype

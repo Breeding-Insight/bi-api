@@ -19,7 +19,6 @@ package org.breedinginsight.brapps.importer.model.workflow;
 
 import io.micronaut.core.order.Ordered;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import java.util.ArrayList;
 import java.util.List;

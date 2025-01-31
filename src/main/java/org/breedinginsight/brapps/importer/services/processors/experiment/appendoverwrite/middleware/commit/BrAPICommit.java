@@ -21,7 +21,6 @@ import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
 

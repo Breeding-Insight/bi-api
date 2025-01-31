@@ -22,10 +22,8 @@ import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Singleton;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -58,16 +56,11 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
         /**
          * Have each workflow in order process the context, returning the first non-empty result
          */
-        Optional<ImportWorkflowResult> first = Optional.empty();
-        for (ExperimentWorkflow workflow : workflows) {
-            Optional<ImportWorkflowResult> process = workflow.process(context);
-            if (process.isPresent()) {
-                ImportWorkflowResult importWorkflowResult = process.get();
-                first = Optional.of(importWorkflowResult);
-                break;
-            }
-        }
-        return first;
+        return workflows.stream()
+                .map(workflow->workflow.process(context))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst();
     }
 
     /**
@@ -76,20 +69,12 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
      * @return List of ImportWorkflow objects with workflow metadata
      */
     public List<ImportWorkflow> getWorkflows() {
-        // Process each workflow with a null context
-        // Filter out any workflows that do not return a result
-        // Extract the result from Optional
-        // Retrieve the workflow metadata
-        // Collect the workflow metadata into a list
-        List<ImportWorkflow> workflowSummaryList = new ArrayList<>();
-        for (ExperimentWorkflow workflow : workflows) {
-            Optional<ImportWorkflowResult> process = workflow.process(null);
-            if (process.isPresent()) {
-                ImportWorkflowResult importWorkflowResult = process.get();
-                ImportWorkflow importWorkflowResultWorkflow = importWorkflowResult.getWorkflow();
-                workflowSummaryList.add(importWorkflowResultWorkflow);
-            }
-        }
+        List<ImportWorkflow> workflowSummaryList = workflows.stream()
+                .map(workflow -> workflow.process(null)) // Process each workflow with a null context
+                .filter(Optional::isPresent) // Filter out any workflows that do not return a result
+                .map(Optional::get) // Extract the result from Optional
+                .map(ImportWorkflowResult::getWorkflow) // Retrieve the workflow metadata
+                .collect(Collectors.toList()); // Collect the workflow metadata into a list
 
         // Set the order field for each workflow based on its position in the list
         for (int i = 0; i < workflowSummaryList.size(); i++) {
