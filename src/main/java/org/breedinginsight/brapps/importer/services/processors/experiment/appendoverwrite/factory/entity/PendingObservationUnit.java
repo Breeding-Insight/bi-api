@@ -21,11 +21,14 @@ import io.micronaut.context.annotation.Prototype;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
+import org.breedinginsight.brapps.importer.services.processors.experiment.MissingValuesException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteWorkflowContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
@@ -33,6 +36,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.servic
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.Utilities;
 
 import java.util.*;
@@ -94,12 +98,26 @@ public class PendingObservationUnit implements ExperimentImportEntity<BrAPIObser
      * @throws ApiException if there is an issue with the API call
      */
     @Override
-    public List<BrAPIObservationUnit> brapiRead() throws ApiException, UnprocessableEntityException {
+    public List<BrAPIObservationUnit> brapiRead() throws ApiException, ValidatorException {
         // Collect deltabreed-generated obs unit ids listed in the import
         Set<String> obsUnitIds = cache.getReferenceOUIds();
 
-        // For each id fetch the observation unit from the brapi data store
-        return observationUnitService.getObservationUnitsByDbId(new HashSet<>(obsUnitIds), importContext.getProgram());
+        try {
+            // For each id fetch the observation unit from the brapi data store
+            return observationUnitService.getObservationUnitsByDbId(new HashSet<>(obsUnitIds), importContext.getProgram());
+        }
+        catch (MissingValuesException e) {
+            ValidationErrors validationErrors = new ValidationErrors();
+
+            // Build a detailed tabular error.
+            for (int rowNum = 0; rowNum < importContext.getImportRows().size(); rowNum++) {
+                String rowObsUnitId = ((ExperimentObservation)importContext.getImportRows().get(rowNum)).getObsUnitID();
+                if (e.getMissingIds().contains(rowObsUnitId)) {
+                    ExperimentUtilities.addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, ExperimentUtilities.INVALID_OBS_UNIT_ID_ERROR, validationErrors, rowNum);
+                }
+            }
+            throw new ValidatorException(validationErrors);
+        }
     }
 
     /**

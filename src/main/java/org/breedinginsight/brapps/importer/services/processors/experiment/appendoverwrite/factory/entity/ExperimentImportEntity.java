@@ -22,6 +22,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.exceptions.ValidatorException;
 
 import java.util.List;
 
@@ -43,7 +44,7 @@ public interface ExperimentImportEntity<T> {
      * @return List of fetched entities
      * @throws ApiException if there is an issue with the API call
      */
-    public List<T> brapiRead() throws ApiException, UnprocessableEntityException;
+    public List<T> brapiRead() throws ApiException, ValidatorException;
 
     /**
      * Commit objects changed by the workflow to the BrAPI service.
