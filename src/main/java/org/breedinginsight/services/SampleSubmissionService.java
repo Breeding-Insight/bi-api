@@ -440,18 +440,19 @@ public class SampleSubmissionService {
         // delete samples
         // delete plates
 
-        // create a batch of sampleIds to delete
+        // create a batch of sampleIds and plateIds to delete
 
-        // get samples with the samble submission xref
+        // get samples with the sample submission xref
         List<BrAPISample> samples = sampleDAO.readSamplesBySubmissionIds(program, List.of(submissionId.toString()));
 
-        // extract sampleDbIds to include in batch
+        // extract sampleDbIds and plateDbIds to include in batches
         List<String> sampleDbIds = samples.stream().map(BrAPISample::getSampleDbId).collect(Collectors.toList());
+        List<String> platesDbIds = samples.stream().map(BrAPISample::getPlateDbId).collect(Collectors.toList());
 
         // create batch of samples, not yet included in brapi client TODO: switch to brapi client when available
+        // TODO: uncomment when brapi server is working 
         sampleDAO.deleteSamples(program, sampleDbIds);
-
-        // TODO: delete plates, not yet supported in brapi server
+        sampleDAO.deletePlates(program, platesDbIds);
 
         // delete sample submission record from bidb
         submissionDAO.deleteById(submissionId);

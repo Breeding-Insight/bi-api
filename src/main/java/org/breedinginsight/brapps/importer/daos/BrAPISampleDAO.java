@@ -123,20 +123,45 @@ public class BrAPISampleDAO {
         String batchDbId = postSamplesBatch(programBrAPIBaseUrl, sampleDbIds);
 
         // delete samples specified in batch
-        deleteSamplesBatch(programBrAPIBaseUrl, batchDbId);
-
-        // TODO: delete plates associated with submission, could potentially only require brapi server side change if deleting a sample cascades
+        deleteBatch(programBrAPIBaseUrl, batchDbId);
     }
+
+    /**
+     * Deletes all plates specified in the brapi server
+     * @param program
+     * @param plateDbIds
+     * @throws ApiException
+     */
+    public void deletePlates(Program program, List<String> plateDbIds) throws ApiException {
+        // create batch of samples, not yet included in brapi client TODO: switch to brapi client when available
+        String programBrAPIBaseUrl = brAPIDAOUtil.getProgramBrAPIBaseUrl(program.getId());
+        String batchDbId = postPlatesBatch(programBrAPIBaseUrl, plateDbIds);
+
+        // delete plates specified in batch
+        deleteBatch(programBrAPIBaseUrl, batchDbId);
+    }
+
 
     private String postSamplesBatch(String programBrAPIBaseUrl, List<String> sampleDbIds) throws ApiException {
         HttpUrl.Builder requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/batchDeletes").newBuilder();
-        //requestUrl.addQueryParameter("hardDelete", Boolean.toString(hard));
-
-        BatchDeleteRequest requestBody = new BatchDeleteRequest(sampleDbIds);
+        SampleBatchDeleteRequest requestBody = new SampleBatchDeleteRequest(sampleDbIds);
         String json = gson.toJson(requestBody);
         RequestBody body = RequestBody.create(json, MediaType.get("application/json"));
-
         HttpUrl url = requestUrl.build();
+        return postBatch(url, body, programBrAPIBaseUrl);
+    }
+
+    private String postPlatesBatch(String programBrAPIBaseUrl, List<String> plateDbIds) throws ApiException {
+        HttpUrl.Builder requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/batchDeletes").newBuilder();
+        PlateBatchDeleteRequest requestBody = new PlateBatchDeleteRequest(plateDbIds);
+        String json = gson.toJson(requestBody);
+        RequestBody body = RequestBody.create(json, MediaType.get("application/json"));
+        HttpUrl url = requestUrl.build();
+        return postBatch(url, body, programBrAPIBaseUrl);
+    }
+
+    private String postBatch(HttpUrl url, RequestBody body, String programBrAPIBaseUrl) throws ApiException {
+
         Request brapiRequest = new Request.Builder()
                 .url(url)
                 .post(body)
@@ -153,12 +178,11 @@ public class BrAPISampleDAO {
             return resultObject.get("batchDeleteDbId").getAsString();
         } else if (resultObject.has("searchResultsDbId")) {
             // TODO: once api stuff is in client use BrAPIDAOUtil::search to handle retries, for now just request once
-            // could maybe be an issue for large number of samples
+            // could be an issue for large number of samples
             return getBatchDeleteDbIdFromSearchResult(programBrAPIBaseUrl, resultObject.get("searchResultsDbId").getAsString());
         } else {
             throw new InternalServerException("Expected batchDeleteDbId or searchResultsDbId but got " + resultObject);
         }
-
     }
 
     private String getBatchDeleteDbIdFromSearchResult(String programBrAPIBaseUrl, String searchResultDbId) throws ApiException {
@@ -178,7 +202,7 @@ public class BrAPISampleDAO {
         return resultObject.get("batchDeleteDbId").getAsString();
     }
 
-    private void deleteSamplesBatch(String programBrAPIBaseUrl, String batchDbId) throws ApiException {
+    private void deleteBatch(String programBrAPIBaseUrl, String batchDbId) throws ApiException {
         HttpUrl.Builder requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/batchDeletes/" + batchDbId).newBuilder();
         requestUrl.addQueryParameter("hardDelete", "true");
 
@@ -195,11 +219,11 @@ public class BrAPISampleDAO {
     /**
      * TODO: temporary minimal model here until brapi client is updated with delete models
      */
-    public class BatchDeleteRequest {
+    public class SampleBatchDeleteRequest {
         private String batchDeleteType;
         private Search search;
 
-        public BatchDeleteRequest(List<String> sampleDbIds) {
+        public SampleBatchDeleteRequest(List<String> sampleDbIds) {
             this.batchDeleteType = "samples";
             this.search = new Search(sampleDbIds);
         }
@@ -209,6 +233,24 @@ public class BrAPISampleDAO {
 
             public Search(List<String> sampleDbIds) {
                 this.sampleDbIds = sampleDbIds;
+            }
+        }
+    }
+
+    public class PlateBatchDeleteRequest {
+        private String batchDeleteType;
+        private Search search;
+
+        public PlateBatchDeleteRequest(List<String> plateDbIds) {
+            this.batchDeleteType = "plates";
+            this.search = new Search(plateDbIds);
+        }
+
+        private class Search {
+            private List<String> plateDbIds;
+
+            public Search(List<String> plateDbIds) {
+                this.plateDbIds = plateDbIds;
             }
         }
     }
