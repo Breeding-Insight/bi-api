@@ -44,6 +44,7 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.EntityNotFoundException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Scale;
@@ -293,44 +294,104 @@ public class ExperimentUtilities {
     }
 
     /**
-     * This method is responsible for collating unique ObsUnit IDs from the provided context data.
+     * Collates unique Observation Unit IDs from the import context.
      *
-     * @param context the AppendOverwriteMiddlewareContext containing the import rows to process
-     * @return a Set of unique ObsUnit IDs collated from the import rows
-     * @throws IllegalStateException if any ObsUnit ID is repeated in the import rows
-     * @throws HttpStatusException if there is a mix of ObsUnit IDs for some but not all rows
+     * This method iterates through all import rows in the given context and
+     * extracts unique Observation Unit IDs (ObsUnit IDs) that are not null or blank.
+     *
+     * @param context The AppendOverwriteMiddlewareContext containing the import data.
+     * @return A Set of String containing all unique, non-null, non-blank Observation Unit IDs.
+     *
+     * @implNote The method performs the following steps:
+     * 1. Initializes an empty HashSet to store unique ObsUnit IDs.
+     * 2. Iterates through each import row in the context.
+     * 3. For each row, checks if the ObsUnit ID is not null and not blank.
+     * 4. If valid, adds the ObsUnit ID to the set.
+     * 5. Returns the set of unique ObsUnit IDs.
      */
-    public static Set<String> collateReferenceOUIds(AppendOverwriteMiddlewareContext context) throws HttpStatusException, IllegalStateException {
+    public static Set<String> collateUniqueOUIds(AppendOverwriteMiddlewareContext context) {
         // Initialize variables to track the presence of ObsUnit IDs
         Set<String> referenceOUIds = new HashSet<>();
-        boolean hasNoReferenceUnitIds = true;
-        boolean hasAllReferenceUnitIds = true;
+
+        // Iterate through the import rows to process ObsUnit IDs
+        for (int rowNum = 0; rowNum < context.getImportContext().getImportRows().size(); rowNum++) {
+            ExperimentObservation importRow = (ExperimentObservation) context.getImportContext().getImportRows().get(rowNum);
+            if (importRow.getObsUnitID() != null && !importRow.getObsUnitID().isBlank()) {
+                referenceOUIds.add(importRow.getObsUnitID());
+            }
+        }
+        return referenceOUIds;
+    }
+
+    /**
+     * Validates Observation Unit ID values in the import context.
+     *
+     * This method checks each import row for the validity of its Observation Unit ID (ObsUnitID).
+     * It performs the following validations:
+     * 1. Checks if the ObsUnitID is null or blank.
+     * 2. Checks if the ObsUnitID is a duplicate within the import data.
+     *
+     * @param context The AppendOverwriteMiddlewareContext containing import data and validation error storage.
+     * @throws HttpStatusException If there's an HTTP-related error during the validation process.
+     * @throws IllegalStateException If the system encounters an unexpected state during validation.
+     *
+     * @implNote The method performs the following steps:
+     * 1. Retrieves the ValidationErrors object from the context.
+     * 2. Initializes a HashSet to track unique ObsUnitIDs.
+     * 3. Iterates through each import row in the context.
+     * 4. For each row:
+     *    - If ObsUnitID is null or blank, adds a "missing ObsUnitID" error.
+     *    - If ObsUnitID is already in the set (duplicate), adds a "duplicate ObsUnitID" error.
+     *    - Otherwise, adds the ObsUnitID to the set of unique IDs.
+     * 5. Errors are added using the addRowError method, specifying the OBS_UNIT_ID column and appropriate error messages.
+     */
+    public static void validateReferenceOUIdValues(AppendOverwriteMiddlewareContext context) throws HttpStatusException, IllegalStateException {
+        ValidationErrors validationErrors = context.getAppendOverwriteWorkflowContext().getValidationErrors();
+        Set<String> referenceOUIds = new HashSet<>();
 
         // Iterate through the import rows to process ObsUnit IDs
         for (int rowNum = 0; rowNum < context.getImportContext().getImportRows().size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) context.getImportContext().getImportRows().get(rowNum);
 
-            // Check if ObsUnitID is blank
             if (importRow.getObsUnitID() == null || importRow.getObsUnitID().isBlank()) {
-                // Set flag to indicate missing ObsUnit ID for current row
-                hasAllReferenceUnitIds = false;
+                // Check if ObsUnitID is blank
+                addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, ExpImportProcessConstants.ErrMessage.MISSING_OBS_UNIT_ID.getValue(), validationErrors, rowNum);
             } else if (referenceOUIds.contains(importRow.getObsUnitID())) {
-                // Throw exception if ObsUnitID is repeated
-                throw new IllegalStateException("ObsUnitId is repeated: " + importRow.getObsUnitID());
+                // Check if ObsUnitID is repeated
+                addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, ExpImportProcessConstants.ErrMessage.DUPLICATE_OBS_UNIT_ID.getValue(), validationErrors, rowNum);
             } else {
                 // Add ObsUnitID to referenceOUIds
                 referenceOUIds.add(importRow.getObsUnitID());
-                // Set flag to indicate presence of ObsUnit ID
-                hasNoReferenceUnitIds = false;
             }
         }
+    }
 
-        if (!hasNoReferenceUnitIds && !hasAllReferenceUnitIds) {
-            // Throw exception if there is a mix of ObsUnit IDs for some but not all rows
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, ExpImportProcessConstants.ErrMessage.MISSING_OBS_UNIT_ID_ERROR.getValue());
+    /**
+     * Adds validation errors for observation units that were not found in the database.
+     *
+     * This method processes an EntityNotFoundException and adds corresponding validation errors
+     * to the context for each import row where the Observation Unit ID was not found.
+     *
+     * @param e The EntityNotFoundException containing information about missing Observation Unit IDs.
+     * @param context The AppendOverwriteMiddlewareContext containing import data and validation error storage.
+     *
+     * @implNote The method performs the following steps:
+     * 1. Retrieves the ValidationErrors object from the context.
+     * 2. Iterates through each import row in the context.
+     * 3. For each row, checks if its Observation Unit ID is in the set of missing entity IDs from the exception.
+     * 4. If a match is found, adds a validation error for that row, indicating an invalid Observation Unit ID.
+     * 5. The error is added using the addRowError method, specifying the OBS_UNIT_ID column and using a predefined error message.
+     */
+    public static void addValidationErrorsForObsUnitsNotFound(EntityNotFoundException e, AppendOverwriteMiddlewareContext context) {
+        ValidationErrors validationErrors = context.getAppendOverwriteWorkflowContext().getValidationErrors();
+        List<ValidationError> errors = new ArrayList<>();
+
+        for (int rowNum = 0; rowNum < context.getImportContext().getImportRows().size(); rowNum++) {
+            String rowObsUnitId = ((ExperimentObservation)context.getImportContext().getImportRows().get(rowNum)).getObsUnitID();
+            if (e.getMissingEntityIds().contains(rowObsUnitId)) {
+                addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, ExperimentUtilities.INVALID_OBS_UNIT_ID_ERROR, validationErrors, rowNum);
+            }
         }
-
-        return referenceOUIds;
     }
 
     /**

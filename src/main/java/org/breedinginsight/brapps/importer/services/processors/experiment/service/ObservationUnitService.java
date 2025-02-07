@@ -26,7 +26,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
-import org.breedinginsight.brapps.importer.services.processors.experiment.MissingValuesException;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.EntityNotFoundException;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
@@ -59,21 +59,26 @@ public class ObservationUnitService {
      * @throws ApiException if an error occurs during the retrieval of observation units
      * @throws IllegalStateException if the retrieved observation units do not match the provided observation unit IDs
      */
-    public List<BrAPIObservationUnit> getObservationUnitsByDbId(Set<String> obsUnitIds, Program program) throws ApiException, IllegalStateException, MissingValuesException {
+    public List<BrAPIObservationUnit> getObservationUnitsById(Set<String> obsUnitIds, Program program) throws ApiException, IllegalStateException, EntityNotFoundException {
         List<BrAPIObservationUnit> brapiUnits = null;
 
         // Retrieve reference Observation Units based on IDs
         brapiUnits = brAPIObservationUnitDAO.getObservationUnitsById(obsUnitIds, program);
 
-        // If no BrAPI units are found, throw an IllegalStateException with an error message
+        // If no BrAPI units are found, throw an EntityNotFoundException with an error message
         if (obsUnitIds.size() != brapiUnits.size()) {
             Set<String> missingIds = new HashSet<>(obsUnitIds);
 
             // Calculate missing IDs based on retrieved BrAPI units
-            missingIds.removeAll(brapiUnits.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toSet()));
+            //missingIds.removeAll(brapiUnits.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toSet()));
+            missingIds.removeAll(brapiUnits.stream()
+                    .map(unit -> Utilities.getExternalReference(unit.getExternalReferences(), BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .map(BrAPIExternalReference::getReferenceId).collect(Collectors.toSet()));
 
             // Throw exception with missing IDs information
-            throw new MissingValuesException(missingIds);
+            throw new EntityNotFoundException(missingIds);
         }
 
         return brapiUnits;
