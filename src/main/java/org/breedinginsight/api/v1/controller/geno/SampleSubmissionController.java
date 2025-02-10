@@ -293,8 +293,8 @@ public class SampleSubmissionController {
      */
     @Delete("programs/{programId}/submissions/{submissionId}")
     @Produces(MediaType.APPLICATION_JSON)
-    // only sys admin allowed on post & put so kept same permissions for delete
-    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN})
+    // sys admin and program admin roles to match file import permissions
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.PROGRAM_ADMIN})
     public HttpResponse deleteSubmissionById(@PathVariable UUID programId, @PathVariable UUID submissionId) throws ApiException {
 
         // program validation
