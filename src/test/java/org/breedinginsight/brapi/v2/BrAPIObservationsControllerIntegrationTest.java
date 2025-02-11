@@ -63,6 +63,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 
 import static io.micronaut.http.HttpRequest.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
@@ -71,8 +72,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
 
     private Program program;
-    private String experimentId;
+    private String  experimentId;
     private List<String> envIds = new ArrayList<>();
+    // Use hardcoded values for more deterministic test runs and easier assertions.
+    private List<Float> values = List.of(0.125F, 12.415F);
     private final List<Map<String, Object>> rows = new ArrayList<>();
     private final List<Column> columns = ExperimentFileColumns.getOrderedColumns();
     private List<Trait> traits;
@@ -170,15 +173,11 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         Map<String, Object> row2 = makeExpImportRow("Env2");
 
         // Add test observation data
-        for (Trait trait : traits) {
-            Random random = new Random();
-
+        for (int i = 0; i < traits.size(); i++) {
             // TODO: test for sending obs data as double.
             //  A float is returned from the backend instead of double. there is a separate card to fix this.
-            // Double val1 = Math.random();
-
-            Float val1 = random.nextFloat();
-            row1.put(trait.getObservationVariableName(), val1);
+            int valueIndex = i % values.size();  // Prevent overflow.
+            row1.put(traits.get(i).getObservationVariableName(), values.get(valueIndex));
         }
 
         rows.add(row1);
@@ -273,7 +272,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Disabled("Disabled until fetching of observations is implemented")
+    @Disabled("Disabled until fetching of observations is implemented in BI-2506.")
     public void testGetObsListByExpId() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/brapi/v2/observations?trialDbId=%s", program.getId(), experimentId))
@@ -286,7 +285,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Disabled("Disabled until fetching of observations is implemented")
+    @Disabled("Disabled until fetching of observations is implemented in BI-2506.")
     public void testGetOUById() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/brapi/v2/observations?trialDbId=%s", program.getId(), experimentId))
@@ -309,6 +308,31 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
 
         HttpResponse<String> ouResponse = ouCall.blockingFirst();
         assertEquals(HttpStatus.OK, ouResponse.getStatus());
+    }
+
+    @Test
+    public void testGetObsByStudyDbId() {
+        // Make a GET request to the /observations endpoint with the studyDbId query parameter.
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/observations?studyDbId=%s", program.getId(), envIds.get(0)))
+                        .bearerAuth("test-registered-user"),
+                String.class
+        );
+
+        // Check for 200 OK response.
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // Check that two observations were returned.
+        JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+        JsonArray observations = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+        assertEquals(2, observations.size());
+
+        // Check the observation values, keep in mind the order of results is not guaranteed.
+        Float value1 = observations.get(0).getAsJsonObject().get("value").getAsFloat();
+        Float value2 = observations.get(1).getAsJsonObject().get("value").getAsFloat();
+        assertTrue(values.contains(value1), "Observation with value " + value1 + " not found.");
+        assertTrue(values.contains(value2), "Observation with value " + value2 + " not found.");
     }
 
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
