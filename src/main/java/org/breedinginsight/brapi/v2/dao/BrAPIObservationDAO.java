@@ -38,7 +38,10 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
@@ -62,6 +65,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
     private final BrAPIEndpointProvider brAPIEndpointProvider;
     private final String referenceSource;
     private boolean runScheduledTasks;
+    private final TraitService traitService;
 
     @Inject
     public BrAPIObservationDAO(ProgramDAO programDAO,
@@ -71,7 +75,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                                BrAPIEndpointProvider brAPIEndpointProvider,
                                @Property(name = "brapi.server.reference-source") String referenceSource,
                                @Property(name = "micronaut.bi.api.run-scheduled-tasks") boolean runScheduledTasks,
-                               ProgramCacheProvider programCacheProvider) {
+                               ProgramCacheProvider programCacheProvider, TraitService traitService) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.observationUnitDAO = observationUnitDAO;
@@ -79,6 +83,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.referenceSource = referenceSource;
         this.runScheduledTasks = runScheduledTasks;
+        this.traitService = traitService;
         this.programCache = programCacheProvider.getProgramCache(this::fetchProgramObservations, BrAPIObservation.class);
     }
 
@@ -240,6 +245,27 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         return getProgramObservations(program.getId()).values().stream()
                 .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()) && studyDbIds.contains(o.getStudyDbId()))
                 .collect(Collectors.toList());
+    }
+
+    public List<BrAPIObservation> getObservationsByStudyIds(Collection<String> studyDbIds, Program program) throws ApiException {
+        if(studyDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String xrefSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
+        // Lookup studyDbId
+        return getProgramObservations(program.getId()).values().stream()
+                .filter(o -> {
+                    Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(o.getExternalReferences(), xrefSource);
+                    return xref.filter(brAPIExternalReference -> studyDbIds.contains(brAPIExternalReference.getReferenceId())).isPresent();
+                }).peek(o -> {
+                    try {
+                        Trait trait = traitService.getByObservationVariableDbId(program.getId(), o.getObservationVariableDbId());
+                        o.setObservationVariableDbId(trait.getId().toString());
+                    } catch (DoesNotExistException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                }).collect(Collectors.toList());
     }
 
     @NotNull
