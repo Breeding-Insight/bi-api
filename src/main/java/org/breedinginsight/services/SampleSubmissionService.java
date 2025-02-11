@@ -435,13 +435,7 @@ public class SampleSubmissionService {
      * @exception ApiException if a BrAPI call fails
      */
     public void deleteSampleSubmission(Program program, UUID submissionId) throws ApiException {
-
-        // delete BrAPI data
-        // delete samples
-        // delete plates
-
         // create a batch of sampleIds and plateIds to delete
-
         // get samples with the sample submission xref
         List<BrAPISample> samples = sampleDAO.readSamplesBySubmissionIds(program, List.of(submissionId.toString()));
 
@@ -449,8 +443,7 @@ public class SampleSubmissionService {
         List<String> sampleDbIds = samples.stream().map(BrAPISample::getSampleDbId).collect(Collectors.toList());
         List<String> platesDbIds = samples.stream().map(BrAPISample::getPlateDbId).collect(Collectors.toList());
 
-        // create batch of samples, not yet included in brapi client TODO: switch to brapi client when available
-        // TODO: uncomment when brapi server is working 
+        // delete samples and plates BrAPI objects in brapi server
         sampleDAO.deleteSamples(program, sampleDbIds);
         sampleDAO.deletePlates(program, platesDbIds);
 

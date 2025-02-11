@@ -133,7 +133,7 @@ public class BrAPISampleDAO {
      * @throws ApiException
      */
     public void deletePlates(Program program, List<String> plateDbIds) throws ApiException {
-        // create batch of samples, not yet included in brapi client TODO: switch to brapi client when available
+        // create batch of plates, not yet included in brapi client TODO: switch to brapi client when available
         String programBrAPIBaseUrl = brAPIDAOUtil.getProgramBrAPIBaseUrl(program.getId());
         String batchDbId = postPlatesBatch(programBrAPIBaseUrl, plateDbIds);
 
@@ -178,7 +178,7 @@ public class BrAPISampleDAO {
             return resultObject.get("batchDeleteDbId").getAsString();
         } else if (resultObject.has("searchResultsDbId")) {
             // TODO: once api stuff is in client use BrAPIDAOUtil::search to handle retries, for now just request once
-            // could be an issue for large number of samples
+            // brapi server only returns immediate response for batchDeletes so this case won't happen
             return getBatchDeleteDbIdFromSearchResult(programBrAPIBaseUrl, resultObject.get("searchResultsDbId").getAsString());
         } else {
             throw new InternalServerException("Expected batchDeleteDbId or searchResultsDbId but got " + resultObject);

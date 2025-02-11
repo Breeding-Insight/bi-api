@@ -284,8 +284,7 @@ public class SampleSubmissionController {
 
     /**
      * Delete sample submission.
-     * Currently deletes the bidb submission record and BrAPI samples, TODO: delete BrAPI plates once supported
-     * in BrAPI server, see BI-2431
+     * Deletes the bidb submission record and BrAPI samples & plates
      * @param programId bi-api id of program
      * @param submissionId bi-api id of submission
      * @return
@@ -311,8 +310,6 @@ public class SampleSubmissionController {
             return HttpResponse.notFound();
         }
         SampleSubmission submission = submissionOpt.get();
-        // if submission has status of submitted do not allow deletion
-        // if the user changes the status to not submitted then they can delete
         if (!submission.isDeletable()) {
             return HttpResponse.notAllowed();
         }
