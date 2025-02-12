@@ -502,4 +502,18 @@ public class TraitService {
                 .findFirst().orElseThrow(() -> new DoesNotExistException("Trait not found for observationVariableDbId: " + observationVariableDbId));
 
     }
+
+    public HashMap<String, String> getIdsByObservationVariableDbIds(UUID programId, List<String> observationVariableDbIds) throws DoesNotExistException {
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+        return traitDAO.getTraitsFullByProgramId(programId).stream()
+                .filter(t -> observationVariableDbIds.contains(t.getObservationVariableDbId()))
+                .collect(Collectors.toMap(
+                        Trait::getObservationVariableDbId,
+                        (t) -> t.getId().toString(),
+                        (existing, replacement) -> existing,
+                        HashMap::new
+                ));
+    }
 }

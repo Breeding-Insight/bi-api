@@ -247,25 +247,24 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                 .collect(Collectors.toList());
     }
 
-    public List<BrAPIObservation> getObservationsByStudyIds(Collection<String> studyDbIds, Program program) throws ApiException {
+    public List<BrAPIObservation> getObservationsByStudyIds(Collection<String> studyDbIds, Program program) throws ApiException, DoesNotExistException {
         if(studyDbIds.isEmpty()) {
             return Collections.emptyList();
         }
         String xrefSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
+        // Get all observations for the program.
+        Collection<BrAPIObservation> observations = getProgramObservations(program.getId()).values();
+        // Build a hashmap of traits for fast lookup. The key is ObservationVariableDbId, the value is the Trait Id.
+        HashMap<String, String> traitIdsByObservationVariableDbId = traitService.getIdsByObservationVariableDbIds(program.getId(), observations.stream().map(BrAPIObservation::getObservationVariableDbId).collect(Collectors.toList()));
+
         // Lookup studyDbId
         return getProgramObservations(program.getId()).values().stream()
                 .filter(o -> {
                     Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(o.getExternalReferences(), xrefSource);
                     return xref.filter(brAPIExternalReference -> studyDbIds.contains(brAPIExternalReference.getReferenceId())).isPresent();
-                }).peek(o -> {
-                    try {
-                        Trait trait = traitService.getByObservationVariableDbId(program.getId(), o.getObservationVariableDbId());
-                        o.setObservationVariableDbId(trait.getId().toString());
-                    } catch (DoesNotExistException e) {
-                        throw new RuntimeException(e);
-                    }
-
-                }).collect(Collectors.toList());
+                })
+                .peek(o -> o.setObservationVariableDbId(traitIdsByObservationVariableDbId.get(o.getObservationVariableDbId())))
+                .collect(Collectors.toList());
     }
 
     @NotNull
