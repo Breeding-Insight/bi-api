@@ -287,7 +287,7 @@ public class SampleSubmissionController {
      * Deletes the bidb submission record and BrAPI samples & plates
      * @param programId bi-api id of program
      * @param submissionId bi-api id of submission
-     * @return
+     * @return HttpResponse
      * @throws ApiException
      */
     @Delete("programs/{programId}/submissions/{submissionId}")
