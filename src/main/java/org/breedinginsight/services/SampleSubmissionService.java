@@ -440,8 +440,8 @@ public class SampleSubmissionService {
         List<BrAPISample> samples = sampleDAO.readSamplesBySubmissionIds(program, List.of(submissionId.toString()));
 
         // extract sampleDbIds and plateDbIds to include in batches
-        List<String> sampleDbIds = samples.stream().map(BrAPISample::getSampleDbId).collect(Collectors.toList());
-        List<String> platesDbIds = samples.stream().map(BrAPISample::getPlateDbId).collect(Collectors.toList());
+        List<String> sampleDbIds = samples.stream().map(BrAPISample::getSampleDbId).distinct().collect(Collectors.toList());
+        List<String> platesDbIds = samples.stream().map(BrAPISample::getPlateDbId).distinct().collect(Collectors.toList());
 
         // delete samples and plates BrAPI objects in brapi server
         sampleDAO.deleteSamples(program, sampleDbIds);
