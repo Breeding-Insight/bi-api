@@ -147,14 +147,43 @@ public class BrAPIObservationsController {
                 );
             }
 
-            // Handle studyDbId and pagination query params for Field Book integration.
-            List<BrAPIObservation> observations = observationDAO.getObservationsByStudyIds(List.of(studyDbId), program.get());
+            // Get a filtered list of observations.
+            List<BrAPIObservation> observations = observationDAO.getObservationsByFilters(program.get(), studyDbId);
 
-            return HttpResponse.ok(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().pagination(new BrAPIIndexPagination().currentPage(0)
-                            .totalPages(1)
+            // Handle pagination query params.
+            int totalCount = observations.size();  // Total number of records in the unpaged super set.
+            int actualPage = page != null ? page : 0;  // Zero-indexed page.
+            int requestedPageSize = pageSize != null ? Math.min(pageSize, totalCount) : totalCount; // The lesser of pageSize and totalCount.
+            int totalPages = totalCount / requestedPageSize + ((totalCount % requestedPageSize == 0) ? 0 : 1); // Integer division and round up.
+            log.info("(Pagination) totalCount: " + totalCount + " actualPage (0-indexed): " + actualPage + " requestedPageSize: " + requestedPageSize + " totalPages: " + totalPages);
+
+            // Determine validity of pagination query parameters.
+            boolean pageSizeValid = pageSize != null && pageSize > 0 && pageSize <= totalCount;
+            boolean pageValid = page != null && page >= 0 && page < totalPages;
+
+            // Only paginate if valid pagination values were sent.
+            if (pageSizeValid && pageValid) {
+                int start = actualPage * requestedPageSize;
+                // Account for last page, which may have fewer than requestedPageSize items, or exactly requestedPageSize items.
+                int end = (actualPage == (totalPages - 1) && totalCount % requestedPageSize != 0) ? (start + (totalCount % requestedPageSize)) : Math.min(((actualPage + 1) * requestedPageSize), totalCount);
+                log.info("(Pagination) start " + start + " end " + end);
+                // Sort observations so that paging is consistent and coherent.
+                observations.sort(Comparator.comparing(BrAPIObservation::getObservationDbId));
+                // Paginate response.
+                observations = observations.subList(start, end);
+            } else if (pageSize != null || page != null) {
+                // If one or more of the pagination query parameters are not null, both must be present and valid.
+                String errorMessage = "Invalid query parameters: page, pageSize";
+                return HttpResponse.badRequest(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().status(List.of(new BrAPIStatus().messageType(BrAPIStatus.MessageTypeEnum.ERROR)
+                        .message(errorMessage)))));
+            }
+
+            return HttpResponse.ok(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().pagination(new BrAPIIndexPagination().currentPage(actualPage)
+                            .totalPages(totalPages)
                             .pageSize(observations.size())
-                            .totalCount(observations.size())))
+                            .totalCount(totalCount)))
                     .result(new BrAPIObservationListResponseResult().data(observations)));
+            
         } catch (ApiException e) {
             log.error(Utilities.generateApiExceptionLogMessage(e), e);
             return HttpResponse.serverError(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().status(List.of(new BrAPIStatus().messageType(BrAPIStatus.MessageTypeEnum.ERROR)
