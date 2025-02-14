@@ -247,11 +247,13 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                 .collect(Collectors.toList());
     }
 
-    public List<BrAPIObservation> getObservationsByStudyIds(Collection<String> studyDbIds, Program program) throws ApiException, DoesNotExistException {
-        if(studyDbIds.isEmpty()) {
-            return Collections.emptyList();
-        }
-        String xrefSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
+    // TODO: implement other filters.
+    public List<BrAPIObservation> getObservationsByFilters(Program program, String studyDbId) throws ApiException, DoesNotExistException {
+
+        String studySource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
+        String observationUnitSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATION_UNITS);
+        String observationSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATIONS);
+
         // Get all observations for the program.
         Collection<BrAPIObservation> observations = getProgramObservations(program.getId()).values();
         // Build a hashmap of traits for fast lookup. The key is ObservationVariableDbId, the value is the Trait Id.
@@ -260,11 +262,21 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         // Lookup studyDbId
         return getProgramObservations(program.getId()).values().stream()
                 .filter(o -> {
-                    Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(o.getExternalReferences(), xrefSource);
-                    return xref.filter(brAPIExternalReference -> studyDbIds.contains(brAPIExternalReference.getReferenceId())).isPresent();
+                    // Short circuit if filter is null.
+                    if (studyDbId == null) return true;
+                    Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(o.getExternalReferences(), studySource);
+                    return xref.filter(brAPIExternalReference -> studyDbId.equals(brAPIExternalReference.getReferenceId())).isPresent();
                 })
-                .peek(o -> o.setObservationVariableDbId(traitIdsByObservationVariableDbId.get(o.getObservationVariableDbId())))
-                .collect(Collectors.toList());
+                .peek(o -> {
+                    // TODO: avoid NPEs!
+                    // Translate ObservationVariableDbId.
+                    o.setObservationVariableDbId(traitIdsByObservationVariableDbId.get(o.getObservationVariableDbId()));
+                    // Translate ObservationUnitDbId.
+                    o.setObservationUnitDbId(Utilities.getExternalReference(o.getExternalReferences(), observationUnitSource).get().getReferenceId());
+                    // Translate ObservationId.
+                    o.setObservationDbId(Utilities.getExternalReference(o.getExternalReferences(), observationSource).get().getReferenceId());
+                    // TODO: do we need to translate germplasmDbId?
+                }).collect(Collectors.toList());
     }
 
     @NotNull

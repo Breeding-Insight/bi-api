@@ -183,7 +183,7 @@ public class BrAPIObservationsController {
                             .pageSize(observations.size())
                             .totalCount(totalCount)))
                     .result(new BrAPIObservationListResponseResult().data(observations)));
-            
+
         } catch (ApiException e) {
             log.error(Utilities.generateApiExceptionLogMessage(e), e);
             return HttpResponse.serverError(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().status(List.of(new BrAPIStatus().messageType(BrAPIStatus.MessageTypeEnum.ERROR)
