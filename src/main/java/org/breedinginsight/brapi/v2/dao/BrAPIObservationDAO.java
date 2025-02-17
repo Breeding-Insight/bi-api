@@ -247,7 +247,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                 .collect(Collectors.toList());
     }
 
-    // TODO: implement other filters.
+    // TODO: implement other filters in BI-2506.
     public List<BrAPIObservation> getObservationsByFilters(Program program, String studyDbId) throws ApiException, DoesNotExistException {
 
         String studySource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
@@ -268,14 +268,15 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                     return xref.filter(brAPIExternalReference -> studyDbId.equals(brAPIExternalReference.getReferenceId())).isPresent();
                 })
                 .peek(o -> {
-                    // TODO: avoid NPEs!
                     // Translate ObservationVariableDbId.
                     o.setObservationVariableDbId(traitIdsByObservationVariableDbId.get(o.getObservationVariableDbId()));
                     // Translate ObservationUnitDbId.
-                    o.setObservationUnitDbId(Utilities.getExternalReference(o.getExternalReferences(), observationUnitSource).get().getReferenceId());
+                    o.setObservationUnitDbId(Utilities.getExternalReference(o.getExternalReferences(), observationUnitSource)
+                            .orElseThrow(() -> new RuntimeException("observationUnit xref not found on observation")).getReferenceId());
                     // Translate ObservationId.
-                    o.setObservationDbId(Utilities.getExternalReference(o.getExternalReferences(), observationSource).get().getReferenceId());
-                    // TODO: do we need to translate germplasmDbId?
+                    o.setObservationDbId(Utilities.getExternalReference(o.getExternalReferences(), observationSource)
+                            .orElseThrow(() -> new RuntimeException("observation xref not found on observation")).getReferenceId());
+                    // TODO: consider translating germplasmDbId in BI-2506.
                 }).collect(Collectors.toList());
     }
 
