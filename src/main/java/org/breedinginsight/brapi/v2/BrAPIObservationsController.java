@@ -150,11 +150,14 @@ public class BrAPIObservationsController {
             // Get a filtered list of observations.
             List<BrAPIObservation> observations = observationDAO.getObservationsByFilters(program.get(), studyDbId);
 
-            // Handle pagination query params.
-            int totalCount = observations.size();  // Total number of records in the unpaged super set.
-            int actualPage = page != null ? page : 0;  // Zero-indexed page.
-            int requestedPageSize = pageSize != null ? Math.min(pageSize, totalCount) : totalCount; // The lesser of pageSize and totalCount.
-            int totalPages = totalCount / requestedPageSize + ((totalCount % requestedPageSize == 0) ? 0 : 1); // Integer division and round up.
+            // Total number of records in the unpaged super set.
+            int totalCount = observations.size();
+            // Zero-indexed page, default to zero.
+            int actualPage = page != null ? page : 0;
+            // The least of pageSize and totalCount, unless pageSize is null or zero, in which case use totalCount.
+            int requestedPageSize = (pageSize != null && pageSize > 0) ? Math.min(pageSize, totalCount) : totalCount;
+            // Integer division and round up.
+            int totalPages = totalCount / requestedPageSize + ((totalCount % requestedPageSize == 0) ? 0 : 1);
             log.info("(Pagination) totalCount: " + totalCount + " actualPage (0-indexed): " + actualPage + " requestedPageSize: " + requestedPageSize + " totalPages: " + totalPages);
 
             // Determine validity of pagination query parameters.
