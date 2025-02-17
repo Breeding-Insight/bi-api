@@ -161,7 +161,7 @@ public class BrAPIObservationsController {
             log.info("(Pagination) totalCount: " + totalCount + " actualPage (0-indexed): " + actualPage + " requestedPageSize: " + requestedPageSize + " totalPages: " + totalPages);
 
             // Determine validity of pagination query parameters.
-            boolean pageSizeValid = pageSize != null && pageSize > 0 && pageSize <= totalCount;
+            boolean pageSizeValid = pageSize != null && pageSize > 0;
             boolean pageValid = page != null && page >= 0 && page < totalPages;
 
             // Only paginate if valid pagination values were sent.

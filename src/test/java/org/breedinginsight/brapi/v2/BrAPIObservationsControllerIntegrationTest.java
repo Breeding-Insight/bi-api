@@ -178,6 +178,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
             //  A float is returned from the backend instead of double. there is a separate card to fix this.
             int valueIndex = i % values.size();  // Prevent overflow.
             row1.put(traits.get(i).getObservationVariableName(), values.get(valueIndex));
+            row2.put(traits.get(i).getObservationVariableName(), values.get(valueIndex));
         }
 
         rows.add(row1);
@@ -333,6 +334,71 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         Float value2 = observations.get(1).getAsJsonObject().get("value").getAsFloat();
         assertTrue(values.contains(value1), "Observation with value " + value1 + " not found.");
         assertTrue(values.contains(value2), "Observation with value " + value2 + " not found.");
+    }
+
+    @Test
+    public void testGetObsPagination() {
+
+        // Check no pagination.
+        checkPagination(null, null, HttpStatus.OK, 4, 4, 1);
+        // Check valid pagination, including last page edge case.
+        checkPagination(0, 1, HttpStatus.OK, 1, 4, 4);
+        checkPagination(1, 2, HttpStatus.OK, 2, 4, 2);
+        checkPagination(0, 3, HttpStatus.OK, 3, 4, 2);
+        checkPagination(1, 3, HttpStatus.OK, 1, 4, 2);
+        checkPagination(0, 100, HttpStatus.OK, 4, 4, 1);
+        // Check invalid pagination.
+        checkPagination(2, 2, HttpStatus.BAD_REQUEST, null, null, null);
+        checkPagination(0, 0, HttpStatus.BAD_REQUEST, null, null, null);
+        checkPagination(1, 0, HttpStatus.BAD_REQUEST, null, null, null);
+        checkPagination(10, 100, HttpStatus.BAD_REQUEST, null, null, null);
+
+    }
+
+    private void checkPagination(Integer page, Integer pageSize, HttpStatus expectedStatus, Integer expectedSize, Integer expectedTotalCount, Integer expectedTotalPages) {
+        // Build request URL.
+        String requestURL = String.format("/programs/%s/brapi/v2/observations", program.getId());
+        if (page != null) {
+            requestURL = requestURL + "?page=" + page;
+        } else {
+            page = 0;
+        }
+        if (pageSize != null) {
+            requestURL = requestURL + "&pageSize=" + pageSize;
+        }
+
+        // Make a GET request to the /observations endpoint with the supplied pagination parameters.
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(requestURL).bearerAuth("test-registered-user"),
+                String.class
+        );
+
+        // Check for expected response.
+        try {
+            HttpResponse<String> response = call.blockingFirst();
+            assertEquals(expectedStatus, response.getStatus());
+
+            // If call.blockingFirst() doesn't throw, expect a 200 OK.
+            assertEquals(HttpStatus.OK, response.getStatus());
+
+            // Parse and check body and metadata.
+            JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+            // Get metadata.
+            JsonObject pagination = responseObj.getAsJsonObject("metadata").getAsJsonObject("pagination");
+            // TODO: Per BrAPI docs, pageSize (metadata) should always be the
+            assertEquals(expectedSize, pagination.get("pageSize").getAsInt());  // TODO: check... BJTS does something different.
+            assertEquals(page, pagination.get("currentPage").getAsInt());
+            assertEquals(expectedTotalPages, pagination.get("totalPages").getAsInt());
+            assertEquals(expectedTotalCount, pagination.get("totalCount").getAsInt());
+            // Get observations.
+            JsonArray observations = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+            assertEquals(expectedSize, observations.size());
+
+        } catch (HttpClientResponseException e) {
+            // call.blockingFirst() will throw in the case of a non-200 code.
+            assertEquals(expectedStatus, e.getStatus());
+        }
+
     }
 
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
