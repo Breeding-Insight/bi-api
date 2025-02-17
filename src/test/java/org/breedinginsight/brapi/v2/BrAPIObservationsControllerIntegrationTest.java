@@ -385,8 +385,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
             JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
             // Get metadata.
             JsonObject pagination = responseObj.getAsJsonObject("metadata").getAsJsonObject("pagination");
-            // TODO: Per BrAPI docs, pageSize (metadata) should always be the
-            assertEquals(expectedSize, pagination.get("pageSize").getAsInt());  // TODO: check... BJTS does something different.
+            assertEquals(expectedSize, pagination.get("pageSize").getAsInt());
             assertEquals(page, pagination.get("currentPage").getAsInt());
             assertEquals(expectedTotalPages, pagination.get("totalPages").getAsInt());
             assertEquals(expectedTotalCount, pagination.get("totalCount").getAsInt());
