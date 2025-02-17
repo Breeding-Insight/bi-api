@@ -78,7 +78,7 @@ public class BrAPIGermplasmDAO {
         this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
-    @Scheduled(initialDelay = "2s")
+    @Scheduled(initialDelay = "${startup.delay.germplasm}")
     public void setup() {
         if(!runScheduledTasks) {
             return;
