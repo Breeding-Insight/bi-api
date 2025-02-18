@@ -491,4 +491,29 @@ public class TraitService {
 
         return traitDAO.getTraitsByTraitName(programId, names.stream().map(name -> Trait.builder().observationVariableName(name).build()).collect(Collectors.toList()));
     }
+
+    public Trait getByObservationVariableDbId(UUID programId, String observationVariableDbId) throws DoesNotExistException {
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        return traitDAO.getTraitsFullByProgramId(programId).stream()
+                .filter(t -> t.getObservationVariableDbId().equals(observationVariableDbId))
+                .findFirst().orElseThrow(() -> new DoesNotExistException("Trait not found for observationVariableDbId: " + observationVariableDbId));
+
+    }
+
+    public HashMap<String, String> getIdsByObservationVariableDbIds(UUID programId, List<String> observationVariableDbIds) throws DoesNotExistException {
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+        return traitDAO.getTraitsFullByProgramId(programId).stream()
+                .filter(t -> observationVariableDbIds.contains(t.getObservationVariableDbId()))
+                .collect(Collectors.toMap(
+                        Trait::getObservationVariableDbId,
+                        (t) -> t.getId().toString(),
+                        (existing, replacement) -> existing,
+                        HashMap::new
+                ));
+    }
 }
