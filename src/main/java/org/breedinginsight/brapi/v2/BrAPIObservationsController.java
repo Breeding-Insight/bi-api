@@ -150,38 +150,42 @@ public class BrAPIObservationsController {
             // Get a filtered list of observations.
             List<BrAPIObservation> observations = observationDAO.getObservationsByFilters(program.get(), studyDbId);
 
+            // If page is not provided, set it to the default value 0.
+            if (page == null) page = 0;
+            // If pageSize is not provided, set it to the default value 1000.
+            if (pageSize == null) pageSize = 1000;
+
             // Total number of records in the unpaged super set.
             int totalCount = observations.size();
-            // Zero-indexed page, default to zero.
-            int actualPage = page != null ? page : 0;
-            // The least of pageSize and totalCount, unless pageSize is null or zero, in which case use totalCount.
-            int requestedPageSize = (pageSize != null && pageSize > 0) ? Math.min(pageSize, totalCount) : totalCount;
+            // The least of pageSize and totalCount, unless pageSize is zero, in which case use totalCount.
+            int requestedPageSize = pageSize > 0 ? Math.min(pageSize, totalCount) : totalCount;
             // Integer division and round up.
             int totalPages = totalCount / requestedPageSize + ((totalCount % requestedPageSize == 0) ? 0 : 1);
-            log.info("(Pagination) totalCount: " + totalCount + " actualPage (0-indexed): " + actualPage + " requestedPageSize: " + requestedPageSize + " totalPages: " + totalPages);
+            log.info("(Pagination) totalCount: " + totalCount + " page (0-indexed): " + page + " requestedPageSize: " + requestedPageSize + " totalPages: " + totalPages);
 
             // Determine validity of pagination query parameters.
-            boolean pageSizeValid = pageSize != null && pageSize > 0;
-            boolean pageValid = page != null && page >= 0 && page < totalPages;
+            boolean pageSizeValid = pageSize > 0;
+            boolean pageValid = page >= 0 && page < totalPages;
 
             // Only paginate if valid pagination values were sent.
             if (pageSizeValid && pageValid) {
-                int start = actualPage * requestedPageSize;
+                int start = page * requestedPageSize;
                 // Account for last page, which may have fewer than requestedPageSize items, or exactly requestedPageSize items.
-                int end = (actualPage == (totalPages - 1) && totalCount % requestedPageSize != 0) ? (start + (totalCount % requestedPageSize)) : Math.min(((actualPage + 1) * requestedPageSize), totalCount);
+                int end = (page == (totalPages - 1) && totalCount % requestedPageSize != 0) ? (start + (totalCount % requestedPageSize)) : Math.min(((page + 1) * requestedPageSize), totalCount);
                 log.info("(Pagination) start " + start + " end " + end);
                 // Sort observations so that paging is consistent and coherent.
                 observations.sort(Comparator.comparing(BrAPIObservation::getObservationDbId));
                 // Paginate response.
                 observations = observations.subList(start, end);
-            } else if (pageSize != null || page != null) {
+            } else {
                 // If one or more of the pagination query parameters are not null, both must be present and valid.
                 String errorMessage = "Invalid query parameters: page, pageSize";
                 return HttpResponse.badRequest(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().status(List.of(new BrAPIStatus().messageType(BrAPIStatus.MessageTypeEnum.ERROR)
                         .message(errorMessage)))));
             }
 
-            return HttpResponse.ok(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().pagination(new BrAPIIndexPagination().currentPage(actualPage)
+            return HttpResponse.ok(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().pagination(new BrAPIIndexPagination()
+                            .currentPage(page)
                             .totalPages(totalPages)
                             .pageSize(observations.size())
                             .totalCount(totalCount)))

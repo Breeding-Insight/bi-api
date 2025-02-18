@@ -259,7 +259,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         // Build a hashmap of traits for fast lookup. The key is ObservationVariableDbId, the value is the Trait Id.
         HashMap<String, String> traitIdsByObservationVariableDbId = traitService.getIdsByObservationVariableDbIds(program.getId(), observations.stream().map(BrAPIObservation::getObservationVariableDbId).collect(Collectors.toList()));
 
-        // Lookup studyDbId
+        // Lookup studyDbId.
         return observations.stream()
                 .filter(o -> {
                     // Short circuit if filter is null.

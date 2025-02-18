@@ -341,6 +341,9 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
 
         // Check no pagination.
         checkPagination(null, null, HttpStatus.OK, 4, 4, 1);
+        // Check page and pageSize defaults.
+        checkPagination(null, 2, HttpStatus.OK, 2, 4, 2);
+        checkPagination(0, null, HttpStatus.OK, 4, 4, 1);
         // Check valid pagination, including last page edge case.
         checkPagination(0, 1, HttpStatus.OK, 1, 4, 4);
         checkPagination(1, 2, HttpStatus.OK, 2, 4, 2);
@@ -360,10 +363,10 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         String requestURL = String.format("/programs/%s/brapi/v2/observations", program.getId());
         if (page != null) {
             requestURL = requestURL + "?page=" + page;
-        } else {
-            page = 0;
         }
-        if (pageSize != null) {
+        if (pageSize != null && page == null) {
+            requestURL = requestURL + "?pageSize=" + pageSize;
+        } else if (pageSize != null) {
             requestURL = requestURL + "&pageSize=" + pageSize;
         }
 
@@ -386,7 +389,8 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
             // Get metadata.
             JsonObject pagination = responseObj.getAsJsonObject("metadata").getAsJsonObject("pagination");
             assertEquals(expectedSize, pagination.get("pageSize").getAsInt());
-            assertEquals(page, pagination.get("currentPage").getAsInt());
+            int expectedPage = page == null ? 0 : page;
+            assertEquals(expectedPage, pagination.get("currentPage").getAsInt());
             assertEquals(expectedTotalPages, pagination.get("totalPages").getAsInt());
             assertEquals(expectedTotalCount, pagination.get("totalCount").getAsInt());
             // Get observations.
