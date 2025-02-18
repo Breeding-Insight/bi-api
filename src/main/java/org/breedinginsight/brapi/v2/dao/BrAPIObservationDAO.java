@@ -276,6 +276,9 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                     // Translate ObservationId.
                     o.setObservationDbId(Utilities.getExternalReference(o.getExternalReferences(), observationSource)
                             .orElseThrow(() -> new RuntimeException("observation xref not found on observation")).getReferenceId());
+                    // Translate StudyDbId.
+                    o.setStudyDbId(Utilities.getExternalReference(o.getExternalReferences(), studySource)
+                            .orElseThrow(() -> new RuntimeException("study xref not found on observation")).getReferenceId());
                     // TODO: consider translating germplasmDbId in BI-2506.
                 }).collect(Collectors.toList());
     }
