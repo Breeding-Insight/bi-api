@@ -18,6 +18,7 @@
 package org.breedinginsight.utilities;
 
 import io.micronaut.context.annotation.Property;
+
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
@@ -378,6 +379,28 @@ public class BrAPIDAOUtil {
     public <T> List<T> post(List<T> brapiObjects,
                                    Function<List<T>, ApiResponse> postMethod) throws ApiException {
         return post(brapiObjects, null, postMethod, null);
+    }
+
+    /**
+     * TODO: replace with brapi client methods when available, will do timeout spec from config at that point
+     * @param brapiRequest
+     * @return
+     * @throws ApiException
+     */
+    public String makeCallWithResponse(Request brapiRequest) throws ApiException {
+        OkHttpClient client = new OkHttpClient.Builder()
+                .readTimeout(5, TimeUnit.MINUTES)
+                .build();
+
+        // autoclose Response
+        try (Response response = client.newCall(brapiRequest).execute()) {
+            if (!response.isSuccessful()) {
+                throw new ApiException("Request failed with status code: " + response.code());
+            }
+            return response.body().string();
+        } catch (IOException e) {
+            throw new ApiException(e);
+        }
     }
 
     public HttpResponse<String> makeCall(Request brapiRequest) {

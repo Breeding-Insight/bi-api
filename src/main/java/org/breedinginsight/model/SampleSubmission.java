@@ -17,6 +17,7 @@
 
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -77,6 +78,15 @@ public class SampleSubmission extends SampleSubmissionEntity {
             Gson gson = new Gson();
             this.shipmentForms = gson.fromJson(shipmentforms.data(), new TypeToken<List<BrAPIShipmentForm>>() {}.getType());
         }
+    }
+
+    /**
+     * Should only be deleted when status is not submitted and has no vendor status
+     */
+    @JsonIgnore
+    public boolean isDeletable() {
+        return (this.getSubmitted() == null || (this.getSubmitted() != null && !this.getSubmitted()))
+                && this.getVendorStatus() == null;
     }
 
     public enum Status {

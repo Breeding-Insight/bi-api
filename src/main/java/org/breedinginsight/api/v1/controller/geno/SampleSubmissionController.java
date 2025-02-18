@@ -281,4 +281,42 @@ public class SampleSubmissionController {
             return HttpResponse.serverError();
         }
     }
+
+    /**
+     * Delete sample submission.
+     * Deletes the bidb submission record and BrAPI samples & plates
+     * @param programId bi-api id of program
+     * @param submissionId bi-api id of submission
+     * @return HttpResponse
+     * @throws ApiException
+     */
+    @Delete("programs/{programId}/submissions/{submissionId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    // sys admin and program admin roles to match file import permissions
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.PROGRAM_ADMIN})
+    public HttpResponse deleteSubmissionById(@PathVariable UUID programId, @PathVariable UUID submissionId) throws ApiException {
+
+        // program validation
+        Optional<Program> program = programService.getById(programId);
+        if(program.isEmpty()) {
+            log.info(String.format("programId not found: %s", programId.toString()));
+            return HttpResponse.notFound();
+        }
+
+        // sample status validation
+        Optional<SampleSubmission> submissionOpt = sampleSubmissionService.getSampleSubmission(program.get(), submissionId, false);
+
+        if(submissionOpt.isEmpty()) {
+            return HttpResponse.notFound();
+        }
+        SampleSubmission submission = submissionOpt.get();
+        if (!submission.isDeletable()) {
+            return HttpResponse.notAllowed();
+        }
+
+        sampleSubmissionService.deleteSampleSubmission(program.get(), submissionId);
+
+        return HttpResponse.ok();
+    }
+
 }
