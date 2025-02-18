@@ -178,7 +178,6 @@ public class BrAPIObservationsController {
                 // Paginate response.
                 observations = observations.subList(start, end);
             } else {
-                // If one or more of the pagination query parameters are not null, both must be present and valid.
                 String errorMessage = "Invalid query parameters: page, pageSize";
                 return HttpResponse.badRequest(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().status(List.of(new BrAPIStatus().messageType(BrAPIStatus.MessageTypeEnum.ERROR)
                         .message(errorMessage)))));
