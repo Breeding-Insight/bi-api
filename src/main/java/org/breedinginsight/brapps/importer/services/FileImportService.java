@@ -449,7 +449,7 @@ public class FileImportService {
                 progress.setMessage(e.getMessage());
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
-            }catch (ValidatorException e) {
+            } catch (ValidatorException e) {
                 log.info("Validation errors: \n" + e);
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());

@@ -225,6 +225,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
             for (int i = 0; i < context.getImportContext().getImportRows().size(); i++) {
                 Integer rowNum = i;
                 ExperimentObservation row = (ExperimentObservation) context.getImportContext().getImportRows().get(rowNum);
+                VisitedObservationData processedData = null;
 
                 // Construct the pending import for the row
                 Optional.ofNullable(context.getImportContext().getMappedBrAPIImport()).orElseGet(() -> {
@@ -233,18 +234,28 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                 });
                 PendingImport mappedImportRow = context.getImportContext().getMappedBrAPIImport().getOrDefault(rowNum, new PendingImport());
                 String unitId = row.getObsUnitID();
+                String studyName = context.getAppendOverwriteWorkflowContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getStudyName();
                 mappedImportRow.setTrial(context.getAppendOverwriteWorkflowContext().getPendingTrialByOUId().get(unitId));
                 mappedImportRow.setLocation(context.getAppendOverwriteWorkflowContext().getPendingLocationByOUId().get(unitId));
                 mappedImportRow.setStudy(context.getAppendOverwriteWorkflowContext().getPendingStudyByOUId().get(unitId));
                 mappedImportRow.setObservationUnit(context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().get(unitId));
                 mappedImportRow.setGermplasm(context.getAppendOverwriteWorkflowContext().getPendingGermplasmByOUId().get(unitId));
 
+                /**
+                 * Handle the edge case where a user imports with the append/overwrite workflow for an experiment
+                 * without a dataset defined (i.e. no observation variables headers) and the import does not
+                 * actually have new data to append
+                 */
+                if (phenotypeCols.isEmpty()) {
+                    processedData = processedDataFactory.undefinedDatasetBean();
+                    updatePreviewStatistics(processedData, context, studyName, unitId);
+                }
+
                 // Assemble the pending observation data for all phenotypes
                 for (Column<?> column : phenotypeCols) {
                     String cellData = column.getString(rowNum);
 
                     // Generate hash for looking up prior observation data
-                    String studyName = context.getAppendOverwriteWorkflowContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getStudyName();
                     String unitName = context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().get(unitId).getBrAPIObject().getObservationUnitName();
                     String phenoColumnName = column.name();
                     String observationHash = observationService.getObservationHash(unitName, phenoColumnName, studyName);
@@ -266,8 +277,6 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
 
                     }
 
-                    VisitedObservationData processedData = null;
-
                     // Is there prior observation data for this unit + var?
                     if (observationByObsHash.containsKey(observationHash)) {
 
@@ -275,9 +284,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                         BrAPIObservation observation = gson.fromJson(gson.toJson(observationByObsHash.get(observationHash)), BrAPIObservation.class);
 
                         // Is there a change to the prior data?
-                        if (
-                                isChanged(cellData, observation, cell.timestamp)
-                        ) {
+                        if (isChanged(cellData, observation, cell.timestamp)) {
 
                             // Is prior data protected?
                             /**
@@ -356,13 +363,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                     processedData.getValidationErrors().ifPresent(errList -> errList.forEach(e -> validationErrors.addError(rowNum + 2, e)));  // +2 to account for header row and excel file 1-based row index
 
                     // Update import preview statistics and set in the context
-                    processedData.updateTally(statistic);
-                    statistic.addEnvironmentName(studyName);
-                    // TODO: change null values to actual data
-                    // TODO: change signature to take two args, studyName and unitName
-                    statistic.addObservationUnitId(null);
-                    statistic.addGid(context.getAppendOverwriteWorkflowContext().getPendingGermplasmByOUId().get(unitId).getBrAPIObject().getAccessionNumber());
-                    context.getAppendOverwriteWorkflowContext().setStatistic(statistic);
+                    updatePreviewStatistics(processedData, context, studyName, unitId);
 
                     // Construct a pending observation
                     Optional<PendingImportObject<BrAPIObservation>> pendingProcessedData = Optional.ofNullable(processedData.constructPendingObservation());
@@ -401,5 +402,35 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
             return (observation.getObservationTimeStamp()!=null);
         }
         return !observationService.parseDateTime(newTimestamp).equals(observation.getObservationTimeStamp());
+    }
+
+    /**
+     * Updates the preview statistics for processed observation data.
+     *
+     * This method updates various statistical metrics related to the processed
+     * observation data and stores them in the provided context.
+     *
+     * @param processedData The VisitedObservationData object containing the processed observation data.
+     * @param context The AppendOverwriteMiddlewareContext object where the updated statistics will be stored.
+     * @param studyName The name of the study associated with the observation data.
+     * @param unitId The identifier of the observation unit.
+     *
+     * @implNote This method performs the following operations:
+     * 1. Updates the tally in the processedData object.
+     * 2. Adds the study name to the statistics.
+     * 3. Adds the observation unit ID to the statistics.
+     * 4. Adds the germplasm ID (GID) to the statistics, retrieved from the pending germplasm data in the context.
+     * 5. Sets the updated statistics in the context.
+     */
+    private void updatePreviewStatistics(VisitedObservationData processedData,
+                                         AppendOverwriteMiddlewareContext context,
+                                         String studyName,
+                                         String unitId) {
+        // Update import preview statistics and set in the context
+        processedData.updateTally(statistic);
+        statistic.addEnvironmentName(studyName);
+        statistic.addObservationUnitId(unitId);
+        statistic.addGid(context.getAppendOverwriteWorkflowContext().getPendingGermplasmByOUId().get(unitId).getBrAPIObject().getAccessionNumber());
+        context.getAppendOverwriteWorkflowContext().setStatistic(statistic);
     }
 }

@@ -30,14 +30,15 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.EntityNotFoundException;
 import org.breedinginsight.model.ProgramLocation;
+import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
 
 @Slf4j
 @Prototype
 public class WorkflowInitialization extends AppendOverwriteMiddleware {
-    WorkflowReadInitialization<BrAPIObservationUnit> brAPIObservationUnitReadWorkflowInitialization;
     WorkflowReadInitialization<BrAPITrial> brAPITrialReadWorkflowInitialization;
     WorkflowReadInitialization<BrAPIStudy> brAPIStudyReadWorkflowInitialization;
     WorkflowReadInitialization<ProgramLocation> locationReadWorkflowInitialization;
@@ -51,7 +52,6 @@ public class WorkflowInitialization extends AppendOverwriteMiddleware {
     }
     @Override
     public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
-        brAPIObservationUnitReadWorkflowInitialization = brAPIReadFactory.observationUnitWorkflowReadInitializationBean(context);
         brAPITrialReadWorkflowInitialization = brAPIReadFactory.trialWorkflowReadInitializationBean(context);
         brAPIStudyReadWorkflowInitialization = brAPIReadFactory.studyWorkflowReadInitializationBean(context);
         locationReadWorkflowInitialization = brAPIReadFactory.locationWorkflowReadInitializationBean(context);
@@ -60,7 +60,6 @@ public class WorkflowInitialization extends AppendOverwriteMiddleware {
 
         log.debug("reading required BrAPI data from BrAPI service");
         try {
-            brAPIObservationUnitReadWorkflowInitialization.execute();
             brAPITrialReadWorkflowInitialization.execute();
             brAPIStudyReadWorkflowInitialization.execute();
             locationReadWorkflowInitialization.execute();
@@ -68,6 +67,9 @@ public class WorkflowInitialization extends AppendOverwriteMiddleware {
             brAPIGermplasmReadWorkflowInitialization.execute();
         } catch (ApiException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
+            return this.compensate(context);
+        } catch (EntityNotFoundException e) {
+            // TODO: handle edge cases of missing brapi entities as needed
             return this.compensate(context);
         }
 
