@@ -38,7 +38,10 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
@@ -62,6 +65,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
     private final BrAPIEndpointProvider brAPIEndpointProvider;
     private final String referenceSource;
     private boolean runScheduledTasks;
+    private final TraitService traitService;
 
     @Inject
     public BrAPIObservationDAO(ProgramDAO programDAO,
@@ -71,7 +75,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                                BrAPIEndpointProvider brAPIEndpointProvider,
                                @Property(name = "brapi.server.reference-source") String referenceSource,
                                @Property(name = "micronaut.bi.api.run-scheduled-tasks") boolean runScheduledTasks,
-                               ProgramCacheProvider programCacheProvider) {
+                               ProgramCacheProvider programCacheProvider, TraitService traitService) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.observationUnitDAO = observationUnitDAO;
@@ -79,6 +83,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.referenceSource = referenceSource;
         this.runScheduledTasks = runScheduledTasks;
+        this.traitService = traitService;
         this.programCache = programCacheProvider.getProgramCache(this::fetchProgramObservations, BrAPIObservation.class);
     }
 
@@ -240,6 +245,42 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         return getProgramObservations(program.getId()).values().stream()
                 .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()) && studyDbIds.contains(o.getStudyDbId()))
                 .collect(Collectors.toList());
+    }
+
+    // TODO: implement other filters in BI-2506.
+    public List<BrAPIObservation> getObservationsByFilters(Program program, String studyDbId) throws ApiException, DoesNotExistException {
+
+        String studySource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
+        String observationUnitSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATION_UNITS);
+        String observationSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATIONS);
+
+        // Get all observations for the program.
+        Collection<BrAPIObservation> observations = getProgramObservations(program.getId()).values();
+        // Build a hashmap of traits for fast lookup. The key is ObservationVariableDbId, the value is the Trait Id.
+        HashMap<String, String> traitIdsByObservationVariableDbId = traitService.getIdsByObservationVariableDbIds(program.getId(), observations.stream().map(BrAPIObservation::getObservationVariableDbId).collect(Collectors.toList()));
+
+        // Lookup studyDbId.
+        return observations.stream()
+                .filter(o -> {
+                    // Short circuit if filter is null.
+                    if (studyDbId == null) return true;
+                    Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(o.getExternalReferences(), studySource);
+                    return xref.filter(brAPIExternalReference -> studyDbId.equals(brAPIExternalReference.getReferenceId())).isPresent();
+                })
+                .peek(o -> {
+                    // Translate ObservationVariableDbId.
+                    o.setObservationVariableDbId(traitIdsByObservationVariableDbId.get(o.getObservationVariableDbId()));
+                    // Translate ObservationUnitDbId.
+                    o.setObservationUnitDbId(Utilities.getExternalReference(o.getExternalReferences(), observationUnitSource)
+                            .orElseThrow(() -> new RuntimeException("observationUnit xref not found on observation")).getReferenceId());
+                    // Translate ObservationId.
+                    o.setObservationDbId(Utilities.getExternalReference(o.getExternalReferences(), observationSource)
+                            .orElseThrow(() -> new RuntimeException("observation xref not found on observation")).getReferenceId());
+                    // Translate StudyDbId.
+                    o.setStudyDbId(Utilities.getExternalReference(o.getExternalReferences(), studySource)
+                            .orElseThrow(() -> new RuntimeException("study xref not found on observation")).getReferenceId());
+                    // TODO: consider translating germplasmDbId in BI-2506.
+                }).collect(Collectors.toList());
     }
 
     @NotNull
