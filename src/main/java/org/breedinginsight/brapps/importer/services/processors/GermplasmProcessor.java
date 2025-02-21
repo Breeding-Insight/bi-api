@@ -326,10 +326,9 @@ public class GermplasmProcessor implements Processor {
         // Construct pedigree
         constructPedigreeString(importRows, mappedBrAPIImport, commit);
 
-        // Construct a dependency tree for POSTing order. Dependents on unique germplasm name, (<Name> [<Program Key> - <Accession Number>])
-        if (commit) {
-            createPostOrder();
-        }
+        // for commit:  Construct a dependency tree for POSTing order. Dependents on unique germplasm name, (<Name> [<Program Key> - <Accession Number>])
+        // for !commit: Validate for circular pedigree dependencies.
+        createPostOrder();
 
         // Construct our response object
         return getStatisticsMap(importRows);
@@ -556,6 +555,9 @@ public class GermplasmProcessor implements Processor {
         }
     }
 
+    /*
+    This will set the postOrder and validate for circular pedigree dependencies.
+     */
     private void createPostOrder() {
         // Construct a dependency tree for POSTing order
         Set<String> created = existingGermplasm.stream().map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toSet());
