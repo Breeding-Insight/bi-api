@@ -207,9 +207,9 @@ aws:
         bucket: ${AWS_GENO_BUCKET}
 startup:
   delay:
-    germplasm: ${germplasm_start_delay:2s}
-    study: ${study_start_delay:2s}
-    trial: ${trial_start_delay:2s}
-    trait: ${trait_start_delay:2s}
-    observation: ${observation_start_delay:3s}
-    observation_unit: ${observation_unit_start_delay:3s}
+    germplasm: ${GERMPLASM_START_DELAY:2s}
+    study: ${STUDY_START_DELAY:2s}
+    trial: ${TRIAL_START_DELAY:2s}
+    trait: ${TRAIT_START_DELAY:2s}
+    observation: ${OBSERVATION_START_DELAY:3s}
+    observation_unit: ${OBSERVATION_UNIT_START_DELAY:3s}
