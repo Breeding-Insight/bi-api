@@ -109,7 +109,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
         this.runScheduledTasks = runScheduledTasks;
     }
 
-    @Scheduled(initialDelay = "2s")
+    @Scheduled(initialDelay = "${startup.delay.trait}")
     public void setup() {
         if(!runScheduledTasks) {
             return;

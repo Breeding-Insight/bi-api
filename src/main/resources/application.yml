@@ -205,3 +205,11 @@ aws:
     buckets:
       genotype:
         bucket: ${AWS_GENO_BUCKET}
+startup:
+  delay:
+    germplasm: ${GERMPLASM_START_DELAY:2s}
+    study: ${STUDY_START_DELAY:2s}
+    trial: ${TRIAL_START_DELAY:2s}
+    trait: ${TRAIT_START_DELAY:2s}
+    observation: ${OBSERVATION_START_DELAY:3s}
+    observation_unit: ${OBSERVATION_UNIT_START_DELAY:3s}

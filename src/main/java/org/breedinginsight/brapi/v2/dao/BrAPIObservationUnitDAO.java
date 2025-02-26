@@ -95,7 +95,7 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         this.programCache = programCacheProvider.getProgramCache(this::fetchProgramObservationUnits, BrAPIObservationUnit.class);
     }
 
-    @Scheduled(initialDelay = "3s")
+    @Scheduled(initialDelay = "${startup.delay.observation_unit}")
     public void setup() {
         if(!runScheduledTasks) {
             return;
