@@ -141,7 +141,7 @@ public class BrAPIGermplasmDAO {
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
         germplasmSearch.externalReferenceIDs(List.of(programId.toString()));
         germplasmSearch.externalReferenceSources(List.of(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS)));
-        return processGermplasmForDisplay(brAPIDAOUtil.search(
+        return processGermplasmForDisplay(brAPIDAOUtil.searchNoPaging(
                 api::searchGermplasmPost,
                 api::searchGermplasmSearchResultsDbIdGet,
                 germplasmSearch
