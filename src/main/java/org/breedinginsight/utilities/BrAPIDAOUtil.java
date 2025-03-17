@@ -102,11 +102,11 @@ public class BrAPIDAOUtil {
                                                                                         U searchBody, boolean sendPaging) throws ApiException {
         try {
             List<V> listResult = new ArrayList<>();
-            //NOTE: Because of the way Breedbase implements BrAPI searches, the page size is initially set to an
-            //arbitrary, large value to ensure that in the event that a 202 response is returned, the searchDbId
-            //stored will refer to all records of the BrAPI variable.
 
             if (sendPaging) {
+                // This should be set to whatever the maximum allowable value is configured in the brapi test server,
+                // perhaps it should be configurable on bi side as well.
+                // For reference, that prop name is paging.page-size.max-allowed
                 searchBody.pageSize(65000);
             }
 
