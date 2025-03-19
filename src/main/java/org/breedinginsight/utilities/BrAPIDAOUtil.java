@@ -62,6 +62,9 @@ public class BrAPIDAOUtil {
     private final int postGroupSize;
     private final ProgramService programService;
 
+    @Property(name = "brapi.cache.fetch-page-size")
+    private int brapiFetchPageSize;
+
     @Inject
     public BrAPIDAOUtil(@Property(name = "brapi.search.wait-time") int searchWaitTime,
                         @Property(name = "brapi.read-timeout") Duration searchTimeout,
@@ -107,7 +110,7 @@ public class BrAPIDAOUtil {
                 // This should be set to whatever the maximum allowable value is configured in the brapi test server,
                 // perhaps it should be configurable on bi side as well.
                 // For reference, that prop name is paging.page-size.max-allowed
-                searchBody.pageSize(65000);
+                searchBody.pageSize(brapiFetchPageSize);
             }
 
             ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> response = searchMethod.apply(searchBody);
