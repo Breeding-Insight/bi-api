@@ -630,6 +630,8 @@ public class GermplasmProcessor implements Processor {
             try {
                 // Create germplasm list
                 brAPIListDAO.createBrAPILists(List.of(importList), program.getId(), upload);
+                // Now that we have finished uploading, fetch all the data posted to BrAPI to the cache so it is up-to-date.
+                brAPIGermplasmDAO.repopulateGermplasmCacheForProgram(program.getId());
             } catch (ApiException e) {
                 throw new InternalServerException(e.toString(), e);
             }
