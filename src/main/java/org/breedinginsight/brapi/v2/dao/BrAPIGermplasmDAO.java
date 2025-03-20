@@ -162,6 +162,10 @@ public class BrAPIGermplasmDAO {
         }
     }
 
+    public void repopulateGermplasmCacheForProgram(UUID programId) {
+        programGermplasmCache.populate(programId);
+    }
+
     /**
      * Process germplasm into a format for display
      * @param programGermplasm
