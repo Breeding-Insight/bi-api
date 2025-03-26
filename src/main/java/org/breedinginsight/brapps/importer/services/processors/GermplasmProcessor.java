@@ -328,7 +328,7 @@ public class GermplasmProcessor implements Processor {
 
         // for commit:  Construct a dependency tree for POSTing order. Dependents on unique germplasm name, (<Name> [<Program Key> - <Accession Number>])
         // for !commit: Validate for circular pedigree dependencies.
-        createPostOrder();
+        createPostOrder(commit);
 
         // Construct our response object
         return getStatisticsMap(importRows);
@@ -558,9 +558,15 @@ public class GermplasmProcessor implements Processor {
     /*
     This will set the postOrder and validate for circular pedigree dependencies.
      */
-    private void createPostOrder() {
+    private void createPostOrder(boolean commit) {
+        Set<String> created = null;
         // Construct a dependency tree for POSTing order
-        Set<String> created = existingGermplasm.stream().map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toSet());
+        if(commit){
+            created = existingGermplasm.stream().map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toSet());
+        }
+        else {
+            created = existingGermplasm.stream().map(BrAPIGermplasm::getDefaultDisplayName).collect(Collectors.toSet());
+        }
 
         //todo this gets messy
 
@@ -571,7 +577,7 @@ public class GermplasmProcessor implements Processor {
             for (BrAPIGermplasm germplasm : newGermplasmList) {
 
                 // If we've already planned this germplasm, skip
-                if (created.contains(germplasm.getGermplasmName())) {
+                if ( (commit && created.contains(germplasm.getGermplasmName())) || (!commit && created.contains(germplasm.getDefaultDisplayName())) ) {
                     continue;
                 }
 
