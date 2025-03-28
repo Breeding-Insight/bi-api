@@ -189,10 +189,9 @@ public class BrAPIGermplasmService {
             List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
             Map<String, BrAPIGermplasm> germplasmByName = new HashMap<>();
 
-            // set the list ID in the germplasm additional info
-            germplasm.forEach(x -> x.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, listId));
-
             for (BrAPIGermplasm g : germplasm) {
+                // set the list ID in the germplasm additional info
+                g.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, listId);
                 // Add to map.
                 germplasmByName.put(g.getGermplasmName(), g);
             }
