@@ -315,8 +315,7 @@ public class BrAPIGermplasmDAO {
         try {
             if (!postBrAPIGermplasmList.isEmpty()) {
                     List<BrAPIGermplasm> postResponse = brAPIDAOUtil.post(postBrAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
-                    processGermplasmForDisplay(postResponse, program.getKey());
-                    return postResponse;
+                    return new ArrayList<>(processGermplasmForDisplay(postResponse, program.getKey()).values());
             }
             return new ArrayList<>();
         } catch (Exception e) {
