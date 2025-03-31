@@ -30,18 +30,19 @@ import org.breedinginsight.services.SpeciesService;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.io.File;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static io.micronaut.http.HttpRequest.POST;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
@@ -731,6 +732,187 @@ public class GermplasmFileImportTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
         assertEquals(GermplasmProcessor.circularDependency, result.getAsJsonObject("progress").get("message").getAsString());
+    }
+
+    /**
+     * Verify GID assignment order when germplasm entry numbers are sorted ascending in file
+     * Preview shows Germplasm Name in file order, Entry No ascending (also file order in this case), no GID at this stage
+     * Germplasm view shows GID asc, Test1 lowest, Test 3 highest
+     * Germplasm List shows GID asc, Entry No asc
+     *
+     * Preview table ordered by entry number ascending regardless of file order
+     *
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    @SneakyThrows
+    public void entryNoAscending(boolean commit) {
+        String pathname = "src/test/resources/files/germplasm_import/entry_no_asc.csv";
+        Table fileData = Table.read().file(pathname);
+        String listName = "EntryNoAsc";
+        String listDescription = "Entry numbers in ascending order with pedigree";
+
+        JsonObject result = importGermplasm(pathname, listName, listDescription, commit);
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        // preview table is sorted by entry number
+        fileData = fileData.sortAscendingOn("Entry No");
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        checkEntryNoFields(fileData, previewRows, commit, listName, listDescription, "EntryNoAscGerm 2", "EntryNoAscGerm 3");
+    }
+
+    /**
+     * Verify GID assignment order when germplasm entry numbers are sorted descending in file
+     * Preview shows Germplasm Name in entry no order, Entry No ascending (also file order in this case), no GID at this stage
+     * Germplasm view shows GID desc, Test1 highest, Test 3 lowest GIDs in entry no order, not file order
+     * Germplasm List shows GID asc, Entry No asc
+     */
+
+    /**
+     * Prior to BI-2573 this file would result in a false positive circular dependency error. The reason is that when
+     * entry no order did not match germplasm file order, pedigree information was assigned to the wrong germplasm
+     * record due to inconsistencies in sorting during processing.
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    @SneakyThrows
+    public void entryNoDescending(boolean commit) {
+        String pathname = "src/test/resources/files/germplasm_import/entry_no_desc_pedigree.csv";
+        Table fileData = Table.read().file(pathname);
+        String listName = "EntryNoDesc";
+        String listDescription = "Entry numbers in descending order with pedigree";
+
+        JsonObject result = importGermplasm(pathname, listName, listDescription, commit);
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        // preview table is sorted by entry number
+        fileData = fileData.sortAscendingOn("Entry No");
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        checkEntryNoFields(fileData, previewRows, commit, listName, listDescription, "EntryNoDescGerm 2", "EntryNoDescGerm 1");
+    }
+
+    private void checkEntryNoFields(Table fileData, JsonArray previewRows, boolean commit,
+                                    String listName, String listDescription,
+                                    String motherName, String fatherName) {
+        List<String> germplasmNames = new ArrayList<>();
+
+        for (int i = 0; i < previewRows.size(); i++) {
+            JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            germplasmNames.add(germplasm.get("germplasmName").getAsString());
+            checkBasicResponse(germplasm, fileData, i);
+
+            if (!commit) {
+                // preview checks
+                checkEntryNoPreviewFields(fileData, previewRows, i, motherName, fatherName);
+            } else {
+                // commit checks
+                checkEntryNoCommitFields(fileData, previewRows, i);
+            }
+        }
+
+        if (commit) {
+            // Check the germplasm list
+            // TODO: check germplasm list order
+            checkGermplasmList(Germplasm.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
+        }
+    }
+
+    /**
+     * Check fields relevant to preview for descending entry no tests
+     * @param fileData
+     * @param previewRows
+     */
+    private void checkEntryNoPreviewFields(Table fileData, JsonArray previewRows, int i, String motherName, String fatherName) {
+        JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+
+        // Check preview specific items
+        // Germplasm name (display name)
+        assertEquals(fileData.getString(i, "Germplasm Name"), germplasm.get("germplasmName").getAsString());
+        JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
+
+        // check entry number assignment
+        assertEquals(fileData.getString(i, "Entry No"), additionalInfo.get("importEntryNumber").getAsString(), "Wrong entry number");
+        // check pedigree entry number assignment
+        String fileFemaleEntryNo = fileData.getString(i, "Female Parent Entry No");
+        if (isNotBlank(fileFemaleEntryNo)) {
+            assertEquals(fileFemaleEntryNo, additionalInfo.get("femaleParentEntryNo").getAsString(), "Wrong female parent entry number");
+        }
+        String fileMaleEntryNo = fileData.getString(i, "Male Parent Entry No");
+        if (isNotBlank(fileMaleEntryNo)) {
+            assertEquals(fileMaleEntryNo, additionalInfo.get("maleParentEntryNo").getAsString(), "Wrong male parent entry number");
+        }
+
+        // check preview pedigree values
+        // only care about entry nos for this test case, not using GIDs
+        if (isNotBlank(fileFemaleEntryNo) && isNotBlank(fileMaleEntryNo)) {
+            String pedigree = germplasm.get("pedigree").getAsString();
+            String[] pedigreeParts = pedigree.split("/");
+            String mother = pedigreeParts[0];
+            String father = pedigreeParts[1];
+            assertEquals(motherName, mother, "Wrong mother");
+            assertEquals(fatherName, father, "Wrong father");
+        }
+    }
+
+    private void checkEntryNoCommitFields(Table fileData, JsonArray previewRows, int i) {
+        JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+        // Check commit specific items
+        // Germplasm name (display name)
+        String expectedGermplasmName = String.format("%s [%s-%s]", fileData.getString(i, "Germplasm Name"), validProgram.getKey(), germplasm.get("accessionNumber").getAsString());
+        assertEquals(expectedGermplasmName, germplasm.get("germplasmName").getAsString());
+        // Created Date
+        JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
+        assertTrue(additionalInfo.has(BrAPIAdditionalInfoFields.CREATED_DATE), "createdDate is missing");
+        // Accession Number
+        assertTrue(germplasm.has("accessionNumber"), "accessionNumber missing");
+        // TODO: check that gids are assigned in entry no order
+        /*
+        if (i > 0) {
+            int lastEntryNo = previewRows.get(i-1).
+        }
+         */
+
+        // TODO: pedigree
+        /*
+        // Pedigree (germplasm names)
+        String pedigree = germplasm.get("pedigree").getAsString();
+        String mother = !pedigree.isBlank() ? pedigree.split("/")[0] : null;
+        String father = !pedigree.isBlank() && pedigree.split("/").length > 1 ? pedigree.split("/")[1] : null;
+        String regexMatcher = "^(.*\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
+        assertTrue(mother.matches(String.format(regexMatcher, femaleParents.get(i))), "Wrong mother");
+        if (!maleParents.get(i).isBlank()) {
+            assertTrue(father.matches(String.format(regexMatcher, maleParents.get(i))), "Wrong father");
+        } else {
+            assertNull(father, "Wrong father");
+        }
+         */
+
+        // External Reference germplasm
+        JsonArray externalReferences = germplasm.getAsJsonArray("externalReferences");
+        boolean referenceFound = false;
+        for (JsonElement reference: externalReferences) {
+            String referenceSource = reference.getAsJsonObject().get("referenceSource").getAsString();
+            if (referenceSource.equals(BRAPI_REFERENCE_SOURCE)) {
+                referenceFound = true;
+                break;
+            }
+        }
+        assertTrue(referenceFound, "Germplasm UUID reference not found");
+
+        // TODO: add synonyms?
+        /*
+        // Synonyms
+        String[] splitGermplasmName = germplasm.get("germplasmName").getAsString().split(" ");
+        String scope = splitGermplasmName[splitGermplasmName.length - 1];
+        JsonArray synonyms = germplasm.getAsJsonArray("synonyms");
+        for (JsonElement synonym: synonyms) {
+            String synonymName = synonym.getAsJsonObject().get("synonym").getAsString();
+            assertNotNull(synonymName);
+            assertTrue(synonymName.contains(scope), "Germplasm synonym was not properly scoped");
+        }
+        */
     }
 
     private JsonObject importGermplasm(String pathname, String listName, String listDescription, Boolean commit) throws InterruptedException {

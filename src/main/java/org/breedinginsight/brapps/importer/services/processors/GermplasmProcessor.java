@@ -115,6 +115,17 @@ public class GermplasmProcessor implements Processor {
 
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ApiException {
 
+        // BI-2573 - sort by entry no here so ordering is consistent everywhere in processor
+        importRows.sort((left, right) -> {
+            if (left.getGermplasm().getEntryNo() == null || right.getGermplasm().getEntryNo() == null) {
+                return 0;
+            } else {
+                Integer leftEntryNo = Integer.parseInt(left.getGermplasm().getEntryNo());
+                Integer rightEntryNo = Integer.parseInt(right.getGermplasm().getEntryNo());
+                return leftEntryNo.compareTo(rightEntryNo);
+            }
+        });
+
         // Get all of our objects specified in the data file by their unique attributes
         Map<String, Boolean> germplasmAccessionNumbers = new HashMap<>();
         for (int i = 0; i < importRows.size(); i++) {
@@ -265,16 +276,7 @@ public class GermplasmProcessor implements Processor {
         Map<String, Integer> entryNumberCounts = new HashMap<>();
         List<String> userProvidedEntryNumbers = new ArrayList<>();
         ValidationErrors validationErrors = new ValidationErrors();
-        // Sort importRows by entry number (if present).
-        importRows.sort((left, right) -> {
-            if (left.getGermplasm().getEntryNo() == null || right.getGermplasm().getEntryNo() == null) {
-                return 0;
-            } else {
-                Integer leftEntryNo = Integer.parseInt(left.getGermplasm().getEntryNo());
-                Integer rightEntryNo = Integer.parseInt(right.getGermplasm().getEntryNo());
-                return leftEntryNo.compareTo(rightEntryNo);
-            }
-        });
+
         for (int i = 0; i < importRows.size(); i++) {
             log.debug("processing germplasm row: " + (i+1));
             BrAPIImport brapiImport = importRows.get(i);
@@ -283,6 +285,7 @@ public class GermplasmProcessor implements Processor {
             Germplasm germplasm = brapiImport.getGermplasm();
 
             // Assign the entry number
+            // entryno is assigned if germplasm from file does not have an entryno
             if (germplasm.getEntryNo() == null) {
                 germplasm.setEntryNo(Integer.toString(i + 1));
             } else {
@@ -702,6 +705,11 @@ public class GermplasmProcessor implements Processor {
                 }
                 else if (germplasmIndexByEntryNo.containsKey(germplasm.getFemaleParentEntryNo())) {
                     Integer femaleParentInd = germplasmIndexByEntryNo.get(femaleParentFile);
+                    // TODO:
+                    // mappedImport 0-based indices ordered by entry number, not file order
+                    // germplasmIndexByEntroNo gives 0-based index in file order
+                    // wrong parent information is grabbed and incorrect pedigree because indexing is not consistent
+
                     femaleParent = mappedBrAPIImport.get(femaleParentInd).getGermplasm().getBrAPIObject();
                     pedigreeString.append(commit ? femaleParent.getGermplasmName() : femaleParent.getDefaultDisplayName());
                     femaleParentFound = true;
@@ -723,6 +731,7 @@ public class GermplasmProcessor implements Processor {
                     }
                     if (germplasmIndexByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) {
                         Integer maleParentInd = germplasmIndexByEntryNo.get(maleParentFile);
+                        // TODO: same here
                         maleParent = mappedBrAPIImport.get(maleParentInd).getGermplasm().getBrAPIObject();
                         pedigreeString.append(String.format("/%s", commit ? maleParent.getGermplasmName() : maleParent.getDefaultDisplayName()));
                     }
