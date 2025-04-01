@@ -809,7 +809,7 @@ public class GermplasmFileImportTest extends BrAPITest {
                 checkEntryNoPreviewFields(fileData, previewRows, i, motherName, fatherName);
             } else {
                 // commit checks
-                checkEntryNoCommitFields(fileData, previewRows, i);
+                checkEntryNoCommitFields(fileData, previewRows, i, motherName, fatherName);
             }
         }
 
@@ -869,7 +869,7 @@ public class GermplasmFileImportTest extends BrAPITest {
      * @param previewRows processed preview rows
      * @param i row index
      */
-    private void checkEntryNoCommitFields(Table fileData, JsonArray previewRows, int i) {
+    private void checkEntryNoCommitFields(Table fileData, JsonArray previewRows, int i, String motherName, String fatherName) {
         JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
         // Check commit specific items
         // Germplasm name (display name)
@@ -892,20 +892,20 @@ public class GermplasmFileImportTest extends BrAPITest {
             assertEquals(1, currentGid-lastGid, "Expected GID to be monotonically increasing");
         }
 
-        // TODO: pedigree
-        /*
-        // Pedigree (germplasm names)
-        String pedigree = germplasm.get("pedigree").getAsString();
-        String mother = !pedigree.isBlank() ? pedigree.split("/")[0] : null;
-        String father = !pedigree.isBlank() && pedigree.split("/").length > 1 ? pedigree.split("/")[1] : null;
-        String regexMatcher = "^(.*\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
-        assertTrue(mother.matches(String.format(regexMatcher, femaleParents.get(i))), "Wrong mother");
-        if (!maleParents.get(i).isBlank()) {
-            assertTrue(father.matches(String.format(regexMatcher, maleParents.get(i))), "Wrong father");
-        } else {
-            assertNull(father, "Wrong father");
+        // pedigree check just for single germplasm in file with pedigree info
+        String fileFemaleEntryNo = fileData.getString(i, "Female Parent Entry No");
+        String fileMaleEntryNo = fileData.getString(i, "Male Parent Entry No");
+
+        // only care about entry nos for this test case, not using GIDs
+        if (isNotBlank(fileFemaleEntryNo) && isNotBlank(fileMaleEntryNo)) {
+            String pedigree = germplasm.get("pedigree").getAsString();
+            String[] pedigreeParts = pedigree.split("/");
+            String mother = pedigreeParts[0];
+            String father = pedigreeParts[1];
+            String regexMatcher = "^(.*\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
+            assertTrue(mother.matches(String.format(regexMatcher, motherName)), "Wrong mother");
+            assertTrue(father.matches(String.format(regexMatcher, fatherName)), "Wrong father");
         }
-         */
 
         // External Reference germplasm
         JsonArray externalReferences = germplasm.getAsJsonArray("externalReferences");
