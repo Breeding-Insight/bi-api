@@ -822,6 +822,7 @@ public class GermplasmFileImportTest extends BrAPITest {
 
     /**
      * Check fields relevant to preview for descending entry no tests
+     *
      * @param fileData
      * @param previewRows
      */
@@ -857,6 +858,17 @@ public class GermplasmFileImportTest extends BrAPITest {
         }
     }
 
+    /**
+     * Check properties of processed and committed germplasm objects match what would be expected based on file contents.
+     * Of particular importance are:
+     * - germplasm are in entry no order
+     * - gids are assigned in entry no order
+     * - correct pedigree was assigned to germplasm based on file specification
+     *
+     * @param fileData raw file data
+     * @param previewRows processed preview rows
+     * @param i row index
+     */
     private void checkEntryNoCommitFields(Table fileData, JsonArray previewRows, int i) {
         JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
         // Check commit specific items
@@ -868,12 +880,17 @@ public class GermplasmFileImportTest extends BrAPITest {
         assertTrue(additionalInfo.has(BrAPIAdditionalInfoFields.CREATED_DATE), "createdDate is missing");
         // Accession Number
         assertTrue(germplasm.has("accessionNumber"), "accessionNumber missing");
-        // TODO: check that gids are assigned in entry no order
-        /*
+
+        // check that gids are assigned in entry no order
         if (i > 0) {
-            int lastEntryNo = previewRows.get(i-1).
+            JsonObject previousGermplasm = previewRows.get(i-1).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            int lastEntryNo = previousGermplasm.getAsJsonObject("additionalInfo").get("importEntryNumber").getAsInt();
+            int lastGid = previousGermplasm.get("accessionNumber").getAsInt();
+            int currentEntryNo = additionalInfo.get("importEntryNumber").getAsInt();
+            int currentGid = germplasm.get("accessionNumber").getAsInt();
+            assertEquals(1, currentEntryNo-lastEntryNo, "Expected entry number to be monotonically increasing");
+            assertEquals(1, currentGid-lastGid, "Expected GID to be monotonically increasing");
         }
-         */
 
         // TODO: pedigree
         /*
