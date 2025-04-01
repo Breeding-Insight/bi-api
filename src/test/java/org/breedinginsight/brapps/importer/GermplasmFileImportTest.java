@@ -735,6 +735,7 @@ public class GermplasmFileImportTest extends BrAPITest {
     }
 
     /**
+     *
      * Verify GID assignment order when germplasm entry numbers are sorted ascending in file
      * Preview shows Germplasm Name in file order, Entry No ascending (also file order in this case), no GID at this stage
      * Germplasm view shows GID asc, Test1 lowest, Test 3 highest
@@ -778,7 +779,7 @@ public class GermplasmFileImportTest extends BrAPITest {
     @ValueSource(booleans = {false, true})
     @SneakyThrows
     public void entryNoDescending(boolean commit) {
-        String pathname = "src/test/resources/files/germplasm_import/entry_no_desc_pedigree.csv";
+        String pathname = "src/test/resources/files/germplasm_import/entry_no_desc.csv";
         Table fileData = Table.read().file(pathname);
         String listName = "EntryNoDesc";
         String listDescription = "Entry numbers in descending order with pedigree";
@@ -900,19 +901,6 @@ public class GermplasmFileImportTest extends BrAPITest {
             }
         }
         assertTrue(referenceFound, "Germplasm UUID reference not found");
-
-        // TODO: add synonyms?
-        /*
-        // Synonyms
-        String[] splitGermplasmName = germplasm.get("germplasmName").getAsString().split(" ");
-        String scope = splitGermplasmName[splitGermplasmName.length - 1];
-        JsonArray synonyms = germplasm.getAsJsonArray("synonyms");
-        for (JsonElement synonym: synonyms) {
-            String synonymName = synonym.getAsJsonObject().get("synonym").getAsString();
-            assertNotNull(synonymName);
-            assertTrue(synonymName.contains(scope), "Germplasm synonym was not properly scoped");
-        }
-        */
     }
 
     private JsonObject importGermplasm(String pathname, String listName, String listDescription, Boolean commit) throws InterruptedException {
