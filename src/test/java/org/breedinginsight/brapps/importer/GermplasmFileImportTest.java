@@ -735,14 +735,10 @@ public class GermplasmFileImportTest extends BrAPITest {
     }
 
     /**
+     * Test preview and commit data when entry numbers are in ascending order in file. This is the normal case and here
+     * to catch any possible regressions
      *
-     * Verify GID assignment order when germplasm entry numbers are sorted ascending in file
-     * Preview shows Germplasm Name in file order, Entry No ascending (also file order in this case), no GID at this stage
-     * Germplasm view shows GID asc, Test1 lowest, Test 3 highest
-     * Germplasm List shows GID asc, Entry No asc
-     *
-     * Preview table ordered by entry number ascending regardless of file order
-     *
+     * @param commit controls whether import is preview or commit
      */
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
@@ -764,16 +760,13 @@ public class GermplasmFileImportTest extends BrAPITest {
     }
 
     /**
-     * Verify GID assignment order when germplasm entry numbers are sorted descending in file
-     * Preview shows Germplasm Name in entry no order, Entry No ascending (also file order in this case), no GID at this stage
-     * Germplasm view shows GID desc, Test1 highest, Test 3 lowest GIDs in entry no order, not file order
-     * Germplasm List shows GID asc, Entry No asc
-     */
-
-    /**
      * Prior to BI-2573 this file would result in a false positive circular dependency error. The reason is that when
      * entry no order did not match germplasm file order, pedigree information was assigned to the wrong germplasm
      * record due to inconsistencies in sorting during processing.
+     *
+     * Test preview and commit data when entry numbers are in descending order in file
+     *
+     * @param commit controls whether import is preview or commit
      */
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
@@ -794,6 +787,17 @@ public class GermplasmFileImportTest extends BrAPITest {
         checkEntryNoFields(fileData, previewRows, commit, listName, listDescription, "EntryNoDescGerm 2", "EntryNoDescGerm 1");
     }
 
+    /**
+     * Shared method to perform entry number order tests for preview and commit
+     *
+     * @param fileData raw file data
+     * @param previewRows processed preview rows
+     * @param commit whether checking preview or commit fields
+     * @param listName name of list when committing data
+     * @param listDescription list description when committing data
+     * @param motherName name of mother for pedigree check (from file)
+     * @param fatherName name of father for pedigree check (from file)
+     */
     private void checkEntryNoFields(Table fileData, JsonArray previewRows, boolean commit,
                                     String listName, String listDescription,
                                     String motherName, String fatherName) {
@@ -815,16 +819,17 @@ public class GermplasmFileImportTest extends BrAPITest {
 
         if (commit) {
             // Check the germplasm list
-            // TODO: check germplasm list order
             checkGermplasmList(Germplasm.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
         }
     }
 
     /**
-     * Check fields relevant to preview for descending entry no tests
+     * Check important field in preview data beyond basic info
+     * - entry number assignment
+     * - pedigree assignment
      *
-     * @param fileData
-     * @param previewRows
+     * @param fileData raw file data
+     * @param previewRows processed preview rows
      */
     private void checkEntryNoPreviewFields(Table fileData, JsonArray previewRows, int i, String motherName, String fatherName) {
         JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
