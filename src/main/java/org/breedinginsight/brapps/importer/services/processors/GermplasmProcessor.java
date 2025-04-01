@@ -285,7 +285,6 @@ public class GermplasmProcessor implements Processor {
             Germplasm germplasm = brapiImport.getGermplasm();
 
             // Assign the entry number
-            // entryno is assigned if germplasm from file does not have an entryno
             if (germplasm.getEntryNo() == null) {
                 germplasm.setEntryNo(Integer.toString(i + 1));
             } else {
@@ -705,11 +704,6 @@ public class GermplasmProcessor implements Processor {
                 }
                 else if (germplasmIndexByEntryNo.containsKey(germplasm.getFemaleParentEntryNo())) {
                     Integer femaleParentInd = germplasmIndexByEntryNo.get(femaleParentFile);
-                    // TODO:
-                    // mappedImport 0-based indices ordered by entry number, not file order
-                    // germplasmIndexByEntroNo gives 0-based index in file order
-                    // wrong parent information is grabbed and incorrect pedigree because indexing is not consistent
-
                     femaleParent = mappedBrAPIImport.get(femaleParentInd).getGermplasm().getBrAPIObject();
                     pedigreeString.append(commit ? femaleParent.getGermplasmName() : femaleParent.getDefaultDisplayName());
                     femaleParentFound = true;
@@ -731,7 +725,6 @@ public class GermplasmProcessor implements Processor {
                     }
                     if (germplasmIndexByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) {
                         Integer maleParentInd = germplasmIndexByEntryNo.get(maleParentFile);
-                        // TODO: same here
                         maleParent = mappedBrAPIImport.get(maleParentInd).getGermplasm().getBrAPIObject();
                         pedigreeString.append(String.format("/%s", commit ? maleParent.getGermplasmName() : maleParent.getDefaultDisplayName()));
                     }
