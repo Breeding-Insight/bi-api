@@ -60,21 +60,21 @@ public class BrAPIDAOUtil {
     private final Duration searchTimeout;
     private final int pageSize;
     private final int postGroupSize;
+    private final int brapiFetchPageSize;
     private final ProgramService programService;
-
-    @Property(name = "brapi.cache.fetch-page-size")
-    private int brapiFetchPageSize;
 
     @Inject
     public BrAPIDAOUtil(@Property(name = "brapi.search.wait-time") int searchWaitTime,
                         @Property(name = "brapi.read-timeout") Duration searchTimeout,
                         @Property(name = "brapi.page-size") int pageSize,
                         @Property(name = "brapi.post-group-size") int postGroupSize,
+                        @Property(name = "brapi.cache.fetch-page-size") int brapiFetchPageSize,
                         ProgramService programService) {
         this.searchWaitTime = searchWaitTime;
         this.searchTimeout = searchTimeout;
         this.pageSize = pageSize;
         this.postGroupSize = postGroupSize;
+        this.brapiFetchPageSize = brapiFetchPageSize;
         this.programService = programService;
     }
 

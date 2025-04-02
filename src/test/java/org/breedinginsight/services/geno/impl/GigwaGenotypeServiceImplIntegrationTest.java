@@ -201,7 +201,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
     @MockBean(BrAPIDAOUtil.class)
     BrAPIDAOUtil brAPIDAOUtil() {
-        return spy(new BrAPIDAOUtil(1000, Duration.of(10, ChronoUnit.MINUTES), 1000, 100, programService()));
+        return spy(new BrAPIDAOUtil(1000, Duration.of(10, ChronoUnit.MINUTES), 1000, 100, 65000, programService()));
     }
 
     @MockBean(SimpleStorageService.class)
