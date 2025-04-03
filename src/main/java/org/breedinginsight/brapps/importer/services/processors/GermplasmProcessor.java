@@ -115,6 +115,17 @@ public class GermplasmProcessor implements Processor {
 
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ApiException {
 
+        // BI-2573 - sort by entry no here so ordering is consistent everywhere in processor
+        importRows.sort((left, right) -> {
+            if (left.getGermplasm().getEntryNo() == null || right.getGermplasm().getEntryNo() == null) {
+                return 0;
+            } else {
+                Integer leftEntryNo = Integer.parseInt(left.getGermplasm().getEntryNo());
+                Integer rightEntryNo = Integer.parseInt(right.getGermplasm().getEntryNo());
+                return leftEntryNo.compareTo(rightEntryNo);
+            }
+        });
+
         // Get all of our objects specified in the data file by their unique attributes
         Map<String, Boolean> germplasmAccessionNumbers = new HashMap<>();
         for (int i = 0; i < importRows.size(); i++) {
@@ -265,16 +276,7 @@ public class GermplasmProcessor implements Processor {
         Map<String, Integer> entryNumberCounts = new HashMap<>();
         List<String> userProvidedEntryNumbers = new ArrayList<>();
         ValidationErrors validationErrors = new ValidationErrors();
-        // Sort importRows by entry number (if present).
-        importRows.sort((left, right) -> {
-            if (left.getGermplasm().getEntryNo() == null || right.getGermplasm().getEntryNo() == null) {
-                return 0;
-            } else {
-                Integer leftEntryNo = Integer.parseInt(left.getGermplasm().getEntryNo());
-                Integer rightEntryNo = Integer.parseInt(right.getGermplasm().getEntryNo());
-                return leftEntryNo.compareTo(rightEntryNo);
-            }
-        });
+
         for (int i = 0; i < importRows.size(); i++) {
             log.debug("processing germplasm row: " + (i+1));
             BrAPIImport brapiImport = importRows.get(i);
