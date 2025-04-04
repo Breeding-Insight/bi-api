@@ -191,7 +191,7 @@ public class BrAPIGermplasmService {
 
             for (BrAPIGermplasm g : germplasm) {
                 // set the list ID in the germplasm additional info
-                germplasm.forEach(x -> x.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, listId));
+                g.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, listId);
                 // Add to map.
                 germplasmByName.put(g.getGermplasmName(), g);
             }
