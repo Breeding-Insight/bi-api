@@ -1,5 +1,7 @@
 package org.breedinginsight.brapi.v2.services;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -9,8 +11,7 @@ import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
-import org.breedinginsight.api.model.v1.response.DataResponse;
-import org.breedinginsight.api.model.v1.response.Response;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
@@ -20,9 +21,7 @@ import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -66,27 +65,36 @@ public class BrAPIListService {
             Optional<BrAPIExternalReference> programXrefOptional = Utilities.getExternalReference(list.getExternalReferences(),Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS));
             return programXrefOptional.isPresent() && programXrefOptional.get().getReferenceID().equals(program.getId().toString());
         }).collect(Collectors.toList());
-        for (BrAPIListSummary list: programLists) {
 
+        // Map of <listDbId, GermplasmName> pairs.
+        HashMap<String, String> itemsFromEachList = new HashMap<>();
+        for (BrAPIListSummary list: programLists) {
             // remove the program key from the list name
             list.setListName(Utilities.removeProgramKeyAndUnknownAdditionalData(list.getListName(), program.getKey()));
-
             // set the owner of the list items as the list owner
             BrAPIListsSingleResponse listDetails = listDAO.getListById(list.getListDbId(), program.getId());
-            List<String> listItemNames = listDetails.getResult().getData();
-            if (type != null) {
-                switch (type) {
-                    case GERMPLASM:
-                        String createdBy = germplasmDAO.getGermplasmByRawName(listItemNames, program.getId()).get(0)
+            // Add first item from list to hashmap.
+            itemsFromEachList.put(list.getListDbId(), listDetails.getResult().getData().get(0));
+        }
+        if (type == BrAPIListTypes.GERMPLASM) {
+            // Fetch one germplasm for each list from cache.
+            List<BrAPIGermplasm> germplasmRepresentatives = germplasmDAO.getGermplasmByRawName((new ArrayList<>(itemsFromEachList.values())), program.getId());
+            // Build hashmap of germplasm by name.
+            HashMap<String, BrAPIGermplasm> germplasmByName = new HashMap<>();
+            for (BrAPIGermplasm germplasm: germplasmRepresentatives) {
+                germplasmByName.put(germplasm.getGermplasmName(), germplasm);
+            }
+            // For each list, set list owner name from createdBy stored in germplasm additional info.
+            for (BrAPIListSummary list: programLists) {
+                String strippedName = Utilities.removeProgramKeyAnyAccession(itemsFromEachList.get(list.getListDbId()), program.getKey());
+
+                list.setListOwnerName(
+                        germplasmByName.get(strippedName)
                                 .getAdditionalInfo()
                                 .getAsJsonObject("createdBy")
                                 .get("userName")
-                                .getAsString();
-                        list.setListOwnerName(createdBy);
-                    case OBSERVATIONVARIABLES:
-                    default:
-                        break;
-                }
+                                .getAsString()
+                );
             }
         }
 
