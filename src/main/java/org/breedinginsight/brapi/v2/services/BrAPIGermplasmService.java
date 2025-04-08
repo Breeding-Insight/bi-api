@@ -187,13 +187,13 @@ public class BrAPIGermplasmService {
             // get list BrAPI germplasm variables
             List<String> germplasmNames = listResponse.getResult().getData();
             List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
-            Map<String, BrAPIGermplasm> germplasmByName = new HashMap<>();
+            Map<String, BrAPIGermplasm> germplasmByGid = new HashMap<>();
 
             for (BrAPIGermplasm g : germplasm) {
                 // set the list ID in the germplasm additional info
                 g.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, listId);
                 // Add to map.
-                germplasmByName.put(g.getGermplasmName(), g);
+                germplasmByGid.put(g.getAccessionNumber(), g);
             }
 
             // Get the program key.
@@ -201,12 +201,15 @@ public class BrAPIGermplasmService {
                     .orElseThrow(ApiException::new)
                     .getKey();
 
+            // Extract gids from list names
+            List<String> gids = germplasmNames.stream().map(Utilities::extractGid).collect(Collectors.toList());
+
             // Build list from BrAPI list that preserves ordering and duplicates and assigns sequential entry numbers.
             List<BrAPIGermplasm> germplasmList = new ArrayList<>();
             int entryNumber = 0;
-            for (String germplasmName : germplasmNames) {
+            for (String gid : gids) {
                 ++entryNumber;
-                BrAPIGermplasm listEntry = cloneBrAPIGermplasm(germplasmByName.get(Utilities.removeProgramKeyAndUnknownAdditionalData(germplasmName, programKey)));
+                BrAPIGermplasm listEntry = cloneBrAPIGermplasm(germplasmByGid.get(gid));
                 // Set entry number.
                 listEntry.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNumber);
                 germplasmList.add(listEntry);
