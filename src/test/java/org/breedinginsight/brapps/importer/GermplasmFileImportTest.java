@@ -787,6 +787,32 @@ public class GermplasmFileImportTest extends BrAPITest {
     }
 
     /**
+     * Prior to BI-2593 this file would result in a false positive circular dependency error. This was due to germplasm
+     * references not being unique in the preview and commit phases of the postOrder method.
+     *
+     * @param commit controls whether import is preview or commit
+     */
+    @Order(7) // want some existing gids to reference
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    @SneakyThrows
+    public void duplicateNames(boolean commit) {
+        String pathname = "src/test/resources/files/germplasm_import/duplicate_names_circular_dependency.csv";
+        Table fileData = Table.read().file(pathname);
+        String listName = "DuplicateNames";
+        String listDescription = "Duplicate names with pedigree";
+
+        JsonObject result = importGermplasm(pathname, listName, listDescription, commit);
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        // preview table is sorted by entry number
+        fileData = fileData.sortAscendingOn("Entry No");
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        checkEntryNoFields(fileData, previewRows, commit, listName, listDescription, "TestDup", "TestDup");
+    }
+
+    /**
      * Shared method to perform entry number order tests for preview and commit
      *
      * @param fileData raw file data
