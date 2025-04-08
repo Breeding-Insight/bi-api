@@ -20,7 +20,7 @@ import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.imports.germplasm.GermplasmImportService;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
+import org.breedinginsight.brapps.importer.services.processors.germplasm.GermplasmProcessor;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
@@ -32,7 +32,6 @@ import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
