@@ -196,11 +196,6 @@ public class BrAPIGermplasmService {
                 germplasmByGid.put(g.getAccessionNumber(), g);
             }
 
-            // Get the program key.
-            String programKey = programService.getById(programId)
-                    .orElseThrow(ApiException::new)
-                    .getKey();
-
             // Extract gids from list names
             List<String> gids = germplasmNames.stream().map(Utilities::extractGid).collect(Collectors.toList());
 
