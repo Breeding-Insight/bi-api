@@ -20,7 +20,7 @@ import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.imports.germplasm.GermplasmImportService;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
+import org.breedinginsight.brapps.importer.services.processors.germplasm.GermplasmProcessor;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
@@ -32,7 +32,6 @@ import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
@@ -785,6 +784,32 @@ public class GermplasmFileImportTest extends BrAPITest {
 
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         checkEntryNoFields(fileData, previewRows, commit, listName, listDescription, "EntryNoDescGerm 2", "EntryNoDescGerm 1");
+    }
+
+    /**
+     * Prior to BI-2593 this file would result in a false positive circular dependency error. This was due to germplasm
+     * references not being unique in the preview and commit phases of the postOrder method.
+     *
+     * @param commit controls whether import is preview or commit
+     */
+    @Order(7) // want some existing gids to reference
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    @SneakyThrows
+    public void duplicateNames(boolean commit) {
+        String pathname = "src/test/resources/files/germplasm_import/duplicate_names_circular_dependency.csv";
+        Table fileData = Table.read().file(pathname);
+        String listName = "DuplicateNames";
+        String listDescription = "Duplicate names with pedigree";
+
+        JsonObject result = importGermplasm(pathname, listName, listDescription, commit);
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        // preview table is sorted by entry number
+        fileData = fileData.sortAscendingOn("Entry No");
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        checkEntryNoFields(fileData, previewRows, commit, listName, listDescription, "TestDup", "TestDup");
     }
 
     /**
