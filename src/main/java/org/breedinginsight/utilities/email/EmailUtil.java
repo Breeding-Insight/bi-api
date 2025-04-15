@@ -21,10 +21,10 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.inject.Singleton;
-import javax.mail.*;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import jakarta.inject.Singleton;
+import jakarta.mail.*;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.Properties;

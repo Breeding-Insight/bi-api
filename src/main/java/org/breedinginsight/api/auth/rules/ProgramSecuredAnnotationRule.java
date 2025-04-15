@@ -17,25 +17,32 @@
 
 package org.breedinginsight.api.auth.rules;
 
+import io.micronaut.core.annotation.Nullable;
+import io.micronaut.http.HttpAttributes;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.HttpServerException;
+import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecuredAnnotationRule;
 import io.micronaut.security.rules.SecurityRuleResult;
 import io.micronaut.security.token.RolesFinder;
 import io.micronaut.web.router.MethodBasedRouteMatch;
 import io.micronaut.web.router.RouteMatch;
+import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.*;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.ProgramUser;
-import org.jetbrains.annotations.Nullable;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Singleton
 public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
 
@@ -52,8 +59,11 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
     private ProgramDAO programDAO;
 
     @Override
-    public SecurityRuleResult check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Map<String, Object> claims) {
+    public Publisher<SecurityRuleResult> check(HttpRequest<?> request, @Nullable Authentication authentication) {
+        log.info("ProgramSecuredAnnotationRule...         CHECKING!!!!!!!!!!!");
+
         // Does not approve request so that checks after it can check. Only rejects on fail.
+        RouteMatch<?> routeMatch = (RouteMatch)request.getAttribute(HttpAttributes.ROUTE_MATCH, RouteMatch.class).orElse((RouteMatch) null);
 
         if (routeMatch instanceof MethodBasedRouteMatch) {
             MethodBasedRouteMatch methodRoute = ((MethodBasedRouteMatch) routeMatch);
@@ -70,7 +80,8 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
                     throw new HttpStatusException(HttpStatus.NOT_FOUND, "Program does not exist");
                 }
 
-                if (claims != null){
+                // TODO: verify the behavior!
+//                if (claims != null){
                     AuthenticatedUser user = securityService.getUser();
                     List<ProgramUser> allProgramRoles = user.getProgramRoles();
                     List<String> systemRoles = (List<String>) user.getRoles();
@@ -87,16 +98,17 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
                     List<String> userRolesString = userRoles.stream()
                             .map(ProgramSecuredRole::toString).collect(Collectors.toList());
 
-                    SecurityRuleResult securityRuleResult = compareRoles(allowedRolesString, userRolesString);
+                    Publisher<SecurityRuleResult> securityRuleResult = compareRoles(allowedRolesString, userRolesString);
                     return securityRuleResult;
-                }
+//                }
 
+                // TODO: remove if unused.
                 // Rejects if no claims, or does not have correct roles
-                return SecurityRuleResult.REJECTED;
+//                return Mono.just(SecurityRuleResult.REJECTED);
             }
         }
 
-        return SecurityRuleResult.UNKNOWN;
+        return Mono.just(SecurityRuleResult.UNKNOWN);
     }
 
     public List<ProgramSecuredRole> processRoles(List<ProgramUser> allProgramRoles, List<String> systemRoles, String programId) {

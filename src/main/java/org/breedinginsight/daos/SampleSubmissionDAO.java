@@ -28,8 +28,10 @@ import org.breedinginsight.model.SampleSubmission;
 import org.breedinginsight.model.User;
 import org.jooq.*;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.jooq.Record;
+
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -81,23 +83,23 @@ public class SampleSubmissionDAO extends SampleSubmissionDao {
         BiUserTable createdByUser = BI_USER.as("createdByUser");
         BiUserTable updatedByUser = BI_USER.as("updatedByUser");
         BiUserTable submittedByUser = BI_USER.as("submittedByUser");
-        try(SelectSelectStep<Record> select = dsl.select()) {
-            SelectConditionStep<Record> query = select
-                    .from(SAMPLE_SUBMISSION)
-                    .join(createdByUser).on(SAMPLE_SUBMISSION.CREATED_BY.eq(createdByUser.ID))
-                    .join(updatedByUser).on(SAMPLE_SUBMISSION.UPDATED_BY.eq(updatedByUser.ID))
-                    .leftJoin(submittedByUser).on(SAMPLE_SUBMISSION.SUBMITTED_BY.eq(submittedByUser.ID))
-                    .where("1=1");
 
-            for (Condition condition : andConditions) {
-                query = query.and(condition);
-            }
+        SelectSelectStep<Record> select = dsl.select();
+        SelectConditionStep<Record> query = select
+                .from(SAMPLE_SUBMISSION)
+                .join(createdByUser).on(SAMPLE_SUBMISSION.CREATED_BY.eq(createdByUser.ID))
+                .join(updatedByUser).on(SAMPLE_SUBMISSION.UPDATED_BY.eq(updatedByUser.ID))
+                .leftJoin(submittedByUser).on(SAMPLE_SUBMISSION.SUBMITTED_BY.eq(submittedByUser.ID))
+                .where("1=1");
 
-            return query.fetch()
-                    .stream()
-                    .map(record -> parseRecord(record, createdByUser, updatedByUser, submittedByUser))
-                    .collect(Collectors.toList());
+        for (Condition condition : andConditions) {
+            query = query.and(condition);
         }
+
+        return query.fetch()
+                .stream()
+                .map(record -> parseRecord(record, createdByUser, updatedByUser, submittedByUser))
+                .collect(Collectors.toList());
 
     }
 

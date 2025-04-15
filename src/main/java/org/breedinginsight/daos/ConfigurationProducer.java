@@ -21,7 +21,7 @@ import io.micronaut.http.annotation.Produces;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class ConfigurationProducer {
 

@@ -38,7 +38,7 @@ import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.services.RoleService;
 import org.breedinginsight.services.SystemRoleService;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

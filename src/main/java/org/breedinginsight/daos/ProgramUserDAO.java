@@ -25,8 +25,10 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.model.Role;
 import org.jooq.*;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.jooq.Record;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

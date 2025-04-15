@@ -21,7 +21,7 @@ import org.breedinginsight.dao.db.tables.daos.MethodDao;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class MethodDAO extends MethodDao {
 

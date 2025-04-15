@@ -1,8 +1,8 @@
 package org.breedinginsight.services;
 
 import com.google.gson.JsonObject;
-import io.reactivex.functions.Function;
-import io.reactivex.functions.Function3;
+import io.reactivex.rxjava3.functions.Function;
+import io.reactivex.rxjava3.functions.Function3;
 import lombok.SneakyThrows;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.response.BrAPIListDetails;

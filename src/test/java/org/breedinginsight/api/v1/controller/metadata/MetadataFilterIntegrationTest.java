@@ -28,7 +28,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
-import io.reactivex.Flowable;
+import io.reactivex.rxjava3.core.Flowable;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.response.DataResponse;
@@ -43,7 +43,7 @@ import org.breedinginsight.model.User;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;

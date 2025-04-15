@@ -42,8 +42,8 @@ import org.breedinginsight.utilities.FileUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;

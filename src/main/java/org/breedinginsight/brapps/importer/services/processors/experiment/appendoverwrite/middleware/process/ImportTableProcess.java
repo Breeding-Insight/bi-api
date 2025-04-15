@@ -63,7 +63,7 @@ import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
 

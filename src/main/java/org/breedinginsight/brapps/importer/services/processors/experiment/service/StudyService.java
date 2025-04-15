@@ -18,7 +18,7 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
 import io.micronaut.context.annotation.Property;
-import io.reactivex.functions.Function;
+import io.reactivex.rxjava3.functions.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -37,8 +37,8 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -66,7 +66,7 @@ public class StudyService {
             BrAPIStudy existingStudy,
             Program program,
             Function<BrAPIStudy, String> getterFunction,
-            Map<String, PendingImportObject<BrAPIStudy>> studyMap) throws Exception {
+            Map<String, PendingImportObject<BrAPIStudy>> studyMap) throws Throwable {
         PendingImportObject<BrAPIStudy> pendingStudy;
         BrAPIExternalReference xref = Utilities.getExternalReference(existingStudy.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.STUDIES.getName()))
                 .orElseThrow(() -> new IllegalStateException("External references wasn't found for study (dbid): " + existingStudy.getStudyDbId()));

@@ -22,8 +22,8 @@ import org.breedinginsight.dao.db.tables.daos.SystemRoleDao;
 import org.breedinginsight.dao.db.tables.pojos.SystemRoleEntity;
 import org.breedinginsight.model.SystemRole;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

@@ -39,8 +39,8 @@ import org.breedinginsight.services.parsers.excel.ExcelParser;
 import org.breedinginsight.services.parsers.excel.ExcelRecord;
 import org.breedinginsight.services.validators.TraitFileValidatorError;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;

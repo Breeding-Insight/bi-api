@@ -11,7 +11,7 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
-import io.reactivex.Flowable;
+import io.reactivex.rxjava3.core.Flowable;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.typeAdapters.PaginationTypeAdapter;
 import org.brapi.v2.model.BrAPIExternalReference;
@@ -35,7 +35,7 @@ import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;

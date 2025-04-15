@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 @Getter
 @Introspected

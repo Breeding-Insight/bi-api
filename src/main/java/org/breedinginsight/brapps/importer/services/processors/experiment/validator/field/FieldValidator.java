@@ -21,7 +21,7 @@ import io.micronaut.context.annotation.Primary;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.model.Trait;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 

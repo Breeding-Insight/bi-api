@@ -28,7 +28,7 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.netty.cookies.NettyCookie;
-import io.reactivex.Flowable;
+import io.reactivex.rxjava3.core.Flowable;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.TestUtils;
@@ -50,7 +50,7 @@ import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
 import org.breedinginsight.services.writers.CSVWriter;
 import org.jooq.DSLContext;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;

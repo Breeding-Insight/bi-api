@@ -36,7 +36,7 @@ import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.Accessibility;
 import org.breedinginsight.services.AccessibilityService;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

@@ -53,7 +53,7 @@ import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import tech.tablesaw.api.Table;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Function;

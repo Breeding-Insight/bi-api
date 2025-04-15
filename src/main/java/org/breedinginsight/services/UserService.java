@@ -47,8 +47,8 @@ import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 import org.stringtemplate.v4.ST;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 import java.time.Duration;
 import java.util.*;

@@ -6,7 +6,7 @@ import org.brapi.v2.model.core.BrAPIListSummary;
 import org.breedinginsight.brapps.importer.model.base.ExternalReference;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;

@@ -35,6 +35,13 @@
                     <snapshots><enabled>true</enabled></snapshots>
                 </pluginRepository>
                 <pluginRepository>
+                    <id>github-jooq-mlm483</id>
+                    <name>GitHub Breeding Insight Apache Maven Packages</name>
+                    <url>https://maven.pkg.github.com/mlm483/bi-jooq-codegen</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>true</enabled></snapshots>
+                </pluginRepository>
+                <pluginRepository>
                     <id>github-jooq</id>
                     <name>GitHub Breeding Insight Apache Maven Packages</name>
                     <url>https://maven.pkg.github.com/Breeding-Insight/bi-jooq-codegen</url>
@@ -45,7 +52,7 @@
             <repositories>
                 <repository>
                     <id>central</id>
-                    <url>https://repo1.maven.org/maven2</url>
+                    <url>https://repo.maven.apache.org/maven2</url>
                     <releases><enabled>true</enabled></releases>
                     <snapshots><enabled>true</enabled></snapshots>
                 </repository>
@@ -70,6 +77,11 @@
     <servers>
         <server>
             <id>github-jooq</id>
+            <username>${GITHUB_ACTOR}</username>
+            <password>${GITHUB_TOKEN}</password>
+        </server>
+        <server>
+            <id>github-jooq-mlm483</id>
             <username>${GITHUB_ACTOR}</username>
             <password>${GITHUB_TOKEN}</password>
         </server>

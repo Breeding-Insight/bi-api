@@ -23,13 +23,13 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
-import io.reactivex.Flowable;
+import io.reactivex.rxjava3.core.Flowable;
 import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;

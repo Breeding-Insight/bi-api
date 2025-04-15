@@ -22,7 +22,7 @@ import org.breedinginsight.dao.db.tables.daos.ImporterMappingProgramDao;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class ImportMappingProgramDAO extends ImporterMappingProgramDao {
 

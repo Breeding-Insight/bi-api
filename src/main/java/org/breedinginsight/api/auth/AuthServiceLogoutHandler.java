@@ -20,17 +20,23 @@ package org.breedinginsight.api.auth;
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpResponse;
-import io.micronaut.security.token.jwt.cookie.JwtCookieClearerLogoutHandler;
-import io.micronaut.security.token.jwt.cookie.JwtCookieConfiguration;
+import io.micronaut.security.config.RedirectConfiguration;
+import io.micronaut.security.config.RedirectService;
+import io.micronaut.security.token.cookie.RefreshTokenCookieConfiguration;
+import io.micronaut.security.token.cookie.TokenCookieClearerLogoutHandler;
+import io.micronaut.security.token.cookie.TokenCookieConfigurationProperties;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
-@Replaces(JwtCookieClearerLogoutHandler.class)
+@Replaces(TokenCookieClearerLogoutHandler.class)
 @Singleton
-public class AuthServiceLogoutHandler extends JwtCookieClearerLogoutHandler {
+public class AuthServiceLogoutHandler extends TokenCookieClearerLogoutHandler {
 
-    public AuthServiceLogoutHandler(JwtCookieConfiguration jwtCookieConfiguration) {
-        super(jwtCookieConfiguration);
+    public AuthServiceLogoutHandler(TokenCookieConfigurationProperties tokenCookieConfiguration,
+                                    RefreshTokenCookieConfiguration refreshTokenCookieConfiguration,
+                                    RedirectConfiguration redirectConfiguration,
+                                    RedirectService redirectService) {
+        super(tokenCookieConfiguration, refreshTokenCookieConfiguration, redirectConfiguration, redirectService);
     }
 
     @Override

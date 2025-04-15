@@ -26,8 +26,8 @@ import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldConfig;
 import org.breedinginsight.brapps.importer.model.config.ImportRelationOptionConfig;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;

@@ -36,8 +36,8 @@ import org.breedinginsight.brapi.v1.services.BrapiObservationVariableService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.response.ResponseUtils;
 
-import javax.inject.Inject;
-import javax.validation.Valid;
+import jakarta.inject.Inject;
+import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 

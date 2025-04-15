@@ -24,7 +24,7 @@ import org.breedinginsight.model.Method;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

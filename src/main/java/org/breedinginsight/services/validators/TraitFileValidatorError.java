@@ -22,7 +22,7 @@ import org.apache.commons.text.WordUtils;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.dao.db.enums.DataType;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.stream.Collectors;
 

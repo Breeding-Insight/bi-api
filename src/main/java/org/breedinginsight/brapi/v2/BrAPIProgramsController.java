@@ -38,8 +38,8 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

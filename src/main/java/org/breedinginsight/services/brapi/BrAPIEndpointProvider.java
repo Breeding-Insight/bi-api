@@ -2,7 +2,7 @@ package org.breedinginsight.services.brapi;
 
 import org.brapi.client.v2.BrAPIClient;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import java.lang.reflect.InvocationTargetException;
 
 @Singleton

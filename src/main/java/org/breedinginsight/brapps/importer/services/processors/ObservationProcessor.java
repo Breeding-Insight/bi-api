@@ -40,7 +40,7 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.Table;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;

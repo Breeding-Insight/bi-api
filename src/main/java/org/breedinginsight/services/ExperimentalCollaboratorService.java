@@ -21,8 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.dao.db.tables.pojos.ExperimentProgramUserRoleEntity;
 import org.breedinginsight.daos.ExperimentalCollaboratorDAO;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
 

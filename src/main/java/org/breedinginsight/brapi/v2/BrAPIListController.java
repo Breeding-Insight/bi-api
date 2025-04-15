@@ -30,9 +30,9 @@ import org.breedinginsight.utilities.response.mappers.ListQueryMapper;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
-import javax.inject.Inject;
-import javax.validation.Valid;
-import javax.validation.Validator;
+import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

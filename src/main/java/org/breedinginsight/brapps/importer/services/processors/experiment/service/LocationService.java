@@ -29,7 +29,7 @@ import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.utilities.Utilities;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 

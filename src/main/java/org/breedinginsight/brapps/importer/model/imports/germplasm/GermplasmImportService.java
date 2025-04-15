@@ -26,9 +26,9 @@ import org.breedinginsight.brapps.importer.services.processors.germplasm.Germpla
 import org.breedinginsight.brapps.importer.services.processors.Processor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
 
-import javax.inject.Inject;
-import javax.inject.Provider;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Provider;
+import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 

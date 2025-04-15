@@ -32,7 +32,7 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 

@@ -42,7 +42,7 @@ import org.breedinginsight.services.TraitService;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;

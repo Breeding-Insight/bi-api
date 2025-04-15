@@ -22,7 +22,7 @@ import lombok.Getter;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import java.util.Map;
 import java.util.function.Function;
 

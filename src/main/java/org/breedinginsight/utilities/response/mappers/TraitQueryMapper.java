@@ -20,7 +20,7 @@ package org.breedinginsight.utilities.response.mappers;
 import lombok.Getter;
 import org.breedinginsight.model.Trait;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;

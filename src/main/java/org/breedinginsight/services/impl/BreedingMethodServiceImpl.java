@@ -9,7 +9,7 @@ import org.breedinginsight.services.BreedingMethodService;
 import org.breedinginsight.services.exceptions.BadRequestException;
 import org.jooq.DSLContext;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 

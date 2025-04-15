@@ -21,7 +21,7 @@ import io.micronaut.context.annotation.Value;
 import io.micronaut.runtime.http.scope.RequestScope;
 import org.brapi.client.v2.BrAPIClient;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;

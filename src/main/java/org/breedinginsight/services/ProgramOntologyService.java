@@ -21,7 +21,7 @@ import org.breedinginsight.dao.db.tables.pojos.ProgramOntologyEntity;
 import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.model.ProgramOntology;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

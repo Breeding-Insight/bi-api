@@ -45,10 +45,11 @@ import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.*;
+import org.jooq.Record;
 import org.jooq.tools.StringUtils;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;

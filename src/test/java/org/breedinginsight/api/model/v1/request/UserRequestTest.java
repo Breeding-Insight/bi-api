@@ -24,8 +24,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-import javax.inject.Inject;
-import javax.validation.ConstraintViolation;
+import jakarta.inject.Inject;
+import jakarta.validation.ConstraintViolation;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

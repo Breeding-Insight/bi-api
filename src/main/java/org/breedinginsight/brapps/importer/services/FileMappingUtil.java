@@ -17,7 +17,7 @@
 
 package org.breedinginsight.brapps.importer.services;
 
-import io.reactivex.functions.Function;
+import io.reactivex.rxjava3.functions.Function;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -25,8 +25,8 @@ import org.breedinginsight.brapps.importer.model.config.MappedImportRelation;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.*;
 
 @Singleton
@@ -78,7 +78,7 @@ public class FileMappingUtil {
                 String field1 = fieldGetter.apply(i1);
                 String field2 = fieldGetter.apply(i2);
                 return Integer.compare(sortOrder.get(field1), sortOrder.get(field2));
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
         });

@@ -24,7 +24,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
-import io.reactivex.functions.Function;
+import io.reactivex.rxjava3.functions.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
@@ -51,7 +51,7 @@ import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
 import tech.tablesaw.columns.Column;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -421,7 +421,7 @@ public class ExperimentUtilities {
 
                 // Compare the indices of the fields in sortOrder and return the result
                 return Integer.compare(sortOrder.get(field1), sortOrder.get(field2));
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 // Throw a runtime exception if any error occurs during sorting
                 throw new RuntimeException(e);
             }

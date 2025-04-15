@@ -50,8 +50,8 @@ import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.jooq.JSONB;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.OffsetDateTime;

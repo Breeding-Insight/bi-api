@@ -51,8 +51,8 @@ import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.Utilities;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -241,7 +241,7 @@ public class PopulateExistingPendingImportObjectsStep {
         } catch (ApiException e) {
             log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
             throw new InternalServerException(e.toString(), e);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("Error processing studies", e);
             throw new InternalServerException(e.toString(), e);
         }
@@ -261,7 +261,7 @@ public class PopulateExistingPendingImportObjectsStep {
         } catch (ApiException e) {
             log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
             throw new InternalServerException(e.toString(), e);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("Error processing studies: ", e);
             throw new InternalServerException(e.toString(), e);
         }
@@ -298,7 +298,7 @@ public class PopulateExistingPendingImportObjectsStep {
             Program program,
             Map<String, PendingImportObject<BrAPIStudy>> studyByName,
             Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope
-    ) throws Exception {
+    ) throws Throwable {
         Set<String> studyDbIds = observationUnitByNameNoScope.values()
                 .stream()
                 .map(pio -> pio.getBrAPIObject()

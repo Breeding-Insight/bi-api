@@ -33,10 +33,16 @@ import java.util.Properties;
 @Controller("/${micronaut.bi.api.version}")
 public class ServerInfoController {
 
+    @Get(produces = MediaType.TEXT_PLAIN)
+    public String index() {
+        return "Hello World";
+    }
+
     @Get("/server-info")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_ANONYMOUS)
     public ServerInfo getServerInfo() throws IOException {
+        log.info("Get Server Info");
         InputStream resourceAsStream = this.getClass()
                                            .getClassLoader()
                                            .getResourceAsStream("version.properties");

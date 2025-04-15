@@ -25,13 +25,13 @@ import io.micronaut.security.token.jwt.signature.SignatureConfiguration;
 import io.micronaut.security.token.jwt.validator.GenericJwtClaimsValidator;
 import io.micronaut.security.token.jwt.validator.JwtAuthenticationFactory;
 import io.micronaut.security.token.jwt.validator.JwtTokenValidator;
-import io.reactivex.Flowable;
+import io.reactivex.rxjava3.core.Flowable;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
 import org.reactivestreams.Publisher;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.*;
 
 @Replaces(JwtTokenValidator.class)

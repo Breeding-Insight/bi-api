@@ -25,8 +25,8 @@ import org.brapi.v2.model.core.BrAPISeason;
 import org.breedinginsight.brapi.v2.dao.BrAPISeasonDAO;
 import org.breedinginsight.utilities.Utilities;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

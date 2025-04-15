@@ -23,8 +23,10 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.model.User;
 import org.jooq.*;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.jooq.Record;
+
 import java.util.*;
 
 import static org.breedinginsight.dao.db.Tables.*;

@@ -19,6 +19,7 @@ package org.breedinginsight.api.auth;
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Replaces;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -26,11 +27,12 @@ import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.context.ServerRequestContext;
 import io.micronaut.http.cookie.Cookie;
 import io.micronaut.security.authentication.*;
-import io.micronaut.security.token.jwt.cookie.JwtCookieConfiguration;
-import io.micronaut.security.token.jwt.cookie.JwtCookieLoginHandler;
-import io.micronaut.security.token.jwt.generator.AccessRefreshTokenGenerator;
-import io.micronaut.security.token.jwt.generator.AccessTokenConfiguration;
-import io.micronaut.security.token.jwt.generator.JwtGeneratorConfiguration;
+import io.micronaut.security.config.RedirectConfiguration;
+import io.micronaut.security.config.RedirectService;
+import io.micronaut.security.errors.PriorToLoginPersistence;
+import io.micronaut.security.token.cookie.*;
+import io.micronaut.security.token.generator.AccessRefreshTokenGenerator;
+import io.micronaut.security.token.generator.AccessTokenConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.auth.SignUpJWT;
 import org.breedinginsight.model.ProgramUser;
@@ -42,18 +44,18 @@ import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.JwtValidationException;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Replaces(JwtCookieLoginHandler.class)
+@Replaces(TokenCookieLoginHandler.class)
 @Singleton
 @Slf4j
-public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
+public class AuthServiceLoginHandler extends TokenCookieLoginHandler {
 
     private String NEW_ACCOUNT_ERROR_ATTRIBUTE = "error";
 
@@ -75,14 +77,26 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
     @Inject
     private SignUpJwtService signUpJwtService;
 
-    public AuthServiceLoginHandler(JwtCookieConfiguration jwtCookieConfiguration,
-                       AccessTokenConfiguration accessTokenConfiguration,
-                       AccessRefreshTokenGenerator accessRefreshTokenGenerator) {
-        super(jwtCookieConfiguration, accessTokenConfiguration, accessRefreshTokenGenerator);
+    public AuthServiceLoginHandler(RedirectService redirectService,
+                                   RedirectConfiguration redirectConfiguration,
+                                   AccessTokenCookieConfiguration accessTokenCookieConfiguration,
+                                   RefreshTokenCookieConfiguration refreshTokenCookieConfiguration,
+                                   AccessTokenConfiguration accessTokenConfiguration,
+                                   AccessRefreshTokenGenerator accessRefreshTokenGenerator,
+                                   @Nullable PriorToLoginPersistence<HttpRequest<?>, MutableHttpResponse<?>> priorToLoginPersistence,
+                                   List<LoginCookieProvider<HttpRequest<?>>> loginCookieProviders) {
+        super(redirectService,
+                redirectConfiguration,
+                accessTokenCookieConfiguration,
+                refreshTokenCookieConfiguration,
+                accessTokenConfiguration,
+                accessRefreshTokenGenerator,
+                priorToLoginPersistence,
+                loginCookieProviders);
     }
 
     @Override
-    public MutableHttpResponse<?> loginSuccess(UserDetails userDetails, HttpRequest<?> request) {
+    public MutableHttpResponse<?> loginSuccess(Authentication userDetails, HttpRequest<?> request) {
         // Called when login to orcid is successful.
         // Check if our login to our system is successful.
         if (request.getCookies().contains(accountTokenCookieName)) {
@@ -122,9 +136,9 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         }
     }
 
-    private AuthenticatedUser getUserCredentials(UserDetails userDetails) throws AuthenticationException {
+    private AuthenticatedUser getUserCredentials(Authentication userDetails) throws AuthenticationException {
 
-        Optional<User> user = userService.getByOrcid(userDetails.getUsername());
+        Optional<User> user = userService.getByOrcid(userDetails.getName());
 
         if (user.isPresent()) {
             if (user.get().getActive()) {
@@ -136,7 +150,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
                 // Get the program roles
                 List<ProgramUser> programUsers = user.get().getProgramRoles();
 
-                AuthenticatedUser authenticatedUser = new AuthenticatedUser(userDetails.getUsername(),
+                AuthenticatedUser authenticatedUser = new AuthenticatedUser(userDetails.getName(),
                         systemRoleStrings, user.get().getId(), programUsers);
                 return authenticatedUser;
             }
@@ -159,9 +173,9 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         }
     }
 
-    private MutableHttpResponse newAccountCreationResponse(UserDetails userDetails, String accountToken, HttpRequest request) {
+    private MutableHttpResponse newAccountCreationResponse(Authentication userDetails, String accountToken, HttpRequest request) {
 
-        String orcid = userDetails.getUsername();
+        String orcid = userDetails.getName();
         SignUpJWT signUpJWT;
         try {
             signUpJWT = signUpJwtService.validateAndParseAccountSignUpJwt(accountToken);

@@ -38,7 +38,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.utilities.Utilities;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;

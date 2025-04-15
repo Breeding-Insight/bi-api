@@ -29,7 +29,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.model.ProgramLocation;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Factory
 public class BrAPIReadFactory {

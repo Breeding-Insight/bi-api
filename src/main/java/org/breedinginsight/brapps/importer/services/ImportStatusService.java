@@ -25,8 +25,8 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.jooq.JSONB;
 import org.brapi.client.v2.JSON;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @Slf4j

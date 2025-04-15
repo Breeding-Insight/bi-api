@@ -30,9 +30,9 @@ import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.model.ApiToken;
 import org.breedinginsight.services.TokenService;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.validation.constraints.NotBlank;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
+import jakarta.validation.constraints.NotBlank;
 import java.net.URI;
 import java.util.Map;
 import java.util.Optional;

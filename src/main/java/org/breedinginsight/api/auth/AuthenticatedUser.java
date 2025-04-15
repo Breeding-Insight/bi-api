@@ -17,7 +17,8 @@
 
 package org.breedinginsight.api.auth;
 
-import io.micronaut.security.authentication.UserDetails;
+import io.micronaut.core.annotation.NonNull;
+import io.micronaut.security.authentication.Authentication;
 import lombok.Getter;
 import lombok.Setter;
 import org.breedinginsight.model.ProgramUser;
@@ -25,17 +26,21 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Getter
 @Setter
-public class AuthenticatedUser extends UserDetails {
+public class AuthenticatedUser implements Authentication {
 
     private UUID id;
     private List<ProgramUser> programRoles;
+    private String username;
+    private Collection<String> roles;
 
     public AuthenticatedUser(String username, Collection<String> roles, UUID id, List<ProgramUser> programRoles) {
-        super(username, roles);
+        this.username = username;
+        this.roles = roles;
         this.id = id;
         this.programRoles = programRoles;
     }
@@ -45,5 +50,16 @@ public class AuthenticatedUser extends UserDetails {
                 .filter(pu -> programId.equals( pu.getProgramId() ) )
                 .findFirst()
                 .orElseThrow( () -> new DoesNotExistException( String.format("No program user found for program %s", this.id) ) );
+    }
+
+    @Override
+    public @NonNull Map<String, Object> getAttributes() {
+        // TODO: what is this?
+        return Map.of();
+    }
+
+    @Override
+    public String getName() {
+        return this.username;
     }
 }

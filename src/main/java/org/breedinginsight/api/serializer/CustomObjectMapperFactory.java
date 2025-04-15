@@ -28,7 +28,7 @@ import io.micronaut.jackson.ObjectMapperFactory;
 import org.brapi.client.v2.JSON;
 import org.brapi.v2.model.BrApiGeoJSON;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
 /**
  * Add custom serializers to Micronaut's Jackson ObjectMapper

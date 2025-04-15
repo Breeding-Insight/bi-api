@@ -34,7 +34,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Slf4j
 @Prototype

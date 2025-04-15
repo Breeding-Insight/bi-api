@@ -41,8 +41,8 @@ import org.breedinginsight.brapps.importer.services.FileImportService;
 import org.breedinginsight.services.exceptions.*;
 import org.jooq.tools.StringUtils;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;

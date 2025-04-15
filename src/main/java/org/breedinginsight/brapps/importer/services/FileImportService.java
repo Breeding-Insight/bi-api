@@ -60,8 +60,8 @@ import org.jooq.JSONB;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;

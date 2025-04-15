@@ -21,8 +21,8 @@ import org.breedinginsight.dao.db.tables.daos.SpeciesDao;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 public class SpeciesDAO extends SpeciesDao {

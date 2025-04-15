@@ -28,7 +28,7 @@ import io.micronaut.security.rules.SecurityRule;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.ProgramDAO;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.UUID;
 
 @Controller

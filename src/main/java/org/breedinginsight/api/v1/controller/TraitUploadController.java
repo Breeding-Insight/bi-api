@@ -37,7 +37,7 @@ import org.breedinginsight.services.exceptions.*;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.TraitQueryMapper;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.Optional;
 import java.util.UUID;
 

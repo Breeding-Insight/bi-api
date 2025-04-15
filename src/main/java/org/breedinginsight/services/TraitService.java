@@ -39,8 +39,8 @@ import org.breedinginsight.services.validators.TraitValidatorError;
 import org.breedinginsight.services.validators.TraitValidatorService;
 import org.jooq.DSLContext;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.breedinginsight.utilities.Utilities;

@@ -34,8 +34,8 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.Experi
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 

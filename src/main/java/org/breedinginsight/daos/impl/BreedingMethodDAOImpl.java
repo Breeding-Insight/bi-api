@@ -4,10 +4,11 @@ import org.breedinginsight.dao.db.tables.daos.BreedingMethodDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
 import org.jooq.*;
+import org.jooq.Record;
 import org.jooq.impl.DSL;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;

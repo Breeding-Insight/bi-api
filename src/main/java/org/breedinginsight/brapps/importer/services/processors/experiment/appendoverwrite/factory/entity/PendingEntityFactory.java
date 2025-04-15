@@ -27,7 +27,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.servic
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.ProgramLocationService;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Factory
 public class PendingEntityFactory {

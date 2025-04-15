@@ -25,7 +25,7 @@ import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import io.reactivex.functions.Function;
+import io.reactivex.rxjava3.functions.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
@@ -71,7 +71,7 @@ import org.jooq.DSLContext;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
@@ -216,7 +216,7 @@ public class ExperimentProcessor implements Processor {
             } catch (ApiException e) {
                 log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException(e.toString(), e);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 log.error("Error processing experiment with ", e);
                 throw new InternalServerException(e.toString(), e);
             }
@@ -1875,7 +1875,7 @@ public class ExperimentProcessor implements Processor {
         } catch (ApiException e) {
             log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
             throw new InternalServerException(e.toString(), e);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("Error processing studies", e);
             throw new InternalServerException(e.toString(), e);
         }
@@ -1895,7 +1895,7 @@ public class ExperimentProcessor implements Processor {
         } catch (ApiException e) {
             log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
             throw new InternalServerException(e.toString(), e);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("Error processing studies: ", e);
             throw new InternalServerException(e.toString(), e);
         }
@@ -1906,7 +1906,7 @@ public class ExperimentProcessor implements Processor {
     private void initializeStudiesForExistingObservationUnits(
             Program program,
             Map<String, PendingImportObject<BrAPIStudy>> studyByName
-    ) throws Exception {
+    ) throws Throwable {
         Set<String> studyDbIds = observationUnitByNameNoScope.values()
                 .stream()
                 .map(pio -> pio.getBrAPIObject()
@@ -2251,7 +2251,7 @@ public class ExperimentProcessor implements Processor {
             BrAPIStudy existingStudy,
             Program program,
             Function<BrAPIStudy, String> getterFunction,
-            Map<String, PendingImportObject<BrAPIStudy>> studyMap) throws Exception {
+            Map<String, PendingImportObject<BrAPIStudy>> studyMap) throws Throwable {
         PendingImportObject<BrAPIStudy> pendingStudy;
         BrAPIExternalReference xref = Utilities.getExternalReference(existingStudy.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.STUDIES.getName()))
                                                .orElseThrow(() -> new IllegalStateException("External references wasn't found for study (dbid): " + existingStudy.getStudyDbId()));

@@ -29,8 +29,8 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import tech.tablesaw.columns.Column;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 

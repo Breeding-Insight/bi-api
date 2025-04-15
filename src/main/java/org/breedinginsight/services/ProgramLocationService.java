@@ -34,8 +34,8 @@ import org.geojson.*;
 import org.jooq.DSLContext;
 import org.jooq.JSONB;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.time.OffsetDateTime;
 import java.util.*;
 

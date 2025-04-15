@@ -29,7 +29,7 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.test.annotation.MockBean;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
-import io.reactivex.Flowable;
+import io.reactivex.rxjava3.core.Flowable;
 import lombok.SneakyThrows;
 import okhttp3.Call;
 import org.brapi.client.v2.BrAPIClient;
@@ -57,7 +57,7 @@ import org.junit.jupiter.api.*;
 import org.mockito.stubbing.Answer;
 import org.redisson.api.RedissonClient;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;

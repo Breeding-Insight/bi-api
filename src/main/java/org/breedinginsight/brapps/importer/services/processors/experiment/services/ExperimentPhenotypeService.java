@@ -27,8 +27,8 @@ import org.breedinginsight.model.Trait;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

@@ -30,7 +30,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
-import io.reactivex.Flowable;
+import io.reactivex.rxjava3.core.Flowable;
 import lombok.SneakyThrows;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.daos.UserDAO;
@@ -46,7 +46,7 @@ import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.*;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import java.util.Optional;
 import java.util.UUID;

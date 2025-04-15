@@ -25,7 +25,7 @@ import lombok.Setter;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 
-import javax.validation.constraints.Positive;
+import jakarta.validation.constraints.Positive;
 
 
 @Getter

@@ -15,7 +15,21 @@
 #    limitations under the License.
 #
 
+
+
+
+endpoints:
+  beans:
+    enabled: true
+    sensitive: false
+  info:
+    enabled: true
+    sensitive: false
+
+
 micronaut:
+  debug: true
+  trace: true
   application:
     name: bi-api
     instance:
@@ -27,16 +41,16 @@ micronaut:
     thread-selection: AUTO
     multipart:
       enabled: true
-      max-file-size: '100MB'
+      max-file-size: '100'
       mixed: true
-      threshold: '10MB'
-    max-request-size: '100MB'
+      threshold: '10'
+    max-request-size: '100'
   bi:
     api:
       version: v1
       run-scheduled-tasks: true
   security:
-    enabled: true
+    enabled: false
     oauth2:
       enabled: true
       callback-uri: /sso/success{/provider}
@@ -63,27 +77,27 @@ micronaut:
         cookie:
           cookie-max-age: 10m
     token:
-      jwt:
+      enabled: true
+      cookie:
         enabled: true
-        cookie:
-          enabled: true
-          cookie-name: phylo-token
-          cookie-secure: ${JWT_SECURE:true}
-          http-only: true
-          cookie-domain: ${JWT_DOMAIN:localhost}
-          login-success-target-url: ${web.login.success.url}
-          login-failure-target-url: ${web.login.failure.url}
-          logout-target-url: ${web.logout.url}
-        bearer:
-          enabled: true
+        cookie-name: phylo-token
+        cookie-secure: ${JWT_SECURE:true}
+        http-only: true
+        cookie-domain: ${JWT_DOMAIN:localhost}
+        login-success-target-url: ${web.login.success.url}
+        login-failure-target-url: ${web.login.failure.url}
+        logout-target-url: ${web.logout.url}
+      bearer:
+        enabled: true
+      generator:
+        access-token:
+          expiration: 43200
+      jwt:
         signatures:
           secret:
             generator:
               secret: ${JWT_SECRET}
               jws-algorithm: HS256
-        generator:
-          access-token:
-            expiration: 43200
     api-token:
       jwt:
         generator:
@@ -96,6 +110,8 @@ micronaut:
         get-allowed: true
         path: /logout
     authentication: cookie
+    redirect:
+      login-failure: /login
 jackson:
   date-format: yyyy-MM-dd'T'HH:mm:ssZ
   mapper:

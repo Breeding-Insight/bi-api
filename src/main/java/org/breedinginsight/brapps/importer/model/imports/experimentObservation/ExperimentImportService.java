@@ -21,8 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.model.imports.DomainImportService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @Slf4j

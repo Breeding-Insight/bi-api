@@ -23,7 +23,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import io.reactivex.functions.*;
+import io.reactivex.rxjava3.functions.*;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -40,8 +40,8 @@ import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -167,7 +167,7 @@ public class BrAPIDAOUtil {
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw e;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.debug("error", e);
             throw new InternalServerException(e.toString(), e);
         }
@@ -262,7 +262,7 @@ public class BrAPIDAOUtil {
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw e;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InternalServerException(e.toString(), e);
         }
     }
@@ -270,7 +270,7 @@ public class BrAPIDAOUtil {
     private <T> ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> searchGetResponse(Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
                                                                                                         Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethodWithMimeType,
                                                                                                         BrAPIAcceptedSearchResponse searchResult,
-                                                                                                        int currentPage) throws Exception{
+                                                                                                        int currentPage) throws Throwable {
         return searchGetMethod != null ? searchGetMethod.apply(searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize) :
                 searchGetMethodWithMimeType.apply(APPLICATION_JSON, searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize);
     }
@@ -349,7 +349,7 @@ public class BrAPIDAOUtil {
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw e;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InternalServerException(e.toString(), e);
         }
     }
@@ -371,7 +371,7 @@ public class BrAPIDAOUtil {
         } catch (ApiException e) {
             log.error(Utilities.generateApiExceptionLogMessage(e));
             throw e;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InternalServerException(e.toString(), e);
         }
     }

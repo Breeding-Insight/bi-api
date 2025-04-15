@@ -23,8 +23,8 @@ import org.breedinginsight.dao.db.tables.pojos.ProgramSharedOntologyEntity;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

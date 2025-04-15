@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Slf4j
 @Prototype

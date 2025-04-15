@@ -25,7 +25,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
-import io.reactivex.Flowable;
+import io.reactivex.rxjava3.core.Flowable;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
@@ -33,7 +33,7 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.utilities.Utilities;
 import org.junit.jupiter.api.*;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.*;
 

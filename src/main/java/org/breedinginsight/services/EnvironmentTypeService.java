@@ -22,8 +22,8 @@ import org.breedinginsight.dao.db.tables.daos.EnvironmentTypeDao;
 import org.breedinginsight.dao.db.tables.pojos.EnvironmentTypeEntity;
 import org.breedinginsight.model.EnvironmentType;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

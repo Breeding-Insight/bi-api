@@ -39,7 +39,7 @@ import org.breedinginsight.model.job.Job;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.job.JobService;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;

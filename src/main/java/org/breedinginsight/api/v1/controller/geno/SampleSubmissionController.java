@@ -41,9 +41,9 @@ import org.breedinginsight.services.SampleSubmissionService;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.utilities.Utilities;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.validation.constraints.NotBlank;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
+import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;

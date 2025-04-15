@@ -18,14 +18,15 @@ package org.breedinginsight.api.auth;
 
 import io.micronaut.context.annotation.ConfigurationProperties;
 import io.micronaut.context.annotation.Secondary;
-import io.micronaut.security.token.jwt.generator.JwtGeneratorConfiguration;
+import io.micronaut.core.annotation.NonNull;
+import io.micronaut.security.token.generator.AccessTokenConfiguration;
 
-import javax.inject.Named;
+import jakarta.inject.Named;
 
 @ConfigurationProperties("micronaut.security.api-token.jwt.generator")
 @Named("apiTokenConfig")
 @Secondary
-public class ApiTokenJwtGeneratorConfigurationProperties implements JwtGeneratorConfiguration {
+public class ApiTokenJwtGeneratorConfigurationProperties implements AccessTokenConfiguration {
     public static final String PREFIX = "micronaut.security.api-token.jwt.generator";
     public static final Integer DEFAULT_EXPIRATION = 3600;
     private Integer refreshTokenExpiration = null;
@@ -52,5 +53,10 @@ public class ApiTokenJwtGeneratorConfigurationProperties implements JwtGenerator
             this.accessTokenExpiration = accessTokenExpiration;
         }
 
+    }
+
+    @Override
+    public @NonNull Integer getExpiration() {
+        return DEFAULT_EXPIRATION;
     }
 }

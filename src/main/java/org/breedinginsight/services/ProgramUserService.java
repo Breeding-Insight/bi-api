@@ -36,8 +36,8 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 

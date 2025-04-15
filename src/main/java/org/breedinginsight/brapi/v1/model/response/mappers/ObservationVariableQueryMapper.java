@@ -20,7 +20,7 @@ import lombok.Getter;
 import org.breedinginsight.brapi.v1.model.ObservationVariable;
 import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import java.util.Map;
 import java.util.function.Function;
 

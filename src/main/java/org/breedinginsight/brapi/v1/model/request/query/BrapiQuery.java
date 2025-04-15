@@ -24,8 +24,8 @@ import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.PaginationParams;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
-import javax.validation.constraints.Positive;
-import javax.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 @Getter
 @Setter

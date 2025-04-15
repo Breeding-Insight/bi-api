@@ -21,25 +21,27 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.core.order.Ordered;
 import io.micronaut.http.*;
 import io.micronaut.http.annotation.Filter;
-import io.micronaut.http.filter.OncePerRequestHttpServerFilter;
+import io.micronaut.http.filter.HttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.web.router.MethodBasedRouteMatch;
 import io.micronaut.web.router.RouteMatch;
-import io.reactivex.Flowable;
-import io.reactivex.schedulers.Schedulers;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.reactivestreams.Publisher;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Map;
 import java.util.UUID;
 
+//OncePerRequestHttpServerFilter removed
+//Since Micronaut 3.0 the OncePerRequestHttpServerFilter class was deprecated and marked for removal. This class is now removed. Implement HttpServerFilter instead, and replace any usages of micronaut.once attributes with a custom attribute name
 @Filter("/**")
-public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
+public class BrAPIServiceFilter implements HttpServerFilter {
 
 
     @Property(name = "brapi.server.core-url")
@@ -60,7 +62,7 @@ public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
     }
 
     @Override
-    public Publisher<MutableHttpResponse<?>> doFilterOnce(HttpRequest<?> request, ServerFilterChain chain) {
+    public Publisher<MutableHttpResponse<?>> doFilter(HttpRequest<?> request, ServerFilterChain chain) {
 
         // Checks if we should even use the filter
         return Flowable.fromCallable(() -> true)

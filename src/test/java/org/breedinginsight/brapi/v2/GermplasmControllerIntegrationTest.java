@@ -8,7 +8,7 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
-import io.reactivex.Flowable;
+import io.reactivex.rxjava3.core.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.BrAPITest;
@@ -29,7 +29,7 @@ import org.breedinginsight.utilities.response.mappers.GermplasmQueryMapper;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;

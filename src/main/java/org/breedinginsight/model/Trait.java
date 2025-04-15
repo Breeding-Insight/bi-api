@@ -34,7 +34,7 @@ import org.breedinginsight.api.deserializer.ListOfStringDeserializer;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.jooq.Record;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.List;
 
 import static org.breedinginsight.dao.db.Tables.TRAIT;

@@ -21,9 +21,9 @@ import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 import org.breedinginsight.model.SystemRole;
 
-import javax.validation.constraints.Email;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 @Getter

@@ -16,7 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.services.processors;
 
-import io.reactivex.functions.Function;
+import io.reactivex.rxjava3.functions.Function;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 
@@ -53,7 +53,7 @@ public class ProcessorData {
                         .toMap(entry -> {
                                     try {
                                         return dbIdFilter.apply(entry.getValue().getBrAPIObject());
-                                    } catch (Exception e) {
+                                    } catch (Throwable e) {
                                         throw new RuntimeException(e);
                                     }
                                 },

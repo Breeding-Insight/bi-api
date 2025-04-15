@@ -36,8 +36,8 @@ import org.breedinginsight.model.Scale;
 import org.breedinginsight.services.constants.SupportedMediaType;
 import org.breedinginsight.services.exceptions.*;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;

@@ -24,7 +24,7 @@ import org.breedinginsight.daos.ProgramObservationLevelDAO;
 import org.breedinginsight.model.ProgramObservationLevel;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;

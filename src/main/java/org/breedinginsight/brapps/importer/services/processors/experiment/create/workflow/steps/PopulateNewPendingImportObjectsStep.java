@@ -57,8 +57,8 @@ import org.jooq.DSLContext;
 import org.breedinginsight.model.Trait;
 import tech.tablesaw.columns.Column;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;

@@ -28,8 +28,8 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.daos.ProgramDAO;
 
-import javax.inject.Inject;
-import javax.validation.constraints.NotBlank;
+import jakarta.inject.Inject;
+import jakarta.validation.constraints.NotBlank;
 import java.net.URI;
 import java.util.UUID;
 

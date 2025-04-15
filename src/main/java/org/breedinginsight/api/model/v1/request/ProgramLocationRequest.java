@@ -21,7 +21,7 @@ import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 import org.geojson.Feature;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 
 @Getter

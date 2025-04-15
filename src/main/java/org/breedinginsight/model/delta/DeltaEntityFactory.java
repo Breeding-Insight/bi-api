@@ -13,7 +13,7 @@ import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationUnitService;
 import org.breedinginsight.model.ProgramLocation;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Factory
 public class DeltaEntityFactory {

@@ -16,15 +16,16 @@
  */
 package org.breedinginsight.services;
 
-import io.micronaut.security.token.jwt.generator.AccessRefreshTokenGenerator;
-import io.micronaut.security.token.jwt.render.AccessRefreshToken;
+import io.micronaut.security.authentication.Authentication;
+import io.micronaut.security.token.generator.AccessRefreshTokenGenerator;
+import io.micronaut.security.token.render.AccessRefreshToken;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.model.ApiToken;
 import org.breedinginsight.model.User;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Optional;
 
 @Slf4j
@@ -48,7 +49,7 @@ public class TokenService {
             return Optional.empty();
         }
 
-        Optional<AccessRefreshToken> tokenOptional = this.accessRefreshTokenGenerator.generate(user);
+        Optional<AccessRefreshToken> tokenOptional = this.accessRefreshTokenGenerator.generate(user); // TODO: maybe cast user?
 
         if (tokenOptional.isPresent()) {
             return Optional.of(ApiToken.builder().accessToken(tokenOptional.get().getAccessToken()).build());

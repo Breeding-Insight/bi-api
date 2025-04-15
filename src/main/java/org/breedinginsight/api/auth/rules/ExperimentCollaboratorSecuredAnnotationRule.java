@@ -17,10 +17,13 @@
 
 package org.breedinginsight.api.auth.rules;
 
+import io.micronaut.core.annotation.Nullable;
+import io.micronaut.http.HttpAttributes;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.HttpServerException;
+import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecuredAnnotationRule;
 import io.micronaut.security.rules.SecurityRuleResult;
 import io.micronaut.security.token.RolesFinder;
@@ -36,10 +39,14 @@ import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.Role;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
+
 import java.util.*;
 
 @Singleton
@@ -47,6 +54,7 @@ public class ExperimentCollaboratorSecuredAnnotationRule extends SecuredAnnotati
 
     // Executes before the ProgramSecuredAnnotationRule, and if the annotation exists, will return before the ProgramSecuredAnnotationRule can execute
     public static final Integer ORDER = ProgramSecuredAnnotationRule.ORDER -2;
+    private static final Logger log = LoggerFactory.getLogger(ExperimentCollaboratorSecuredAnnotationRule.class);
 
     public ExperimentCollaboratorSecuredAnnotationRule(RolesFinder rolesFinder) {
         super(rolesFinder);
@@ -62,8 +70,10 @@ public class ExperimentCollaboratorSecuredAnnotationRule extends SecuredAnnotati
     private ExperimentalCollaboratorDAO experimentalCollaboratorDAO;
 
     @Override
-    public SecurityRuleResult check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Map<String, Object> claims) {
+    public Publisher<SecurityRuleResult> check(HttpRequest<?> request, @Nullable Authentication authentication) {
+        log.info("         CHECKING!!!!!!!!!!!");
         // Does not approve request so that checks after it can check. Only rejects on fail.
+        RouteMatch<?> routeMatch = (RouteMatch)request.getAttribute(HttpAttributes.ROUTE_MATCH, RouteMatch.class).orElse((RouteMatch) null);
 
         if (routeMatch instanceof MethodBasedRouteMatch) {
             MethodBasedRouteMatch methodRoute = ((MethodBasedRouteMatch) routeMatch);
@@ -94,18 +104,19 @@ public class ExperimentCollaboratorSecuredAnnotationRule extends SecuredAnnotati
                     throw new HttpStatusException(HttpStatus.NOT_FOUND, "Experiment does not exist");
                 }
 
-                if (claims != null){
+//                if (claims != null){
                     AuthenticatedUser user = securityService.getUser();
 
-                    return checkAuthorization(user, experimentId, programId);
-                }
+                    return Mono.just(checkAuthorization(user, experimentId, programId));
+//                }
 
-                // Rejects if no claims
-                return SecurityRuleResult.REJECTED;
+                // TODO: remove if unused.
+//                // Rejects if no claims
+//                return Mono.just(SecurityRuleResult.REJECTED);
             }
         }
 
-        return SecurityRuleResult.UNKNOWN;
+        return Mono.just(SecurityRuleResult.UNKNOWN);
     }
 
     private static String extractExperimentId(@NotNull RouteMatch<?> routeMatch) {

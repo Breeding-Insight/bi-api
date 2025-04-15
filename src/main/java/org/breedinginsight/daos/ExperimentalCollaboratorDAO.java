@@ -23,8 +23,8 @@ import org.breedinginsight.dao.db.tables.pojos.ExperimentProgramUserRoleEntity;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;

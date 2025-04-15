@@ -22,7 +22,7 @@ import lombok.*;
 import lombok.extern.jackson.Jacksonized;
 import org.breedinginsight.model.SystemRole;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 @Getter
