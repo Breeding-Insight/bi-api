@@ -65,6 +65,9 @@ public class BrAPIGermplasmDAO {
     @Property(name = "micronaut.bi.api.run-scheduled-tasks")
     private boolean runScheduledTasks;
 
+    @Property(name = "brapi.paginate.germplasm")
+    private boolean paginateGermplasm;
+
     private final ProgramCache<BrAPIGermplasm> programGermplasmCache;
 
     private final BrAPIEndpointProvider brAPIEndpointProvider;
@@ -141,11 +144,22 @@ public class BrAPIGermplasmDAO {
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
         germplasmSearch.externalReferenceIDs(List.of(programId.toString()));
         germplasmSearch.externalReferenceSources(List.of(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS)));
-        return processGermplasmForDisplay(brAPIDAOUtil.search(
-                api::searchGermplasmPost,
-                api::searchGermplasmSearchResultsDbIdGet,
-                germplasmSearch
-        ), program.getKey());
+
+        if (paginateGermplasm) {
+            log.debug("Fetching germplasm with pagination to BrAPI");
+            return processGermplasmForDisplay(brAPIDAOUtil.search(
+                            api::searchGermplasmPost,
+                            api::searchGermplasmSearchResultsDbIdGet,
+                            germplasmSearch),
+                    program.getKey());
+        } else {
+            log.debug("Fetching germplasm without pagination to BrAPI");
+            return processGermplasmForDisplay(brAPIDAOUtil.searchNoPaging(
+                    api::searchGermplasmPost,
+                    api::searchGermplasmSearchResultsDbIdGet,
+                    germplasmSearch),
+                    program.getKey());
+        }
     }
 
     /**
