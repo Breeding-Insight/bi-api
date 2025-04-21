@@ -228,6 +228,11 @@ public class BrAPITrialService {
             }
         }
 
+        //dynamically append observation level to obsUnitID column header
+        //todo get obslvl
+        String observationLvl = "Pancake";
+        columns = dynamicUpdateObsUnitIDLabel(columns, observationLvl);
+
         log.debug(logHash + ": writing data to file for export");
         // If one or more envs requested, create a separate file for each env, then zip if there are multiple.
         if (!requestedEnvIds.isEmpty()) {
@@ -304,6 +309,19 @@ public class BrAPITrialService {
         }).start();
         // NOTE: Micronaut doesn't define application/zip in MediaType, use application/octet-stream.
         return new StreamedFile(in, new MediaType(MediaType.APPLICATION_OCTET_STREAM));
+    }
+
+    public List<Column> dynamicUpdateObsUnitIDLabel(List<Column> columns, String observationLvl){
+        Column oldObsUnitIDCol = new Column(ExperimentObservation.Columns.OBS_UNIT_ID, Column.ColumnDataType.STRING);
+        String dynamicLabel =  observationLvl + " " + ExperimentObservation.Columns.OBS_UNIT_ID;
+        Column dynamicLabelObsUnitIDCol = new Column(dynamicLabel, Column.ColumnDataType.STRING);
+        //need to check index of is valid
+        int index = columns.indexOf(oldObsUnitIDCol);
+        //find item in cols with val ExperimentObservation.Columns.OBS_UNIT_ID
+        if (index != -1) {
+            columns.set(index, dynamicLabelObsUnitIDCol);
+        }
+        return columns;
     }
 
     public Dataset getDatasetData(Program program, UUID experimentId, UUID datasetId, Boolean stats) throws ApiException, DoesNotExistException {
