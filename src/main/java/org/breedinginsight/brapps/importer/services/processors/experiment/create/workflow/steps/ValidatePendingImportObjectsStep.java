@@ -363,7 +363,7 @@ public class ValidatePendingImportObjectsStep {
         }
 
         if (elevationBadValue) {
-            ExperimentUtilities.addRowError(ExperimentObservation.Columns.LONG, "Invalid Elevation value (numerals expected)", validationErrors, rowNum);
+            ExperimentUtilities.addRowError(ExperimentObservation.Columns.ELEVATION, "Invalid Elevation value (numerals expected)", validationErrors, rowNum);
         }
 
     }
