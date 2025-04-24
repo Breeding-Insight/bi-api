@@ -49,7 +49,7 @@ public class BrAPITest extends DatabaseTest {
     public BrAPITest() {
         super();
 
-        brapiContainer = new GenericContainer<>("breedinginsight/brapi-java-server:develop")
+        brapiContainer = new GenericContainer<>("breedinginsight/brapi-java-server:rc")
                 .withNetwork(super.getNetwork())
                 .withImagePullPolicy(PullPolicy.ageBased(Duration.ofMinutes(60)))
                 .withExposedPorts(8080)
