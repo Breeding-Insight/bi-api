@@ -229,8 +229,10 @@ public class BrAPITrialService {
         }
 
         //dynamically append observation level to obsUnitID column header
-        //todo get obslvl
-        String observationLvl = "Pancake";
+        //check if ous always limited to dataset ous
+        //check if ou will always have obslvl in additional info
+        //check if dataset name will always be obs lvl and if that is a better place to retrieve
+        String observationLvl =  ous.get(0).getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
         columns = dynamicUpdateObsUnitIDLabel(columns, observationLvl);
 
         log.debug(logHash + ": writing data to file for export");
