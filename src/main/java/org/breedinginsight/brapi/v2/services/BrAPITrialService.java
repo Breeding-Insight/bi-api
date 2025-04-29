@@ -229,9 +229,6 @@ public class BrAPITrialService {
         }
 
         //dynamically append observation level to obsUnitID column header
-        //check if ous always limited to dataset ous
-        //check if ou will always have obslvl in additional info
-        //check if dataset name will always be obs lvl and if that is a better place to retrieve
         String observationLvl =  ous.get(0).getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
         columns = dynamicUpdateObsUnitIDLabel(columns, observationLvl);
 
@@ -255,7 +252,7 @@ public class BrAPITrialService {
             // Generate a file for each study.
             for (Map.Entry<String, List<Map<String, Object>>> entry: rowsByStudyId.entrySet()) {
                 List<Map<String, Object>> rows = entry.getValue();
-                sortDefaultForExportRows(rows);
+                sortDefaultForExportRows(rows, observationLvl);
                 StreamedFile streamedFile = FileUtil.writeToStreamedFile(columns, rows, fileType, SHEET_NAME);
                 // TODO: [BI-2183] remove hardcoded datasetName, use observation level.
                 String name = makeFileName(experiment, program, studyByDbId.get(entry.getKey()).getStudyName(), "Observation Dataset") + fileType.getExtension();
@@ -274,7 +271,7 @@ public class BrAPITrialService {
             }
         } else {
             List<Map<String, Object>> exportRows = new ArrayList<>(rowByOUId.values());
-            sortDefaultForExportRows(exportRows);
+            sortDefaultForExportRows(exportRows, observationLvl);
             // write export data to requested file format
             StreamedFile streamedFile = FileUtil.writeToStreamedFile(columns, exportRows, fileType, SHEET_NAME);
             // Set filename.
@@ -776,7 +773,10 @@ public class BrAPITrialService {
 
         BrAPISeason season = seasonDAO.getSeasonById(study.getSeasons().get(0), program.getId());
         row.put(ExperimentObservation.Columns.ENV_YEAR, season.getYear());
-        row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
+        
+        String observationLvl = ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
+        String expUnitIDLabel = observationLvl + " " + ExperimentObservation.Columns.EXP_UNIT_ID;
+        row.put(expUnitIDLabel, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
 
         // get replicate number
         Optional<BrAPIObservationUnitLevelRelationship> repLevel = ou.getObservationUnitPosition()
@@ -891,10 +891,11 @@ public class BrAPITrialService {
         ous.sort( (studyNameComparator).thenComparing(ouNameComparator));
     }
 
-    private void sortDefaultForExportRows(@NotNull List<Map<String, Object>> exportRows) {
+    private void sortDefaultForExportRows(@NotNull List<Map<String, Object>> exportRows, String observationLvl) {
         Comparator<Map<String, Object>> envComparator = Comparator.comparing(row -> (row.get(Columns.ENV).toString()), new IntOrderComparator());
+        String obsUnitIDLabel = observationLvl + " " + Columns.EXP_UNIT_ID;
         Comparator<Map<String, Object>> expUnitIdComparator =
-                Comparator.comparing(row -> (row.get(Columns.EXP_UNIT_ID).toString()), new IntOrderComparator());
+                Comparator.comparing(row -> (row.get(obsUnitIDLabel).toString()), new IntOrderComparator());
 
         exportRows.sort(envComparator.thenComparing(expUnitIdComparator));
      }
