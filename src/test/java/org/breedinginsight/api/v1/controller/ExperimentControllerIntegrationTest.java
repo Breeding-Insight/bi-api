@@ -967,15 +967,18 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             matchingImportRow = requestedImportRows.stream().filter(row -> {
                 String gid = ExperimentObservation.Columns.GERMPLASM_GID;
                 String env = ExperimentObservation.Columns.ENV;
+                //For now import and export ObsUnitId labels do not match due to BI-2009 changes
+                //This unit test will need to be updated once import is updated to append observation lvls to ObsUnitID label
                 String expUnitId = ExperimentObservation.Columns.EXP_UNIT_ID;
+                String obsLvlexpUnitId = "Plot " + expUnitId;
                 if (extension.equalsIgnoreCase(FileType.CSV.getName())) {
                     return Integer.parseInt(row.get(gid).toString()) == downloadRow.getInt(gid) &&
                             row.get(env).equals(downloadRow.getString(env)) &&
-                            row.get(expUnitId).equals(downloadRow.getObject(expUnitId).toString());
+                            row.get(expUnitId).equals(downloadRow.getObject(obsLvlExpUnitId).toString());
                 } else {
                     return row.get(gid).equals(downloadRow.getString(gid)) &&
                             row.get(env).equals(downloadRow.getString(env)) &&
-                            row.get(expUnitId).equals(downloadRow.getObject(expUnitId).toString());
+                            row.get(expUnitId).equals(downloadRow.getObject(obsLvlExpUnitId).toString());
                 }
             }).findAny();
             assertTrue(matchingImportRow.isPresent() && !matchingImportRow.get().isEmpty());
