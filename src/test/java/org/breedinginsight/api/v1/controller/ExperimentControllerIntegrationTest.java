@@ -970,7 +970,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 //For now import and export ObsUnitId labels do not match due to BI-2009 changes
                 //This unit test will need to be updated once import is updated to append observation lvls to ObsUnitID label
                 String expUnitId = ExperimentObservation.Columns.EXP_UNIT_ID;
-                String obsLvlexpUnitId = "Plot " + expUnitId;
+                String obsLvlExpUnitId = "Plot " + expUnitId;
                 if (extension.equalsIgnoreCase(FileType.CSV.getName())) {
                     return Integer.parseInt(row.get(gid).toString()) == downloadRow.getInt(gid) &&
                             row.get(env).equals(downloadRow.getString(env)) &&
