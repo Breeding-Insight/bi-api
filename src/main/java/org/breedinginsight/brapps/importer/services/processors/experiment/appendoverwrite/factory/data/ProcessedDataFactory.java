@@ -112,6 +112,10 @@ public class ProcessedDataFactory {
         return new EmptyData(brapiReferenceSource, isCommit, germplasmName, study, phenoColumnName, trialId, studyId, unitId, studyYear, observationUnit, user, program, studyService, observationService);
     }
 
+    public static UndefinedDataset undefinedDataset() {
+        return new UndefinedDataset();
+    }
+
     @Bean
     @Prototype
     public InitialData initialDataBean(String brapiReferenceSource,
@@ -172,6 +176,12 @@ public class ProcessedDataFactory {
                                    User user,
                                    Program program) {
         return emptyData(brapiReferenceSource, isCommit, germplasmName, study, phenoColumnName, trialId, studyId, unitId, studyYear, observationUnit, user, program, studyService, observationService);
+    }
+
+    @Bean
+    @Prototype
+    public UndefinedDataset undefinedDatasetBean() {
+        return undefinedDataset();
     }
 }
 

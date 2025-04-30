@@ -298,4 +298,43 @@ public class ExperimentController {
         }
 
     }
+
+    /**
+     * Deletes an experiment.
+     * @param programId The UUID of the program
+     * @param experimentId The UUID of the experiment
+     * @param hard Specifies hard or soft delete
+     * @return A Http Response
+     */
+    @Delete("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}{?hard}")
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.SYSTEM_ADMIN})
+    @Produces(MediaType.APPLICATION_JSON)
+    public HttpResponse deleteExperiment(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("experimentId") UUID experimentId,
+            @QueryValue(defaultValue = "false") Boolean hard
+    ) throws ApiException {
+        try {
+            Optional<Program> program = programService.getById(programId);
+            if(program.isEmpty()) {
+                return HttpResponse.notFound();
+            }
+            int observationCount = experimentService.deleteExperiment(program.get(), experimentId, hard);
+            if (observationCount > 0 && hard) {
+                // 409 Conflict. https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
+                return HttpResponse.status(HttpStatus.CONFLICT);
+            }
+            // 204 No Content indicates successful delete. https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/204
+            return HttpResponse.noContent();
+        } catch (ApiException e) {
+            log.error("Error deleting experiment.\n\tprogramId: " + programId +  "\n\texperimentId: " + experimentId + "\n\thard: " + hard);
+            if (e.getCode() == 404) {
+                return HttpResponse.notFound();
+            } else {
+                return HttpResponse.serverError();
+            }
+        }
+    }
+
+
 }

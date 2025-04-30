@@ -28,13 +28,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.phenotype.ObservationsApi;
+import org.brapi.v2.model.BrAPIIndexPagination;
+import org.brapi.v2.model.BrAPIMetadata;
+import org.brapi.v2.model.BrAPIStatus;
 import org.brapi.v2.model.BrAPIWSMIMEDataTypes;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.pheno.BrAPIObservation;
-import org.brapi.v2.model.pheno.response.BrAPIObservationTableResponse;
+import org.brapi.v2.model.pheno.response.*;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
+import org.breedinginsight.brapi.v2.dao.BrAPIObservationDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
 import org.breedinginsight.brapi.v2.model.request.query.ObservationQuery;
 import org.breedinginsight.daos.ProgramDAO;
@@ -47,6 +51,8 @@ import org.breedinginsight.utilities.Utilities;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2)
@@ -57,13 +63,20 @@ public class BrAPIObservationsController {
     private final ProgramDAO programDAO;
     private final BrAPIStudyDAO brAPIStudyDAO;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
+    private final BrAPIObservationDAO observationDAO;
 
     @Inject
-    public BrAPIObservationsController(ProgramService programService, ProgramDAO programDAO, ProgramDAO programDAO1, BrAPIStudyDAO brAPIStudyDAO, BrAPIEndpointProvider brAPIEndpointProvider) {
+    public BrAPIObservationsController(ProgramService programService,
+                                       ProgramDAO programDAO,
+                                       ProgramDAO programDAO1,
+                                       BrAPIStudyDAO brAPIStudyDAO,
+                                       BrAPIEndpointProvider brAPIEndpointProvider,
+                                       BrAPIObservationDAO brAPIObservationDAO) {
         this.programService = programService;
         this.programDAO = programDAO1;
         this.brAPIStudyDAO = brAPIStudyDAO;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
+        this.observationDAO = brAPIObservationDAO;
     }
 
     @Get("/observations")
@@ -93,8 +106,99 @@ public class BrAPIObservationsController {
                                         @Nullable @QueryValue("externalReferenceSource") String externalReferenceSource,
                                         @Nullable @QueryValue("page") Integer page,
                                         @Nullable @QueryValue("pageSize") Integer pageSize) {
-        //TODO
-        return HttpResponse.notFound();
+        log.debug("observationsGet: fetching observations by filters");
+        Optional<Program> program = programService.getById(programId);
+        if(program.isEmpty()) {
+            log.warn("Program id: " + programId + " not found");
+            return HttpResponse.notFound();
+        }
+
+        try {
+
+            // TODO: BI-2506 - implement support for all query parameters.
+            List<Object> unsupportedParams = Stream.of(
+                    observationDbId,
+                    observationUnitDbId,
+                    observationVariableDbId,
+                    locationDbId,
+                    seasonDbId,
+                    observationTimeStampRangeStart,
+                    observationTimeStampRangeEnd,
+                    observationUnitLevelName,
+                    observationUnitLevelOrder,
+                    observationUnitLevelCode,
+                    observationUnitLevelRelationshipName,
+                    observationUnitLevelRelationshipOrder,
+                    observationUnitLevelRelationshipCode,
+                    observationUnitLevelRelationshipDbId,
+                    commonCropName,
+                    programDbId,
+                    trialDbId,
+                    germplasmDbId,
+                    externalReferenceID,
+                    externalReferenceId,
+                    externalReferenceSource
+            ).filter(Objects::nonNull).collect(Collectors.toList());
+
+            if (!unsupportedParams.isEmpty()) {
+                return HttpResponse.status(HttpStatus.NOT_IMPLEMENTED).body(
+                        new BrAPIObservationListResponse().metadata(new BrAPIMetadata().status(List.of(new BrAPIStatus().messageType(BrAPIStatus.MessageTypeEnum.ERROR)
+                                .message("Unsupported query parameter. Only studyDbId, page, and pageSize are supported."))))
+                );
+            }
+
+            // Get a filtered list of observations.
+            List<BrAPIObservation> observations = observationDAO.getObservationsByFilters(program.get(), studyDbId);
+
+            // If page is not provided, set it to the default value 0.
+            if (page == null) page = 0;
+            // If pageSize is not provided, set it to the default value 1000.
+            if (pageSize == null) pageSize = 1000;
+
+            // Total number of records in the unpaged super set.
+            int totalCount = observations.size();
+            // The least of pageSize and totalCount, unless pageSize is zero, in which case use totalCount.
+            int requestedPageSize = pageSize > 0 ? Math.min(pageSize, totalCount) : totalCount;
+            // Integer division and round up.
+            int totalPages = totalCount / requestedPageSize + ((totalCount % requestedPageSize == 0) ? 0 : 1);
+            log.info("(Pagination) totalCount: " + totalCount + " page (0-indexed): " + page + " requestedPageSize: " + requestedPageSize + " totalPages: " + totalPages);
+
+            // Determine validity of pagination query parameters.
+            boolean pageSizeValid = pageSize > 0;
+            boolean pageValid = page >= 0 && page < totalPages;
+
+            // Only paginate if valid pagination values were sent.
+            if (pageSizeValid && pageValid) {
+                int start = page * requestedPageSize;
+                // Account for last page, which may have fewer than requestedPageSize items, or exactly requestedPageSize items.
+                int end = (page == (totalPages - 1) && totalCount % requestedPageSize != 0) ? (start + (totalCount % requestedPageSize)) : Math.min(((page + 1) * requestedPageSize), totalCount);
+                log.info("(Pagination) start " + start + " end " + end);
+                // Sort observations so that paging is consistent and coherent.
+                observations.sort(Comparator.comparing(BrAPIObservation::getObservationDbId));
+                // Paginate response.
+                observations = observations.subList(start, end);
+            } else {
+                String errorMessage = "Invalid query parameters: page, pageSize";
+                return HttpResponse.badRequest(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().status(List.of(new BrAPIStatus().messageType(BrAPIStatus.MessageTypeEnum.ERROR)
+                        .message(errorMessage)))));
+            }
+
+            return HttpResponse.ok(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().pagination(new BrAPIIndexPagination()
+                            .currentPage(page)
+                            .totalPages(totalPages)
+                            .pageSize(observations.size())
+                            .totalCount(totalCount)))
+                    .result(new BrAPIObservationListResponseResult().data(observations)));
+
+        } catch (ApiException e) {
+            log.error(Utilities.generateApiExceptionLogMessage(e), e);
+            return HttpResponse.serverError(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().status(List.of(new BrAPIStatus().messageType(BrAPIStatus.MessageTypeEnum.ERROR)
+                    .message("Error fetching observations")))));
+        } catch (Exception e) {
+            log.error("Error fetching Observations", e);
+            return HttpResponse.serverError(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().status(List.of(new BrAPIStatus().messageType(BrAPIStatus.MessageTypeEnum.ERROR)
+                    .message("Error fetching observations")))));
+        }
     }
 
     @Get("/observations/{observationDbId}")

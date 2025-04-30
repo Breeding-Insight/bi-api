@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.breedinginsight.brapps.importer.services.processors;
+package org.breedinginsight.brapps.importer.services.processors.germplasm;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
@@ -42,6 +43,7 @@ import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.processors.Processor;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.model.Program;
@@ -115,6 +117,17 @@ public class GermplasmProcessor implements Processor {
 
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ApiException {
 
+        // BI-2573 - sort by entry no here so ordering is consistent everywhere in processor
+        importRows.sort((left, right) -> {
+            if (left.getGermplasm().getEntryNo() == null || right.getGermplasm().getEntryNo() == null) {
+                return 0;
+            } else {
+                Integer leftEntryNo = Integer.parseInt(left.getGermplasm().getEntryNo());
+                Integer rightEntryNo = Integer.parseInt(right.getGermplasm().getEntryNo());
+                return leftEntryNo.compareTo(rightEntryNo);
+            }
+        });
+
         // Get all of our objects specified in the data file by their unique attributes
         Map<String, Boolean> germplasmAccessionNumbers = new HashMap<>();
         for (int i = 0; i < importRows.size(); i++) {
@@ -178,7 +191,7 @@ public class GermplasmProcessor implements Processor {
             try {
                 Germplasm row = importRows.get(0).getGermplasm();
                 String listName = Germplasm.constructGermplasmListName(row.getListName(), program);
-                List<BrAPIListSummary> existingLists = brAPIListDAO.getListByName(List.of(listName), program.getId());
+                List<BrAPIListSummary> existingLists = brAPIListDAO.getListsByName(List.of(listName), program.getId());
                 for (BrAPIListSummary existingList: existingLists) {
                     if (existingList.getListName().equals(listName)) {
                         listNameDup = true;
@@ -265,16 +278,7 @@ public class GermplasmProcessor implements Processor {
         Map<String, Integer> entryNumberCounts = new HashMap<>();
         List<String> userProvidedEntryNumbers = new ArrayList<>();
         ValidationErrors validationErrors = new ValidationErrors();
-        // Sort importRows by entry number (if present).
-        importRows.sort((left, right) -> {
-            if (left.getGermplasm().getEntryNo() == null || right.getGermplasm().getEntryNo() == null) {
-                return 0;
-            } else {
-                Integer leftEntryNo = Integer.parseInt(left.getGermplasm().getEntryNo());
-                Integer rightEntryNo = Integer.parseInt(right.getGermplasm().getEntryNo());
-                return leftEntryNo.compareTo(rightEntryNo);
-            }
-        });
+
         for (int i = 0; i < importRows.size(); i++) {
             log.debug("processing germplasm row: " + (i+1));
             BrAPIImport brapiImport = importRows.get(i);
@@ -325,11 +329,7 @@ public class GermplasmProcessor implements Processor {
 
         // Construct pedigree
         constructPedigreeString(importRows, mappedBrAPIImport, commit);
-
-        // Construct a dependency tree for POSTing order. Dependents on unique germplasm name, (<Name> [<Program Key> - <Accession Number>])
-        if (commit) {
-            createPostOrder();
-        }
+        createPostOrder();
 
         // Construct our response object
         return getStatisticsMap(importRows);
@@ -556,9 +556,14 @@ public class GermplasmProcessor implements Processor {
         }
     }
 
+    /*
+    This will set the postOrder and validate for circular pedigree dependencies.
+     */
     private void createPostOrder() {
+
+        Set<String> created = null;
         // Construct a dependency tree for POSTing order
-        Set<String> created = existingGermplasm.stream().map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toSet());
+        created = existingGermplasm.stream().map(GermplasmImportIdUtils::getImportId).collect(Collectors.toSet());
 
         //todo this gets messy
 
@@ -569,7 +574,7 @@ public class GermplasmProcessor implements Processor {
             for (BrAPIGermplasm germplasm : newGermplasmList) {
 
                 // If we've already planned this germplasm, skip
-                if (created.contains(germplasm.getGermplasmName())) {
+                if (created.contains(GermplasmImportIdUtils.getImportId(germplasm))) {
                     continue;
                 }
 
@@ -579,20 +584,20 @@ public class GermplasmProcessor implements Processor {
                     continue;
                 }
 
-                // If both parents have been created already, add it
-                List<String> pedigreeArray = List.of(germplasm.getPedigree().split("/"));
-                String femaleParent = pedigreeArray.get(0);
-                String maleParent = pedigreeArray.size() > 1 ? pedigreeArray.get(1) : null;
-                if (created.contains(femaleParent) || germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN).getAsBoolean()) {
-                    if (maleParent == null || created.contains(maleParent) || germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN).getAsBoolean()) {
+                String femaleImportId = GermplasmImportIdUtils.getMotherImportId(germplasm);
+                String maleImportId = GermplasmImportIdUtils.getFatherImportId(germplasm);
+
+                if (created.contains(femaleImportId) || GermplasmImportIdUtils.femaleParentUnknown(germplasm)) {
+                    if (!GermplasmImportIdUtils.maleParentPresent(germplasm) || created.contains(maleImportId) || GermplasmImportIdUtils.maleParentUnknown(germplasm)) {
                         createList.add(germplasm);
                     }
                 }
+
             }
 
             totalRecorded += createList.size();
             if (createList.size() > 0) {
-                created.addAll(createList.stream().map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toList()));
+                created.addAll(createList.stream().map(GermplasmImportIdUtils::getImportId).collect(Collectors.toList()));
                 postOrder.add(createList);
             } else if (totalRecorded < newGermplasmList.size()) {
                 // We ran into circular dependencies, throw an error

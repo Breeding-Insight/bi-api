@@ -63,6 +63,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 
 import static io.micronaut.http.HttpRequest.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
@@ -71,8 +72,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
 
     private Program program;
-    private String experimentId;
+    private String  experimentId;
     private List<String> envIds = new ArrayList<>();
+    // Use hardcoded values for more deterministic test runs and easier assertions.
+    private List<Float> values = List.of(0.125F, 12.415F);
     private final List<Map<String, Object>> rows = new ArrayList<>();
     private final List<Column> columns = ExperimentFileColumns.getOrderedColumns();
     private List<Trait> traits;
@@ -170,15 +173,12 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         Map<String, Object> row2 = makeExpImportRow("Env2");
 
         // Add test observation data
-        for (Trait trait : traits) {
-            Random random = new Random();
-
+        for (int i = 0; i < traits.size(); i++) {
             // TODO: test for sending obs data as double.
             //  A float is returned from the backend instead of double. there is a separate card to fix this.
-            // Double val1 = Math.random();
-
-            Float val1 = random.nextFloat();
-            row1.put(trait.getObservationVariableName(), val1);
+            int valueIndex = i % values.size();  // Prevent overflow.
+            row1.put(traits.get(i).getObservationVariableName(), values.get(valueIndex));
+            row2.put(traits.get(i).getObservationVariableName(), values.get(valueIndex));
         }
 
         rows.add(row1);
@@ -273,7 +273,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Disabled("Disabled until fetching of observations is implemented")
+    @Disabled("Disabled until fetching of observations is implemented in BI-2506.")
     public void testGetObsListByExpId() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/brapi/v2/observations?trialDbId=%s", program.getId(), experimentId))
@@ -286,7 +286,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Disabled("Disabled until fetching of observations is implemented")
+    @Disabled("Disabled until fetching of observations is implemented in BI-2506.")
     public void testGetOUById() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/brapi/v2/observations?trialDbId=%s", program.getId(), experimentId))
@@ -309,6 +309,99 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
 
         HttpResponse<String> ouResponse = ouCall.blockingFirst();
         assertEquals(HttpStatus.OK, ouResponse.getStatus());
+    }
+
+    @Test
+    public void testGetObsByStudyDbId() {
+        // Make a GET request to the /observations endpoint with the studyDbId query parameter.
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/observations?studyDbId=%s", program.getId(), envIds.get(0)))
+                        .bearerAuth("test-registered-user"),
+                String.class
+        );
+
+        // Check for 200 OK response.
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // Check that two observations were returned.
+        JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+        JsonArray observations = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+        assertEquals(2, observations.size());
+
+        // Check the observation values, keep in mind the order of results is not guaranteed.
+        Float value1 = observations.get(0).getAsJsonObject().get("value").getAsFloat();
+        Float value2 = observations.get(1).getAsJsonObject().get("value").getAsFloat();
+        assertTrue(values.contains(value1), "Observation with value " + value1 + " not found.");
+        assertTrue(values.contains(value2), "Observation with value " + value2 + " not found.");
+    }
+
+    @Test
+    public void testGetObsPagination() {
+
+        // Check no pagination.
+        checkPagination(null, null, HttpStatus.OK, 4, 4, 1);
+        // Check page and pageSize defaults.
+        checkPagination(null, 2, HttpStatus.OK, 2, 4, 2);
+        checkPagination(0, null, HttpStatus.OK, 4, 4, 1);
+        // Check valid pagination, including last page edge case.
+        checkPagination(0, 1, HttpStatus.OK, 1, 4, 4);
+        checkPagination(1, 2, HttpStatus.OK, 2, 4, 2);
+        checkPagination(0, 3, HttpStatus.OK, 3, 4, 2);
+        checkPagination(1, 3, HttpStatus.OK, 1, 4, 2);
+        checkPagination(0, 100, HttpStatus.OK, 4, 4, 1);
+        // Check invalid pagination.
+        checkPagination(2, 2, HttpStatus.BAD_REQUEST, null, null, null);
+        checkPagination(0, 0, HttpStatus.BAD_REQUEST, null, null, null);
+        checkPagination(1, 0, HttpStatus.BAD_REQUEST, null, null, null);
+        checkPagination(10, 100, HttpStatus.BAD_REQUEST, null, null, null);
+
+    }
+
+    private void checkPagination(Integer page, Integer pageSize, HttpStatus expectedStatus, Integer expectedSize, Integer expectedTotalCount, Integer expectedTotalPages) {
+        // Build request URL.
+        String requestURL = String.format("/programs/%s/brapi/v2/observations", program.getId());
+        if (page != null) {
+            requestURL = requestURL + "?page=" + page;
+        }
+        if (pageSize != null && page == null) {
+            requestURL = requestURL + "?pageSize=" + pageSize;
+        } else if (pageSize != null) {
+            requestURL = requestURL + "&pageSize=" + pageSize;
+        }
+
+        // Make a GET request to the /observations endpoint with the supplied pagination parameters.
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(requestURL).bearerAuth("test-registered-user"),
+                String.class
+        );
+
+        // Check for expected response.
+        try {
+            HttpResponse<String> response = call.blockingFirst();
+            assertEquals(expectedStatus, response.getStatus());
+
+            // If call.blockingFirst() doesn't throw, expect a 200 OK.
+            assertEquals(HttpStatus.OK, response.getStatus());
+
+            // Parse and check body and metadata.
+            JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+            // Get metadata.
+            JsonObject pagination = responseObj.getAsJsonObject("metadata").getAsJsonObject("pagination");
+            assertEquals(expectedSize, pagination.get("pageSize").getAsInt());
+            int expectedPage = page == null ? 0 : page;
+            assertEquals(expectedPage, pagination.get("currentPage").getAsInt());
+            assertEquals(expectedTotalPages, pagination.get("totalPages").getAsInt());
+            assertEquals(expectedTotalCount, pagination.get("totalCount").getAsInt());
+            // Get observations.
+            JsonArray observations = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+            assertEquals(expectedSize, observations.size());
+
+        } catch (HttpClientResponseException e) {
+            // call.blockingFirst() will throw in the case of a non-200 code.
+            assertEquals(expectedStatus, e.getStatus());
+        }
+
     }
 
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {

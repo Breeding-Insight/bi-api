@@ -26,6 +26,7 @@ import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.EntityNotFoundException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteWorkflowContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
@@ -94,12 +95,12 @@ public class PendingObservationUnit implements ExperimentImportEntity<BrAPIObser
      * @throws ApiException if there is an issue with the API call
      */
     @Override
-    public List<BrAPIObservationUnit> brapiRead() throws ApiException {
-        // Collect deltabreed-generated exp unit ids listed in the import
-        Set<String> expUnitIds = cache.getReferenceOUIds();
+    public List<BrAPIObservationUnit> brapiRead() throws ApiException, EntityNotFoundException {
+        // Collect deltabreed-generated obs unit ids listed in the import
+        Set<String> obsUnitIds = cache.getReferenceOUIds();
 
         // For each id fetch the observation unit from the brapi data store
-        return observationUnitService.getObservationUnitsByDbId(new HashSet<>(expUnitIds), importContext.getProgram());
+        return observationUnitService.getObservationUnitsById(new HashSet<>(obsUnitIds), importContext.getProgram());
     }
 
     /**

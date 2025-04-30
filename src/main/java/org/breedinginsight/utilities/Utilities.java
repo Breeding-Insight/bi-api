@@ -29,6 +29,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Utilities {
@@ -181,6 +182,37 @@ public class Utilities {
         String keyValueRegEx = String.format("\\s*\\[%s-.*?\\]\\s*", programKey);
         String stripped =  original.replaceAll(keyValueRegEx, "");
         return stripped;
+    }
+
+    /**
+     * Extracts the germplasm identifier (GID) from a germplasm name string that contains
+     * a key in the format "[PROGKEY-NUMBER]".
+     *
+     * <p>This method searches for a pattern matching "[anything-digits]" in the input string
+     * and returns the numeric portion if found. The prefix before the hyphen can be any sequence
+     * of characters.</p>
+     *
+     * @param germplasmNameWithKey The germplasm name string containing the identifier in the format
+     *                            "[PROGKEY-NUMBER]", e.g., "TestDup [DEMO-12]"
+     * @return The numeric portion after the hyphen as a String if the pattern is found,
+     *         or null if the pattern is not found in the input string
+     * @throws NullPointerException If the input string is null
+     *
+     * @example
+     * <pre>
+     * String gid = extractGid("TestDup [DEMO-12]"); // Returns "12"
+     * String gid = extractGid("Wheat [BRC-789]");   // Returns "789"
+     * String gid = extractGid("NoPattern");         // Returns null
+     * </pre>
+     */
+    public static String extractGid(String germplasmNameWithKey) {
+        Pattern pattern = Pattern.compile("\\[(.*?)-(\\d+)\\]");
+        Matcher matcher = pattern.matcher(germplasmNameWithKey);
+
+        if (matcher.find()) {
+            return matcher.group(2);
+        }
+        return null;
     }
 
     public static String generateApiExceptionLogMessage(ApiException e) {

@@ -23,6 +23,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
@@ -41,6 +42,7 @@ import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.SpeciesService;
 import org.jooq.DSLContext;
+import org.junit.Rule;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
@@ -49,6 +51,7 @@ import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.*;
 
+import static io.micronaut.http.HttpRequest.DELETE;
 import static io.micronaut.http.HttpRequest.GET;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -145,19 +148,24 @@ public class ListControllerIntegrationTest extends BrAPITest {
         newExp.put(traits.get(0).getObservationVariableName(), "1");
 
         JsonObject result = importTestUtils.uploadAndFetchWorkflow(
-                importTestUtils.writeExperimentDataToFile(List.of(newExp), traits), null, true, client, program, mappingId, newExperimentWorkflowId
-        );
-
+                importTestUtils.writeExperimentDataToFile(List.of(newExp), traits), null, true, client, program, mappingId, newExperimentWorkflowId);
     }
 
     @Test
     @SneakyThrows
+    @Order(1)
     public void getAllListsSuccess() {
         // A GET request to the brapi/v2/lists endpoint with no query params should return all lists.
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/brapi/v2/lists", program.getId().toString()))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
+
+        // Collect all responses
+        List<HttpResponse<String>> responses = call.toList().blockingGet();
+
+        // Ensure we got a response
+        assertFalse(responses.isEmpty(), "No response received");
 
         // Ensure 200 OK response.
         HttpResponse<String> response = call.blockingFirst();
@@ -190,4 +198,48 @@ public class ListControllerIntegrationTest extends BrAPITest {
         }
     }
 
+
+    @Test
+    @SneakyThrows
+    @Order(2)
+    public void deleteListSuccess() {
+        // A GET request to the brapi/v2/lists endpoint with no query params should return all lists.
+        Flowable<HttpResponse<String>> getCall = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/lists", program.getId().toString()))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        // Ensure 200 OK response for fetching lists.
+        HttpResponse<String> beforeResponse = getCall.blockingFirst();
+        assertEquals(HttpStatus.OK, beforeResponse.getStatus());
+
+        // Parse result.
+        JsonObject beforeResult = JsonParser.parseString(beforeResponse.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray beforeData = beforeResult.getAsJsonArray("data");
+
+        // A DELETE request to the brapi/v2/lists/<listDbId> endpoint with no query params should delete the list.
+        String deleteListDbId = beforeData.get(0).getAsJsonObject().get("listDbId").getAsString();
+        Flowable<HttpResponse<String>> deleteCall = client.exchange(
+                DELETE(String.format("/programs/%s/brapi/v2/lists/%s", program.getId().toString(), deleteListDbId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        // Ensure 204 NO_CONTENT response for deleting a list.
+        HttpResponse<String> deleteResponse = deleteCall.blockingFirst();
+        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+
+
+        // A DELETE request to the brapi/v2/lists/<listDbId> endpoint with invalid dbId.
+        Flowable<HttpResponse<String>> invalidDeleteCall = client.exchange(
+                DELETE(String.format("/programs/%s/brapi/v2/lists/%s", program.getId().toString(), "NOT-VALID-DBID"))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        // Ensure 404 NOT_FOUND response for requesting to delete a non-existant list.
+        try {
+            invalidDeleteCall.blockingFirst();
+        } catch(HttpClientResponseException e) {
+            assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        }
+    }
 }

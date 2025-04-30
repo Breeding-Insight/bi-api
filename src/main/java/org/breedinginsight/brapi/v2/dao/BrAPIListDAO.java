@@ -17,10 +17,12 @@
 
 package org.breedinginsight.brapi.v2.dao;
 
+import io.micronaut.http.HttpResponse;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.HttpUrl;
+import okhttp3.Request;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.model.queryParams.core.ListQueryParams;
 import org.brapi.client.v2.modules.core.ListsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.BrAPIResponse;
@@ -29,8 +31,10 @@ import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
-import org.brapi.v2.model.core.response.*;
-import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.brapi.v2.model.core.response.BrAPIListsListResponse;
+import org.brapi.v2.model.core.response.BrAPIListsListResponseResult;
+import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
@@ -54,14 +58,17 @@ public class BrAPIListDAO {
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public BrAPIListDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider) {
+    public BrAPIListDAO(ProgramDAO programDAO,
+                        ImportDAO importDAO,
+                        BrAPIDAOUtil brAPIDAOUtil,
+                        BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
-    public List<BrAPIListSummary> getListByName(List<String> listNames, UUID programId) throws ApiException {
+    public List<BrAPIListSummary> getListsByName(List<String> listNames, UUID programId) throws ApiException {
         if(listNames.isEmpty()) {
             return Collections.emptyList();
         }
@@ -82,7 +89,7 @@ public class BrAPIListDAO {
         return response.getBody();
     }
 
-    public List<BrAPIListSummary> getListBySearch(@NotNull BrAPIListSearchRequest searchRequest, UUID programId) throws ApiException {
+    public List<BrAPIListSummary> getListsBySearch(@NotNull BrAPIListSearchRequest searchRequest, UUID programId) throws ApiException {
         ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
         List<BrAPIListSummary> programLists = brAPIDAOUtil.search(api::searchListsPost, api::searchListsSearchResultsDbIdGet, searchRequest);
         if (searchRequest.getExternalReferenceSources() != null && searchRequest.getExternalReferenceIDs() != null) {
@@ -94,7 +101,7 @@ public class BrAPIListDAO {
 
     }
 
-    public List<BrAPIListSummary> getListByTypeAndExternalRef(@NotNull BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
+    public List<BrAPIListSummary> getListsByTypeAndExternalRef(@NotNull BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
         BrAPIListSearchRequest searchRequest = new BrAPIListSearchRequest()
                 .externalReferenceIDs(List.of(externalReferenceId.toString()))
                 .externalReferenceSources(List.of(externalReferenceSource))
@@ -196,4 +203,19 @@ public class BrAPIListDAO {
 
         throw new ApiException("No response after creating list");
     }
+
+    public HttpResponse<String> deleteBrAPIList(String listDbId, UUID programId, boolean hardDelete) throws ApiException {
+        // TODO: Switch to using the ListsApi from the BrAPI client library once the delete endpoints from BI-2397 are merged.
+        var programBrAPIBaseUrl = brAPIDAOUtil.getProgramBrAPIBaseUrl(programId);
+        var requestUrl = HttpUrl.parse(programBrAPIBaseUrl + "/lists/" + listDbId).newBuilder();
+        requestUrl.addQueryParameter("hardDelete", Boolean.toString(hardDelete));
+        HttpUrl url = requestUrl.build();
+        var brapiRequest = new Request.Builder().url(url)
+                .method("DELETE", null)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        return brAPIDAOUtil.makeCall(brapiRequest);
+    }
+
 }

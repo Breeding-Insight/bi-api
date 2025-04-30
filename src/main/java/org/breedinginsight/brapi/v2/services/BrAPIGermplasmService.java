@@ -82,7 +82,7 @@ public class BrAPIGermplasmService {
         return germplasmDAO.getGermplasmByDBID(germplasmId, programId);
     }
 
-    public List<Map<String, Object>> processListData(List<BrAPIGermplasm> germplasm, BrAPIListDetails germplasmList, Program program){
+    public List<Map<String, Object>> processListData(List<BrAPIGermplasm> germplasm, List<String> listData, Program program){
         Map<String, BrAPIGermplasm> germplasmByName = new HashMap<>();
         for (BrAPIGermplasm g: germplasm) {
             // Use the full, unique germplasmName with programKey and accessionNumber (GID) for 2 reasons:
@@ -97,14 +97,14 @@ public class BrAPIGermplasmService {
 
         // This holds the BrAPI list items or all germplasm in a program if the list is null.
         List<String> orderedGermplasmNames = new ArrayList<>();
-        if (germplasmList == null) {
+        if (listData == null) {
             orderedGermplasmNames = germplasm.stream().sorted((left, right) -> {
                 Integer leftAccessionNumber = Integer.parseInt(left.getAccessionNumber());
                 Integer rightAccessionNumber = Integer.parseInt(right.getAccessionNumber());
                 return leftAccessionNumber.compareTo(rightAccessionNumber);
             }).map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toList());
         } else {
-            orderedGermplasmNames = germplasmList.getData();
+            orderedGermplasmNames = listData;
         }
 
         // For export, assign entry number sequentially based on BrAPI list order.
@@ -124,7 +124,7 @@ public class BrAPIGermplasmService {
             row.put("Source", source);
 
             // Use the entry number in the list map if generated
-            if(germplasmList == null) {
+            if(listData == null) {
                 // Not downloading a real list, use GID (https://breedinginsight.atlassian.net/browse/BI-2266).
                 row.put("Entry No", Integer.valueOf(germplasmEntry.getAccessionNumber()));
             } else {
@@ -187,26 +187,24 @@ public class BrAPIGermplasmService {
             // get list BrAPI germplasm variables
             List<String> germplasmNames = listResponse.getResult().getData();
             List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
-            Map<String, BrAPIGermplasm> germplasmByName = new HashMap<>();
+            Map<String, BrAPIGermplasm> germplasmByGid = new HashMap<>();
 
             for (BrAPIGermplasm g : germplasm) {
                 // set the list ID in the germplasm additional info
-                germplasm.forEach(x -> x.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, listId));
+                g.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, listId);
                 // Add to map.
-                germplasmByName.put(g.getGermplasmName(), g);
+                germplasmByGid.put(g.getAccessionNumber(), g);
             }
 
-            // Get the program key.
-            String programKey = programService.getById(programId)
-                    .orElseThrow(ApiException::new)
-                    .getKey();
+            // Extract gids from list names
+            List<String> gids = germplasmNames.stream().map(Utilities::extractGid).collect(Collectors.toList());
 
             // Build list from BrAPI list that preserves ordering and duplicates and assigns sequential entry numbers.
             List<BrAPIGermplasm> germplasmList = new ArrayList<>();
             int entryNumber = 0;
-            for (String germplasmName : germplasmNames) {
+            for (String gid : gids) {
                 ++entryNumber;
-                BrAPIGermplasm listEntry = cloneBrAPIGermplasm(germplasmByName.get(Utilities.removeProgramKeyAndUnknownAdditionalData(germplasmName, programKey)));
+                BrAPIGermplasm listEntry = cloneBrAPIGermplasm(germplasmByGid.get(gid));
                 // Set entry number.
                 listEntry.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNumber);
                 germplasmList.add(listEntry);
@@ -254,7 +252,9 @@ public class BrAPIGermplasmService {
         return new DownloadFile(fileName, downloadFile);
     }
 
-    public DownloadFile exportGermplasmList(UUID programId, String listId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException, DoesNotExistException {
+    public DownloadFile exportGermplasmList(UUID programId,
+                                            String listId,
+                                            FileType fileExtension) throws IllegalArgumentException, ApiException, IOException, DoesNotExistException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
 
         //Retrieve germplasm list data
@@ -270,7 +270,7 @@ public class BrAPIGermplasmService {
         String fileName = createFileName(listData, listName);
         StreamedFile downloadFile;
         //Convert list data to List<Map<String, Object>> data to pass into file writer
-        List<Map<String, Object>> processedData =  processListData(germplasm, listData, program);
+        List<Map<String, Object>> processedData =  processListData(germplasm, germplasmNames, program);
 
         if (fileExtension == FileType.CSV){
             downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
