@@ -967,7 +967,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             matchingImportRow = requestedImportRows.stream().filter(row -> {
                 String gid = ExperimentObservation.Columns.GERMPLASM_GID;
                 String env = ExperimentObservation.Columns.ENV;
-                String expUnitId = ExperimentObservation.Columns.EXP_UNIT_ID;   
+                String expUnitId = ExperimentObservation.Columns.EXP_UNIT_ID;
                 if (extension.equalsIgnoreCase(FileType.CSV.getName())) {
                     return Integer.parseInt(row.get(gid).toString()) == downloadRow.getInt(gid) &&
                             row.get(env).equals(downloadRow.getString(env)) &&
