@@ -237,9 +237,10 @@ public class BrAPITrialService {
         if (!requestedEnvIds.isEmpty()) {
             // This will hold a list of rows for each study, each list will become a separate file.
             Map<String, List<Map<String, Object>>> rowsByStudyId = new HashMap<>();
+            String obsUnitIDLabel = observationLvl + " " + ExperimentObservation.Columns.OBS_UNIT_ID;
 
             for (Map<String, Object> row: rowByOUId.values()) {
-                String studyId = studyDbIdByOUId.get((String)row.get(ExperimentObservation.Columns.OBS_UNIT_ID));
+                String studyId = studyDbIdByOUId.get((String)row.get(obsUnitIDLabel));
                 // Initialize key with empty list if it is not present.
                 if (!rowsByStudyId.containsKey(studyId))
                 {
