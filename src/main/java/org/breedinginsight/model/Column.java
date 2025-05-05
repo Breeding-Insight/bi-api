@@ -56,4 +56,9 @@ public class Column {
         Column that = (Column) o;
         return Objects.equals(getValue(), that.getValue()) && Objects.equals(getDataType(), that.getDataType());
     }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getValue(), getDataType());
+    }
 }
