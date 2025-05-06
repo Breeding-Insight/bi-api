@@ -13,32 +13,39 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '4', 'Blueberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '5', 'Salmon') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '6', 'Grape') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '7', 'Alfalfa') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '8', 'Sweet Potato') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '9', 'Trout') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '10', 'Soybean') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '11', 'Cranberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '12', 'Cucumber') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '13', 'Oat') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '14', 'Citrus') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '15', 'Sugar Cane') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '16', 'Strawberry') ON CONFLICT DO NOTHING;
--- for the Honey Bee case, want to overwrite name, not preserve existing
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '17', 'Honey Bee') ON CONFLICT (id) DO UPDATE SET crop_name = EXCLUDED.crop_name;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '18', 'Pecan') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '19', 'Lettuce') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '20', 'Cotton') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '21', 'Sorghum') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '22', 'Hemp') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '23', 'Hop') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '24', 'Hydrangea') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '25', 'Red Clover') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '26', 'Potato') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '27', 'Blackberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '28', 'Raspberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '29', 'Sugar Beet') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '30', 'Strawberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '31', 'Coffee') ON CONFLICT DO NOTHING;
+-- for uuid_generate_v4()
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+DO $$
+DECLARE
+    v_auth_id constant uuid := 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA';
+BEGIN
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Blueberry') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Salmon') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Grape') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Alfalfa') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Sweet Potato') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Trout') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Soybean') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Cranberry') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Cucumber') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Oat') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Citrus') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Sugar Cane') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Strawberry') ON CONFLICT DO NOTHING;
+    -- for the Honey Bee case, want to overwrite name, not preserve existing
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Honey Bee') ON CONFLICT (id) DO UPDATE SET crop_name = EXCLUDED.crop_name;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Pecan') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Lettuce') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Cotton') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Sorghum') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Hemp') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Hop') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Hydrangea') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Red Clover') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Potato') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Blackberry') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Raspberry') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Sugar Beet') ON CONFLICT DO NOTHING;
+    INSERT INTO crop (id, auth_user_id, crop_name) VALUES (uuid_generate_v4(), v_auth_id, 'Coffee') ON CONFLICT DO NOTHING;
+END $$;
