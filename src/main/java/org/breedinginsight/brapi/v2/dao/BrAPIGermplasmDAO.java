@@ -162,6 +162,10 @@ public class BrAPIGermplasmDAO {
         }
     }
 
+    public void repopulateGermplasmCacheForProgram(UUID programId) {
+        programGermplasmCache.populate(programId);
+    }
+
     /**
      * Process germplasm into a format for display
      * @param programGermplasm
@@ -310,11 +314,8 @@ public class BrAPIGermplasmDAO {
         var program = programDAO.fetchOneById(programId);
         try {
             if (!postBrAPIGermplasmList.isEmpty()) {
-                Callable<Map<String, BrAPIGermplasm>> postFunction = () -> {
                     List<BrAPIGermplasm> postResponse = brAPIDAOUtil.post(postBrAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
-                    return processGermplasmForDisplay(postResponse, program.getKey());
-                };
-                return programGermplasmCache.post(programId, postFunction);
+                    return new ArrayList<>(processGermplasmForDisplay(postResponse, program.getKey()).values());
             }
             return new ArrayList<>();
         } catch (Exception e) {
