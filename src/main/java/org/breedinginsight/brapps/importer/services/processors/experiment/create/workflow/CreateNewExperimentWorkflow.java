@@ -106,6 +106,7 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
         statusService.updateMessage(upload, "Checking existing experiment objects in brapi service and mapping data");
 
         ProcessedPhenotypeData phenotypeData = experimentPhenotypeService.extractPhenotypes(context);
+        // TODO: eliminate or modify unnecessary populateExistingPIO step as it relies on the user supplying existing observation unit ids
         ProcessContext processContext = populateExistingPendingImportObjectsStep.process(context, phenotypeData);
         populateNewPendingImportObjectsStep.process(processContext, phenotypeData);
         ValidationErrors validationErrors = validatePendingImportObjectsStep.process(context, processContext.getPendingData(), phenotypeData, processedData);

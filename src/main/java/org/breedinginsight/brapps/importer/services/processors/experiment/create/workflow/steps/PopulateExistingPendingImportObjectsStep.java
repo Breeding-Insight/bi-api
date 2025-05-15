@@ -143,51 +143,52 @@ public class PopulateExistingPendingImportObjectsStep {
      */
     private Map<String, PendingImportObject<BrAPIObservationUnit>> initializeObservationUnits(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByName = new HashMap<>();
-
-        Map<String, ExperimentObservation> rowByObsUnitId = new HashMap<>();
-        experimentImportRows.forEach(row -> {
-            if (StringUtils.isNotBlank(row.getObsUnitID())) {
-                if(rowByObsUnitId.containsKey(row.getObsUnitID())) {
-                    throw new IllegalStateException("ObsUnitId is repeated: " + row.getObsUnitID());
-                }
-                rowByObsUnitId.put(row.getObsUnitID(), row);
-            }
-        });
-
-        try {
-            List<BrAPIObservationUnit> existingObsUnits = brAPIObservationUnitDAO.getObservationUnitsById(rowByObsUnitId.keySet(), program);
-
-            // TODO: grab from externalReferences
-            /*
-            observationUnitByObsUnitId = existingObsUnits.stream()
-                    .collect(Collectors.toMap(BrAPIObservationUnit::getObservationUnitDbId,
-                            (BrAPIObservationUnit unit) -> new PendingImportObject<>(unit, false)));
-             */
-
-            String refSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
-            if (existingObsUnits.size() == rowByObsUnitId.size()) {
-                existingObsUnits.forEach(brAPIObservationUnit -> {
-                    processAndCacheObservationUnit(brAPIObservationUnit, refSource, program, observationUnitByName, rowByObsUnitId);
-
-                    BrAPIExternalReference idRef = Utilities.getExternalReference(brAPIObservationUnit.getExternalReferences(), refSource)
-                            .orElseThrow(() -> new InternalServerException("An ObservationUnit ID was not found in any of the external references"));
-
-                    ExperimentObservation row = rowByObsUnitId.get(idRef.getReferenceId());
-                    row.setExpTitle(Utilities.removeProgramKey(brAPIObservationUnit.getTrialName(), program.getKey()));
-                    row.setEnv(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getStudyName(), program.getKey()));
-                    row.setEnvLocation(Utilities.removeProgramKey(brAPIObservationUnit.getLocationName(), program.getKey()));
-                });
-            } else {
-                List<String> missingIds = new ArrayList<>(rowByObsUnitId.keySet());
-                missingIds.removeAll(existingObsUnits.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList()));
-                throw new IllegalStateException("Observation Units not found for ObsUnitId(s): " + String.join(ExperimentUtilities.COMMA_DELIMITER, missingIds));
-            }
-
-            return observationUnitByName;
-        } catch (ApiException e) {
-            log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
-            throw new InternalServerException(e.toString(), e);
-        }
+        return observationUnitByName;
+        // TODO: change how ProcessContext is generated so it does not rely on this unused method
+//        Map<String, ExperimentObservation> rowByObsUnitId = new HashMap<>();
+//        experimentImportRows.forEach(row -> {
+//            if (StringUtils.isNotBlank(row.getObsUnitID())) {
+//                if(rowByObsUnitId.containsKey(row.getObsUnitID())) {
+//                    throw new IllegalStateException("ObsUnitId is repeated: " + row.getObsUnitID());
+//                }
+//                rowByObsUnitId.put(row.getObsUnitID(), row);
+//            }
+//        });
+//
+//        try {
+//            List<BrAPIObservationUnit> existingObsUnits = brAPIObservationUnitDAO.getObservationUnitsById(rowByObsUnitId.keySet(), program);
+//
+//            // TODO: grab from externalReferences
+//            /*
+//            observationUnitByObsUnitId = existingObsUnits.stream()
+//                    .collect(Collectors.toMap(BrAPIObservationUnit::getObservationUnitDbId,
+//                            (BrAPIObservationUnit unit) -> new PendingImportObject<>(unit, false)));
+//             */
+//
+//            String refSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
+//            if (existingObsUnits.size() == rowByObsUnitId.size()) {
+//                existingObsUnits.forEach(brAPIObservationUnit -> {
+//                    processAndCacheObservationUnit(brAPIObservationUnit, refSource, program, observationUnitByName, rowByObsUnitId);
+//
+//                    BrAPIExternalReference idRef = Utilities.getExternalReference(brAPIObservationUnit.getExternalReferences(), refSource)
+//                            .orElseThrow(() -> new InternalServerException("An ObservationUnit ID was not found in any of the external references"));
+//
+//                    ExperimentObservation row = rowByObsUnitId.get(idRef.getReferenceId());
+//                    row.setExpTitle(Utilities.removeProgramKey(brAPIObservationUnit.getTrialName(), program.getKey()));
+//                    row.setEnv(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getStudyName(), program.getKey()));
+//                    row.setEnvLocation(Utilities.removeProgramKey(brAPIObservationUnit.getLocationName(), program.getKey()));
+//                });
+//            } else {
+//                List<String> missingIds = new ArrayList<>(rowByObsUnitId.keySet());
+//                missingIds.removeAll(existingObsUnits.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList()));
+//                throw new IllegalStateException("Observation Units not found for ObsUnitId(s): " + String.join(ExperimentUtilities.COMMA_DELIMITER, missingIds));
+//            }
+//
+//            return observationUnitByName;
+//        } catch (ApiException e) {
+//            log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
+//            throw new InternalServerException(e.toString(), e);
+//        }
     }
 
     /**
