@@ -50,10 +50,7 @@ import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import lombok.Getter;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
@@ -63,7 +60,8 @@ import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 
 import javax.inject.Singleton;
-import java.util.Optional;
+
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.OBSERVATION_UNIT_ID_SUFFIX;
 
 @Slf4j
 @Getter
@@ -216,12 +214,8 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
     }
 
     private boolean containsObsUnitIDs(ImportContext importContext) {
-        List<BrAPIImport> importRows = importContext.getImportRows();
-        return importRows.stream()
-                .anyMatch(row -> {
-                    ExperimentObservation expRow = (ExperimentObservation) row;
-                    return StringUtils.isNotBlank(expRow.getObsUnitID());
-                });
+        return Arrays.stream(importContext.getUpload().getDynamicColumnNames())
+            .anyMatch(name->name.endsWith(OBSERVATION_UNIT_ID_SUFFIX));
     }
 
     // TODO: move to shared area: experiment import service
