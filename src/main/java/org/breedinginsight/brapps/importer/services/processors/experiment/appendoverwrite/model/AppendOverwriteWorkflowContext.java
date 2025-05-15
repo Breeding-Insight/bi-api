@@ -39,6 +39,9 @@ import java.util.Set;
 @Getter
 @Setter
 public class AppendOverwriteWorkflowContext {
+    // Dynamic Columns
+    private String obsUnitColName;
+
     // Cache maps keyed by existing observation unit ids
     private Set<String> referenceOUIds = new HashSet<>();
     private Map<String, PendingImportObject<BrAPITrial>> pendingTrialByOUId = new HashMap<>();

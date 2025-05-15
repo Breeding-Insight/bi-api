@@ -50,6 +50,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
 import tech.tablesaw.columns.Column;
+import org.breedinginsight.services.exceptions.BadRequestException;
 
 import javax.inject.Singleton;
 import java.math.BigDecimal;
@@ -58,6 +59,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.OZEX;
 
 @Slf4j
 @Singleton
@@ -299,7 +302,7 @@ public class ExperimentUtilities {
      * This method iterates through all import rows in the given context and
      * extracts unique Observation Unit IDs (ObsUnit IDs) that are not null or blank.
      *
-     * @param context The AppendOverwriteMiddlewareContext containing the import data.
+     * @param ctx The AppendOverwriteMiddlewareContext containing the import data.
      * @return A Set of String containing all unique, non-null, non-blank Observation Unit IDs.
      *
      * @implNote The method performs the following steps:
@@ -309,15 +312,19 @@ public class ExperimentUtilities {
      * 4. If valid, adds the ObsUnit ID to the set.
      * 5. Returns the set of unique ObsUnit IDs.
      */
-    public static Set<String> collateUniqueOUIds(AppendOverwriteMiddlewareContext context) {
-        // Initialize variables to track the presence of ObsUnit IDs
-        Set<String> referenceOUIds = new HashSet<>();
+    public static Set<String> collateUniqueOUIds(AppendOverwriteMiddlewareContext ctx) throws BadRequestException {
+        if (ctx.getAppendOverwriteWorkflowContext().getObsUnitColName() == null) {
+            throw new BadRequestException(OZEX.getValue());
+        }
 
-        // Iterate through the import rows to process ObsUnit IDs
-        for (int rowNum = 0; rowNum < context.getImportContext().getImportRows().size(); rowNum++) {
-            ExperimentObservation importRow = (ExperimentObservation) context.getImportContext().getImportRows().get(rowNum);
-            if (importRow.getObsUnitID() != null && !importRow.getObsUnitID().isBlank()) {
-                referenceOUIds.add(importRow.getObsUnitID());
+        Set<String> referenceOUIds = new HashSet<>();
+        String idColName = ctx.getAppendOverwriteWorkflowContext().getObsUnitColName();
+        Column<?> idCol = ctx.getImportContext().getData().columns(idColName).get(0);
+
+        for (int rowNum = 0; rowNum < ctx.getImportContext().getImportRows().size(); rowNum++) {
+            String id = idCol.getString(rowNum);
+            if (id != null && !id.isBlank()) {
+                referenceOUIds.add(id);
             }
         }
         return referenceOUIds;
@@ -364,6 +371,25 @@ public class ExperimentUtilities {
                 referenceOUIds.add(importRow.getObsUnitID());
             }
         }
+    }
+
+    public static boolean hasUniqueIds(AppendOverwriteMiddlewareContext ctx, String colName) throws IllegalStateException {
+        Set<String> referenceOUIds = new HashSet<>();
+        List<Column<?>> columns = ctx.getImportContext().getData().columns(colName);
+        if (columns.isEmpty()) {
+            throw new IllegalStateException("No columns found for: " + colName);
+        }
+
+        Column<?> col = columns.get(0);
+        for (int rowNum = 0; rowNum < ctx.getImportContext().getImportRows().size(); rowNum++) {
+            if (referenceOUIds.contains(col.getString(rowNum))) {
+                return false;
+            } else {
+                referenceOUIds.add(col.getString(rowNum));
+            }
+        }
+
+        return true;
     }
 
     /**
