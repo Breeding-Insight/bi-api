@@ -330,49 +330,6 @@ public class ExperimentUtilities {
         return referenceOUIds;
     }
 
-    /**
-     * Validates Observation Unit ID values in the import context.
-     *
-     * This method checks each import row for the validity of its Observation Unit ID (ObsUnitID).
-     * It performs the following validations:
-     * 1. Checks if the ObsUnitID is null or blank.
-     * 2. Checks if the ObsUnitID is a duplicate within the import data.
-     *
-     * @param context The AppendOverwriteMiddlewareContext containing import data and validation error storage.
-     * @throws HttpStatusException If there's an HTTP-related error during the validation process.
-     * @throws IllegalStateException If the system encounters an unexpected state during validation.
-     *
-     * @implNote The method performs the following steps:
-     * 1. Retrieves the ValidationErrors object from the context.
-     * 2. Initializes a HashSet to track unique ObsUnitIDs.
-     * 3. Iterates through each import row in the context.
-     * 4. For each row:
-     *    - If ObsUnitID is null or blank, adds a "missing ObsUnitID" error.
-     *    - If ObsUnitID is already in the set (duplicate), adds a "duplicate ObsUnitID" error.
-     *    - Otherwise, adds the ObsUnitID to the set of unique IDs.
-     * 5. Errors are added using the addRowError method, specifying the OBS_UNIT_ID column and appropriate error messages.
-     */
-    public static void validateReferenceOUIdValues(AppendOverwriteMiddlewareContext context) throws HttpStatusException, IllegalStateException {
-        ValidationErrors validationErrors = context.getAppendOverwriteWorkflowContext().getValidationErrors();
-        Set<String> referenceOUIds = new HashSet<>();
-
-        // Iterate through the import rows to process ObsUnit IDs
-        for (int rowNum = 0; rowNum < context.getImportContext().getImportRows().size(); rowNum++) {
-            ExperimentObservation importRow = (ExperimentObservation) context.getImportContext().getImportRows().get(rowNum);
-
-            if (importRow.getObsUnitID() == null || importRow.getObsUnitID().isBlank()) {
-                // Check if ObsUnitID is blank
-                addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, ExpImportProcessConstants.ErrMessage.MISSING_OBS_UNIT_ID.getValue(), validationErrors, rowNum);
-            } else if (referenceOUIds.contains(importRow.getObsUnitID())) {
-                // Check if ObsUnitID is repeated
-                addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, ExpImportProcessConstants.ErrMessage.DUPLICATE_OBS_UNIT_ID.getValue(), validationErrors, rowNum);
-            } else {
-                // Add ObsUnitID to referenceOUIds
-                referenceOUIds.add(importRow.getObsUnitID());
-            }
-        }
-    }
-
     public static boolean hasUniqueIds(AppendOverwriteMiddlewareContext ctx, String colName) throws IllegalStateException {
         Set<String> referenceOUIds = new HashSet<>();
         List<Column<?>> columns = ctx.getImportContext().getData().columns(colName);
