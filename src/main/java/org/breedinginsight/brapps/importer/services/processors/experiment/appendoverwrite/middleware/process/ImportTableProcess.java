@@ -233,7 +233,9 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                         return new HashMap<>();
                 });
                 PendingImport mappedImportRow = context.getImportContext().getMappedBrAPIImport().getOrDefault(rowNum, new PendingImport());
-                String unitId = row.getObsUnitID();
+                String obsUnitIDColName = context.getAppendOverwriteWorkflowContext().getObsUnitColName();
+                Column<?> obsUnitIDCol = context.getImportContext().getData().column(obsUnitIDColName);
+                String unitId = obsUnitIDCol.getString(rowNum);
                 String studyName = context.getAppendOverwriteWorkflowContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getStudyName();
                 mappedImportRow.setTrial(context.getAppendOverwriteWorkflowContext().getPendingTrialByOUId().get(unitId));
                 mappedImportRow.setLocation(context.getAppendOverwriteWorkflowContext().getPendingLocationByOUId().get(unitId));
@@ -319,7 +321,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                     } else if (!cellData.isBlank()) {
 
                         // Clone the observation unit and trait
-                        BrAPIObservationUnit observationUnit = gson.fromJson(gson.toJson(context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().get(row.getObsUnitID()).getBrAPIObject()), BrAPIObservationUnit.class);
+                        BrAPIObservationUnit observationUnit = gson.fromJson(gson.toJson(context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().get(obsUnitIDCol.getString(rowNum)).getBrAPIObject()), BrAPIObservationUnit.class);
                         Trait initialTrait = gson.fromJson(gson.toJson(traitByPhenoColName.get(phenoColumnName)), Trait.class);
 
                         // create new instance of InitialData
@@ -342,7 +344,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                                 context.getImportContext().getProgram());
                     } else {
                         // Clone the observation unit
-                        BrAPIObservationUnit observationUnit = gson.fromJson(gson.toJson(context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().get(row.getObsUnitID()).getBrAPIObject()), BrAPIObservationUnit.class);
+                        BrAPIObservationUnit observationUnit = gson.fromJson(gson.toJson(context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().get(obsUnitIDCol.getString(rowNum)).getBrAPIObject()), BrAPIObservationUnit.class);
 
                         processedData = processedDataFactory.emptyDataBean(brapiReferenceSource,
                                 context.getImportContext().isCommit(),

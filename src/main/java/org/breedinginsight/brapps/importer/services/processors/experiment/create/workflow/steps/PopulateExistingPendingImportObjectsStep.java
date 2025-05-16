@@ -280,7 +280,7 @@ public class PopulateExistingPendingImportObjectsStep {
     private Optional<PendingImportObject<BrAPITrial>> getTrialPIO(List<ExperimentObservation> experimentImportRows,
                                                                   Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope) {
         Optional<String> expTitle = experimentImportRows.stream()
-                .filter(row -> StringUtils.isBlank(row.getObsUnitID()) && StringUtils.isNotBlank(row.getExpTitle()))
+                .filter(row -> StringUtils.isNotBlank(row.getExpTitle()))
                 .map(ExperimentObservation::getExpTitle)
                 .findFirst();
 
