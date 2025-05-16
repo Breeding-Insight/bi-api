@@ -322,7 +322,6 @@ public class ImportTestUtils {
         columns.add(Column.builder().value(ExperimentObservation.Columns.ELEVATION).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.RTK).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.TREATMENT_FACTORS).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.OBS_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
 
         if(traits != null) {
             traits.forEach(trait -> {
