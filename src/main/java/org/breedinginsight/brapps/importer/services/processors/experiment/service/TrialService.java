@@ -306,9 +306,6 @@ public class TrialService {
         return pio;
     }
 
-    private void initializeTrialsForExistingObservationUnits(Program program, Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope, Map<String, PendingImportObject<BrAPITrial>> trialByName) {
-    }
-
     // TODO: used by expunit workflow
     public Map<String, PendingImportObject<BrAPITrial>> mapPendingTrialByOUId(
             String unitId,
