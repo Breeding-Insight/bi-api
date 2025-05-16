@@ -319,7 +319,7 @@ public class ExperimentUtilities {
 
         Set<String> referenceOUIds = new HashSet<>();
         String idColName = ctx.getAppendOverwriteWorkflowContext().getObsUnitColName();
-        Column<?> idCol = ctx.getImportContext().getData().columns(idColName).get(0);
+        Column<?> idCol = ctx.getImportContext().getData().column(idColName);
 
         for (int rowNum = 0; rowNum < ctx.getImportContext().getImportRows().size(); rowNum++) {
             String id = idCol.getString(rowNum);
@@ -332,12 +332,9 @@ public class ExperimentUtilities {
 
     public static boolean hasUniqueIds(AppendOverwriteMiddlewareContext ctx, String colName) throws IllegalStateException {
         Set<String> referenceOUIds = new HashSet<>();
-        List<Column<?>> columns = ctx.getImportContext().getData().columns(colName);
-        if (columns.isEmpty()) {
-            throw new IllegalStateException("No columns found for: " + colName);
-        }
+        Column<?> col = Optional.ofNullable(ctx.getImportContext().getData().column(colName))
+                .orElseThrow(()->new IllegalStateException("Column "+colName+" not found"));
 
-        Column<?> col = columns.get(0);
         for (int rowNum = 0; rowNum < ctx.getImportContext().getImportRows().size(); rowNum++) {
             if (referenceOUIds.contains(col.getString(rowNum))) {
                 return false;
@@ -356,7 +353,7 @@ public class ExperimentUtilities {
      * to the context for each import row where the Observation Unit ID was not found.
      *
      * @param e The EntityNotFoundException containing information about missing Observation Unit IDs.
-     * @param context The AppendOverwriteMiddlewareContext containing import data and validation error storage.
+     * @param ctx The AppendOverwriteMiddlewareContext containing import data and validation error storage.
      *
      * @implNote The method performs the following steps:
      * 1. Retrieves the ValidationErrors object from the context.
@@ -365,14 +362,15 @@ public class ExperimentUtilities {
      * 4. If a match is found, adds a validation error for that row, indicating an invalid Observation Unit ID.
      * 5. The error is added using the addRowError method, specifying the OBS_UNIT_ID column and using a predefined error message.
      */
-    public static void addValidationErrorsForObsUnitsNotFound(EntityNotFoundException e, AppendOverwriteMiddlewareContext context) {
-        ValidationErrors validationErrors = context.getAppendOverwriteWorkflowContext().getValidationErrors();
+    public static void addValidationErrorsForObsUnitsNotFound(EntityNotFoundException e, AppendOverwriteMiddlewareContext ctx) {
+        ValidationErrors validationErrors = ctx.getAppendOverwriteWorkflowContext().getValidationErrors();
         List<ValidationError> errors = new ArrayList<>();
 
-        for (int rowNum = 0; rowNum < context.getImportContext().getImportRows().size(); rowNum++) {
-            String rowObsUnitId = ((ExperimentObservation)context.getImportContext().getImportRows().get(rowNum)).getObsUnitID();
-            if (e.getMissingEntityIds().contains(rowObsUnitId)) {
-                addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, ExperimentUtilities.INVALID_OBS_UNIT_ID_ERROR, validationErrors, rowNum);
+        String obsUnitIDColName = ctx.getAppendOverwriteWorkflowContext().getObsUnitColName();
+        Column<?> idCol = ctx.getImportContext().getData().column(obsUnitIDColName);
+        for (int rowNum = 0; rowNum < ctx.getImportContext().getImportRows().size(); rowNum++) {
+            if (e.getMissingEntityIds().contains(idCol.getString(rowNum))) {
+                addRowError(obsUnitIDColName, ExperimentUtilities.INVALID_OBS_UNIT_ID_ERROR, validationErrors, rowNum);
             }
         }
     }
