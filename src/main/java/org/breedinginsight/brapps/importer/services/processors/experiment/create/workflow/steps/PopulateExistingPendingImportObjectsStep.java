@@ -342,7 +342,6 @@ public class PopulateExistingPendingImportObjectsStep {
         }
 
         List<String> uniqueLocationNames = experimentImportRows.stream()
-                .filter(experimentObservation -> StringUtils.isBlank(experimentObservation.getObsUnitID()))
                 .map(ExperimentObservation::getEnvLocation)
                 .distinct()
                 .filter(Objects::nonNull)
@@ -446,7 +445,6 @@ public class PopulateExistingPendingImportObjectsStep {
         }
 
         List<String> uniqueGermplasmGIDs = experimentImportRows.stream()
-                .filter(experimentObservation -> StringUtils.isBlank(experimentObservation.getObsUnitID()))
                 .map(ExperimentObservation::getGid)
                 .distinct()
                 .collect(Collectors.toList());
