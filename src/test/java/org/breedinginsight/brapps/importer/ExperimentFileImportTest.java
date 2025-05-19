@@ -80,6 +80,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static io.micronaut.http.HttpRequest.GET;
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.OBSERVATION_UNIT_ID_SUFFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.*;
@@ -688,7 +689,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObsVar.put(Columns.BLOCK_NUM, "1");
         newObsVar.put(Columns.ROW, "1");
         newObsVar.put(Columns.COLUMN, "1");
-        newObsVar.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
+        newObsVar.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
         newObsVar.put(traits.get(1).getObservationVariableName(), null);
 
         JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObsVar), traits), null, true, client, program, mappingId, appendOverwriteWorkflowId);
@@ -741,7 +742,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertTrue(ouIdXref.isPresent());
 
         Map<String, Object> newObsVar = new HashMap<>();
-        newObsVar.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
+        newObsVar.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
         newObsVar.put(traits.get(1).getObservationVariableName(), null);
 
         JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObsVar), traits), null, true, client, program, mappingId, appendOverwriteWorkflowId);
@@ -808,7 +809,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObsVar.put(Columns.BLOCK_NUM, "1");
         newObsVar.put(Columns.ROW, "1");
         newObsVar.put(Columns.COLUMN, "1");
-        newObsVar.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
+        newObsVar.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
         newObsVar.put(traits.get(0).getObservationVariableName(), "1");
 
         JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObsVar), traits), null, commit, client, program, mappingId, appendOverwriteWorkflowId);
@@ -886,7 +887,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObsVar.put(Columns.BLOCK_NUM, "1");
         newObsVar.put(Columns.ROW, "1");
         newObsVar.put(Columns.COLUMN, "1");
-        newObsVar.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());  // Indicates this is an overwrite.
+        newObsVar.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());  // Indicates this is an overwrite.
         newObsVar.put(traits.get(0).getObservationVariableName(), "");  // Empty string should be no op.
 
         Map<String, String> requestBody = new HashMap<>();
@@ -954,7 +955,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.BLOCK_NUM, "1");
         newObservation.put(Columns.ROW, "1");
         newObservation.put(Columns.COLUMN, "1");
-        newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
+        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
         newObservation.put(traits.get(0).getObservationVariableName(), "1");
 
         JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), null, commit, client, program, mappingId, appendOverwriteWorkflowId);
@@ -1022,7 +1023,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.BLOCK_NUM, "1");
         newObservation.put(Columns.ROW, "1");
         newObservation.put(Columns.COLUMN, "1");
-        newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
+        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
         newObservation.put(traits.get(0).getObservationVariableName(), "2");
         
         uploadAndVerifyWorkflowFailureNonTabular(program, importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), traits.get(0).getObservationVariableName(), commit, newExperimentWorkflowId);
@@ -1151,7 +1152,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.BLOCK_NUM, "1");
         newObservation.put(Columns.ROW, "1");
         newObservation.put(Columns.COLUMN, "1");
-        newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
+        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
         newObservation.put(traits.get(0).getObservationVariableName(), "1");
         newObservation.put(traits.get(1).getObservationVariableName(), "2");
 
@@ -1230,7 +1231,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.BLOCK_NUM, "1");
         newObservation.put(Columns.ROW, "1");
         newObservation.put(Columns.COLUMN, "1");
-        newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
+        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
         newObservation.put(traits.get(0).getObservationVariableName(), "");    // This blank value should not overwrite.
         newObservation.put(traits.get(1).getObservationVariableName(), "3");   // This valid value should overwrite.
         newObservation.put(traits.get(2).getObservationVariableName(), "4");   // This valid new observation should be appended.
@@ -1264,7 +1265,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     private Map<String, Object> assertRowReferencedByOUIdSaved(Map<String, Object> expected, Program program, List<Trait> traits) throws ApiException {
         Map<String, Object> ret = new HashMap<>();
 
-        List<BrAPIObservationUnit> units = ouDAO.getObservationUnitsById(List.of((String)expected.get(Columns.OBS_UNIT_ID)), program);
+        List<BrAPIObservationUnit> units = ouDAO.getObservationUnitsById(List.of((String)expected.get("Plot "+OBSERVATION_UNIT_ID_SUFFIX)), program);
         assertFalse(units.isEmpty());
 
         List<BrAPIObservation> observations = null;
