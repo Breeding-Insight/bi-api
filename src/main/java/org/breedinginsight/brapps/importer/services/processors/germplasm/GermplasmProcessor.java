@@ -91,6 +91,7 @@ public class GermplasmProcessor implements Processor {
     public static String missingParentalGIDsMsg = "The following parental GIDs were not found in the database: %s";
     public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the database: %s";
     public static String badBreedMethodsMsg = "Invalid breeding method";
+    public static String badGermplasmNameMsg = "Germplasm name cannot contain /";
     public static String missingEntryNumbersMsg = "Either all or none of the germplasm must have entry numbers";
     public static String duplicateEntryNoMsg = "Entry numbers must be unique. Duplicated entry numbers found: %s";
     public static String circularDependency = "Circular dependency in the pedigree tree";
@@ -357,6 +358,7 @@ public class GermplasmProcessor implements Processor {
             }
         }
 
+        validateGermplasmName(germplasm, i+2, validationErrors);
         validatePedigree(germplasm, i + 2, validationErrors);
 
         BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal, importListId);
@@ -541,6 +543,31 @@ public class GermplasmProcessor implements Processor {
                 "Pedigree Connections", pedigreeConnectStats
         );
 
+    }
+
+    /**
+     * Validates the name of the given Germplasm, ensuring it does not contain any slash ("/") characters.
+     * <p>
+     * If the germplasm name contains a "/", a new {@link ValidationError} with status
+     * {@code 422 Unprocessable Entity} is created and added to the provided {@code ValidationErrors} object.
+     * This method does not throw an exception; instead, it records validation failures by mutating
+     * the {@code validationErrors} parameter.
+     * </p>
+     *
+     * @param germplasm
+     *        the {@link Germplasm} instance whose name is to be validated; must not be {@code null}
+     * @param rowNumber
+     *        the row index (for example, in a spreadsheet or CSV file) corresponding to this
+     *        germplasm entry; used when reporting errors
+     * @param validationErrors
+     *        the {@link ValidationErrors} collector into which any detected errors will be added;
+     *        this object is modified by this method to record validation issues; must not be {@code null}
+     */
+    private void validateGermplasmName(Germplasm germplasm, Integer rowNumber, ValidationErrors validationErrors) {
+        if (germplasm.getGermplasmName().contains("/")) {
+            ValidationError error = new ValidationError("Germplasm Name", badGermplasmNameMsg, HttpStatus.UNPROCESSABLE_ENTITY);
+            validationErrors.addError(rowNumber, error);
+        }
     }
 
     private void validatePedigree(Germplasm germplasm, Integer rowNumber, ValidationErrors validationErrors) {
