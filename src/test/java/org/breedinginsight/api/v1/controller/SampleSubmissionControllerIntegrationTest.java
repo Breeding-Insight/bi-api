@@ -223,7 +223,9 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
         assertNull(retrievedSubmission.getVendorStatusLastCheck());
     }
 
+    // TODO: Re-enable after brapi server fixes
     @Test
+    @Disabled
     public void testSubmitViaBrAPI() throws IOException, InterruptedException {
         Pair<SampleSubmission, List<Map<String, Object>>> uploadedSubmission = createSubmission(program);
 
@@ -245,7 +247,9 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
         assertNull(retrievedSubmission.getVendorStatusLastCheck());
     }
 
+    // TODO: Re-enable after brapi server fixes
     @Test
+    @Disabled
     public void testCheckVendorStatus() throws IOException, InterruptedException {
         Pair<SampleSubmission, List<Map<String, Object>>> uploadedSubmission = createSubmission(program);
 

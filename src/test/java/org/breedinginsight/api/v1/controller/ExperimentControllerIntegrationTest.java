@@ -748,9 +748,11 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     *   3. hard delete without obs - success
     *   4. soft delete without obs - success
     */
+    // TODO: Re-enable after brapi server fixes
     @ParameterizedTest
     @CsvSource(value = {"true,true", "false,true", "true,false", "false,false"})
     @SneakyThrows
+    @Disabled
     public void deleteExperimentSuccess(boolean hardDelete, boolean withObservations) {
         // Set up a test trial and get the trialDbId.
         String trialDbId;
@@ -987,10 +989,11 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         }
         assertEquals(requestedImportRows.size(),matchingImportRows.size());
 
+        //Observation level for tests should be "Plot"
         // Observation units populated.
-        assertEquals(0, table.column("ObsUnitID").countMissing());
+        assertEquals(0, table.column("Plot ObsUnitID").countMissing());
         // Observation Unit IDs are assigned.
-        assertEquals(requestedImportRows.size(), table.column("ObsUnitID").countUnique());
+        assertEquals(requestedImportRows.size(), table.column("Plot ObsUnitID").countUnique());
     }
 
     private boolean isMatchedRow(Map<String, Object> importRow, Row downloadRow) {

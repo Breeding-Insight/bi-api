@@ -19,6 +19,7 @@ package org.breedinginsight.utilities.email;
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.HttpServerException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Singleton;
@@ -29,6 +30,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.Properties;
 
+@Slf4j
 @Singleton
 public class EmailUtil {
 
@@ -66,6 +68,8 @@ public class EmailUtil {
     public void sendEmail(String toEmail, String subject, String body){
         try
         {
+            log.debug("Sending email to: " + toEmail + " from: " + fromEmail + " with subject: " + subject);
+
             Session session = getSmtpHost();
             MimeMessage msg = new MimeMessage(session);
             //set message headers
@@ -83,11 +87,16 @@ public class EmailUtil {
 
             msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail, false));
             Transport.send(msg);
+
+            log.debug("Email sent to: " + toEmail  + " from: " + fromEmail + " with subject: " + subject);
         }
-        catch (UnsupportedEncodingException | MessagingException e) {
+        catch (UnsupportedEncodingException e) {
+            log.debug("UnsupportedEncodingException " + e.getMessage());
+            throw new HttpServerException(e.getMessage());
+        } catch (MessagingException e) {
+            log.debug("MessagingException " + e.getMessage());
             throw new HttpServerException(e.getMessage());
         }
     }
-
 
 }

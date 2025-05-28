@@ -199,7 +199,9 @@ public class ListControllerIntegrationTest extends BrAPITest {
     }
 
 
+    // TODO: Re-enable after brapi server fixes
     @Test
+    @Disabled
     @SneakyThrows
     @Order(2)
     public void deleteListSuccess() {

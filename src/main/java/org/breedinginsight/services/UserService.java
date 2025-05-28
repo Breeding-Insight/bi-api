@@ -390,6 +390,8 @@ public class UserService {
         String filledBody = emailTemplate.render();
         String subject = "Activate DeltaBreed Account";
 
+        log.debug(filledBody);
+
         // Send email
         emailUtil.sendEmail(user.getEmail(), subject, filledBody);
     }

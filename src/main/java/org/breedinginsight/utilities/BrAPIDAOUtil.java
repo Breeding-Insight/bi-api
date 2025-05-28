@@ -60,6 +60,7 @@ public class BrAPIDAOUtil {
     private final Duration searchTimeout;
     private final int pageSize;
     private final int postGroupSize;
+    private final int brapiFetchPageSize;
     private final ProgramService programService;
 
     @Inject
@@ -67,11 +68,13 @@ public class BrAPIDAOUtil {
                         @Property(name = "brapi.read-timeout") Duration searchTimeout,
                         @Property(name = "brapi.page-size") int pageSize,
                         @Property(name = "brapi.post-group-size") int postGroupSize,
+                        @Property(name = "brapi.cache.fetch-page-size") int brapiFetchPageSize,
                         ProgramService programService) {
         this.searchWaitTime = searchWaitTime;
         this.searchTimeout = searchTimeout;
         this.pageSize = pageSize;
         this.postGroupSize = postGroupSize;
+        this.brapiFetchPageSize = brapiFetchPageSize;
         this.programService = programService;
     }
 
@@ -79,26 +82,37 @@ public class BrAPIDAOUtil {
                                                                                Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
                                                                                U searchBody
     ) throws ApiException {
-        return searchInternal(searchMethod, searchGetMethod, null, searchBody);
+        return searchInternal(searchMethod, searchGetMethod, null, searchBody, true);
     }
 
     public <T, U extends BrAPISearchRequestParametersPaging, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
                                                                                Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
                                                                                U searchBody
     ) throws ApiException {
-        return searchInternal(searchMethod, null, searchGetMethod, searchBody);
+        return searchInternal(searchMethod, null, searchGetMethod, searchBody, true);
+    }
+
+    public <T, U extends BrAPISearchRequestParametersPaging, V> List<V> searchNoPaging(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+                                                                               Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
+                                                                               U searchBody
+    ) throws ApiException {
+        return searchInternal(searchMethod, searchGetMethod, null, searchBody, false);
     }
 
     private <T, U extends BrAPISearchRequestParametersPaging, V> List<V> searchInternal(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
                                                                                         Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
                                                                                         Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethodWithMimeType,
-                                                                                U searchBody) throws ApiException {
+                                                                                        U searchBody, boolean sendPaging) throws ApiException {
         try {
             List<V> listResult = new ArrayList<>();
-            //NOTE: Because of the way Breedbase implements BrAPI searches, the page size is initially set to an
-            //arbitrary, large value to ensure that in the event that a 202 response is returned, the searchDbId
-            //stored will refer to all records of the BrAPI variable.
-            searchBody.pageSize(10000000);
+
+            if (sendPaging) {
+                // This should be set to whatever the maximum allowable value is configured in the brapi test server,
+                // perhaps it should be configurable on bi side as well.
+                // For reference, that prop name is paging.page-size.max-allowed
+                searchBody.pageSize(brapiFetchPageSize);
+            }
+
             ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> response = searchMethod.apply(searchBody);
             if (response.getBody().getLeft().isPresent()) {
                 BrAPIResponse listResponse = (BrAPIResponse) response.getBody().getLeft().get();
@@ -108,7 +122,7 @@ public class BrAPIDAOUtil {
                 pagination params are handled for POST search endpoints or the corresponding endpoints in Breedbase are
                 changed or updated
              */
-                if(hasMorePages(listResponse)) {
+                if(sendPaging && hasMorePages(listResponse)) {
                     int currentPage = listResponse.getMetadata().getPagination().getCurrentPage() + 1;
                     int totalPages = listResponse.getMetadata().getPagination().getTotalPages();
 
@@ -137,7 +151,7 @@ public class BrAPIDAOUtil {
                         BrAPIResponse listResponse = (BrAPIResponse) searchGetResponse.getBody().getLeft().get();
                         listResult = getListResult(searchGetResponse);
 
-                        if(hasMorePages(listResponse)) {
+                        if(sendPaging && hasMorePages(listResponse)) {
                             currentPage++;
                             int totalPages = listResponse.getMetadata()
                                     .getPagination()
