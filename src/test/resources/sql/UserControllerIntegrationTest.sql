@@ -27,19 +27,19 @@ join bi_user on bi_user.name = 'system' limit 1;
 
 -- name: InsertUserProgramAssociations
 insert into program_user_role (program_id, user_id, role_id, created_by, updated_by)
-select program.id, bi_user.id, role.id, system_user.id, system_user.id
+select program.id, bi_user.id, role.id, bi_system_user.id, bi_system_user.id
 from program
 join bi_user on bi_user.name = 'Test User' or bi_user.name = 'Other Test User'
 join role on role.domain = 'Read Only'
-join bi_user as system_user on system_user.name = 'system'
+join bi_user as bi_system_user on bi_system_user.name = 'system'
 where program.name = 'Test Program';
 
 insert into program_user_role (program_id, user_id, role_id, active, created_by, updated_by)
-select program.id, bi_user.id, role.id, false, system_user.id, system_user.id
+select program.id, bi_user.id, role.id, false, bi_system_user.id, bi_system_user.id
 from program
 join bi_user on bi_user.name = 'Test User' or bi_user.name = 'Other Test User'
 join role on role.domain = 'Read Only'
-join bi_user as system_user on system_user.name = 'system'
+join bi_user as bi_system_user on bi_system_user.name = 'system'
 where program.name = 'Test Program1';
 
 -- name: DeactivateProgram
