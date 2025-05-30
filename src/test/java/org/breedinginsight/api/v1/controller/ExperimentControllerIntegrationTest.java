@@ -748,11 +748,9 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     *   3. hard delete without obs - success
     *   4. soft delete without obs - success
     */
-    // TODO: Re-enable after brapi server fixes
     @ParameterizedTest
     @CsvSource(value = {"true,true", "false,true", "true,false", "false,false"})
     @SneakyThrows
-    @Disabled
     public void deleteExperimentSuccess(boolean hardDelete, boolean withObservations) {
         // Set up a test trial and get the trialDbId.
         String trialDbId;
