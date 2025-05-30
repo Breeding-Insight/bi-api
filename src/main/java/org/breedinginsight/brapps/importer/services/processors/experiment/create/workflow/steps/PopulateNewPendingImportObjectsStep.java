@@ -31,18 +31,23 @@ import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
+import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
+import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
+import org.breedinginsight.brapps.importer.services.ImportStatusService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingImportObjectData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentPhenotypeService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentSeasonService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
@@ -50,6 +55,7 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.DatasetUtil;
+import org.breedinginsight.utilities.ImportUtils;
 import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.model.DatasetMetadata;
 import org.breedinginsight.model.DatasetLevel;
@@ -76,6 +82,12 @@ public class PopulateNewPendingImportObjectsStep {
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final DSLContext dsl;
     private final Gson gson;
+    // TODO: remove any unused utilities or services.
+    private final ImportUtils importUtils;
+    private final ImportStatusService importStatusService;
+    private final ExperimentPhenotypeService experimentPhenotypeService;
+    private final PopulateExistingPendingImportObjectsStep populateExistingPendingImportObjectsStep;
+    private final ValidatePendingImportObjectsStep validatePendingImportObjectsStep;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -83,10 +95,20 @@ public class PopulateNewPendingImportObjectsStep {
     @Inject
     public PopulateNewPendingImportObjectsStep(ExperimentSeasonService experimentSeasonService,
                                                BrAPIObservationUnitDAO brAPIObservationUnitDAO,
-                                               DSLContext dsl) {
+                                               DSLContext dsl,
+                                               ImportUtils importUtils,
+                                               ImportStatusService importStatusService,
+                                               ExperimentPhenotypeService experimentPhenotypeService,
+                                               PopulateExistingPendingImportObjectsStep populateExistingPendingImportObjectsStep,
+                                               ValidatePendingImportObjectsStep validatePendingImportObjectsStep) {
         this.experimentSeasonService = experimentSeasonService;
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.dsl = dsl;
+        this.importUtils = importUtils;
+        this.importStatusService = importStatusService;
+        this.experimentPhenotypeService = experimentPhenotypeService;
+        this.populateExistingPendingImportObjectsStep = populateExistingPendingImportObjectsStep;
+        this.validatePendingImportObjectsStep = validatePendingImportObjectsStep;
         this.gson = new JSON().getGson();
     }
 
@@ -295,6 +317,9 @@ public class PopulateNewPendingImportObjectsStep {
                                                          ExperimentObservation importRow,
                                                          Supplier<BigInteger> expNextVal)
             throws UnprocessableEntityException {
+
+        // TODO: try to refresh ImportObjectState at this point in the processing.
+        //  The state saved in the database in importer_import.mapped_data is stale.
 
         PendingImportObject<BrAPITrial> trialPio;
         Program program = importContext.getProgram();
