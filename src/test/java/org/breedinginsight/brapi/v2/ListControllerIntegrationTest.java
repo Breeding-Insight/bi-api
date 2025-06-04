@@ -231,7 +231,7 @@ public class ListControllerIntegrationTest extends BrAPITest {
 
         // A DELETE request to the brapi/v2/lists/<listDbId> endpoint with invalid dbId.
         Flowable<HttpResponse<String>> invalidDeleteCall = client.exchange(
-                DELETE(String.format("/programs/%s/brapi/v2/lists/%s", program.getId().toString(), "NOT-VALID-DBID"))
+                DELETE(String.format("/programs/%s/brapi/v2/lists/%s", program.getId().toString(), "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
