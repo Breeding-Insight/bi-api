@@ -145,7 +145,7 @@ web:
   logout:
     url: ${web.base-url}
   signup:
-    url-timeout: 60m
+    url-timeout: 24h
     signup:
       url: ${web.base-url}/signup
     success:
