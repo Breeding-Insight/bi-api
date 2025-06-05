@@ -13,32 +13,38 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '4', 'Blueberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '5', 'Salmon') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '6', 'Grape') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '7', 'Alfalfa') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '8', 'Sweet Potato') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '9', 'Trout') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '10', 'Soybean') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '11', 'Cranberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '12', 'Cucumber') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '13', 'Oat') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '14', 'Citrus') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '15', 'Sugar Cane') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '16', 'Strawberry') ON CONFLICT DO NOTHING;
--- for the Honey Bee case, want to overwrite name, not preserve existing
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '17', 'Honey Bee') ON CONFLICT (id) DO UPDATE SET crop_name = EXCLUDED.crop_name;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '18', 'Pecan') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '19', 'Lettuce') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '20', 'Cotton') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '21', 'Sorghum') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '22', 'Hemp') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '23', 'Hop') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '24', 'Hydrangea') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '25', 'Red Clover') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '26', 'Potato') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '27', 'Blackberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '28', 'Raspberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '29', 'Sugar Beet') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '30', 'Strawberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '31', 'Coffee') ON CONFLICT DO NOTHING;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+DO $$
+DECLARE
+v_auth_id CONSTANT uuid := 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA';
+BEGIN
+    /* ------------------------------------------------------------------------------------------
+       • uuid_generate_v5(namespace, crop_name)  → deterministic UUID can be used for idempotency
+       • Do it this way so no schema changes are required
+       • Removed the Honey Bee special case because all systems will be starting fresh
+       ------------------------------------------------------------------------------------------ */
+INSERT INTO crop (id, auth_user_id, crop_name)
+SELECT
+    uuid_generate_v5('9a4deca9-4068-46a3-9efe-db0c181f491a'::uuid,
+        -- 1) lower‑case
+        -- 2) trim leading/trailing space
+        -- 3) REMOVE every space or tab
+                     regexp_replace(lower(trim(crop_name)), '\s', '', 'g')),
+    v_auth_id,
+    crop_name
+FROM (VALUES
+          ('Blueberry'), ('Salmon'), ('Grape'), ('Alfalfa'),
+          ('Sweet Potato'), ('Trout'), ('Soybean'), ('Cranberry'),
+          ('Cucumber'), ('Oat'), ('Citrus'), ('Sugar Cane'),
+          ('Strawberry'), ('Pecan'), ('Lettuce'), ('Cotton'),
+          ('Sorghum'), ('Hemp'), ('Hop'), ('Hydrangea'),
+          ('Red Clover'), ('Potato'), ('Blackberry'), ('Raspberry'),
+          ('Sugar Beet'), ('Coffee')
+     ) AS src(crop_name)
+    ON CONFLICT (id) DO
+-- want case changes or space changes to overwrite existing
+-- Only rewrite the row if name changed
+UPDATE SET crop_name = EXCLUDED.crop_name
+WHERE crop.crop_name IS DISTINCT FROM EXCLUDED.crop_name;
+END $$; 
