@@ -67,9 +67,8 @@ import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.*;
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.MULTIPLE_EXP_TITLES;
-import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.TIMESTAMP_PREFIX;
-import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.TIMESTAMP_REGEX;
 
 @Slf4j
 @Prototype
@@ -110,19 +109,21 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
     public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         log.debug("verifying traits listed in import");
 
-        // Get all the dynamic columns of the import
+        // Get all the phenotypic columns of the import
         ImportUpload upload = context.getImportContext().getUpload();
         Table data = context.getImportContext().getData();
-        String[] dynamicColNames = upload.getDynamicColumnNames();
+        List<String> phenotypeColNames = Arrays.stream(upload.getDynamicColumnNames())
+                .filter(name -> !name.endsWith(OBSERVATION_UNIT_ID_SUFFIX))
+                .collect(Collectors.toList());
 
-        // don't allow periods (.) or square brackets in Dynamic Column Names
-        for (String dynamicColumnName: dynamicColNames) {
-            if(dynamicColumnName.contains(".") || dynamicColumnName.contains("[") || dynamicColumnName.contains("]")){
-                String errorMsg = String.format("Observation columns may not contain periods or square brackets (see column '%s')", dynamicColumnName);
+        // don't allow periods (.) or square brackets in Phenotype Column Names
+        for (String phenotypeColumnName: phenotypeColNames) {
+            if(phenotypeColumnName.contains(".") || phenotypeColumnName.contains("[") || phenotypeColumnName.contains("]")){
+                String errorMsg = String.format("Observation columns may not contain periods or square brackets (see column '%s')", phenotypeColumnName);
                 throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, errorMsg);
             }
         }
-        List<Column<?>> dynamicCols = data.columns(dynamicColNames);
+        List<Column<?>> dynamicCols = data.columns(phenotypeColNames.toArray(new String[0]));
 
         // Collect the columns for observation variable data
         List<Column<?>> phenotypeCols = dynamicCols.stream().filter(col -> !col.name().startsWith(TIMESTAMP_PREFIX)).collect(Collectors.toList());
