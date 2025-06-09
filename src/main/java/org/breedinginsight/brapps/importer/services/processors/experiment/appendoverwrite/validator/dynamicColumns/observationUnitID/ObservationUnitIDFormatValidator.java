@@ -46,7 +46,7 @@ public class ObservationUnitIDFormatValidator implements DynamicColumnValidator 
 
         ValidationErrors rowErrors = ctx.getAppendOverwriteWorkflowContext().getValidationErrors();
         String idColName = ctx.getAppendOverwriteWorkflowContext().getObsUnitColName();
-        Column<?> idCol = ctx.getImportContext().getData().columns(idColName).get(0);
+        Column<?> idCol = ctx.getImportContext().getData().column(idColName);
 
         for (int rowNum = 0; rowNum < ctx.getImportContext().getImportRows().size(); rowNum++) {
             Object value = idCol.get(rowNum);

@@ -44,7 +44,8 @@ public class ObservationUnitIDBlankValidator implements DynamicColumnValidator {
         Column<?> idCol = ctx.getImportContext().getData().columns(idColName).get(0);
 
         for (int rowNum = 0; rowNum < ctx.getImportContext().getImportRows().size(); rowNum++) {
-            String id = idCol.get(rowNum).toString();
+            Object cellValue = idCol.get(rowNum);
+            String id = (cellValue != null) ? cellValue.toString() : null;
             if ( id == null || id.isBlank()) {
                 // Check if ObsUnitID is blank
                 ExperimentUtilities.addRowError(idColName, BITB.getValue(), rowErrors, rowNum);
