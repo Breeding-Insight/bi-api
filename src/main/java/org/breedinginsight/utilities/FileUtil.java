@@ -93,7 +93,9 @@ public class FileUtil {
                     Cell cell = row.getCell(k, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
                     String header = formatter.formatCellValue(headerRow.getCell(k));
                     if (cell == null) {
-                        columns.get(header).add(null);
+                        if(!header.isBlank()) {
+                            columns.get(header).add(null);
+                        }
                     } else if (cell.getCellType() == CellType.NUMERIC) {
                         //Distinguish between date and numeric
                         DataFormatter dataFormatter = new DataFormatter();
@@ -116,6 +118,7 @@ public class FileUtil {
         }
         catch (Exception e) {
             log.error(e.toString());
+            e.printStackTrace();
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
         }
 
