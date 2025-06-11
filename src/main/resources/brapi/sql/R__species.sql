@@ -52,10 +52,10 @@ BEGIN
         ('Blueberry'), ('Salmon'), ('Grape'), ('Alfalfa'),
         ('Sweet Potato'), ('Trout'), ('Soybean'), ('Cranberry'),
         ('Cucumber'), ('Oat'), ('Citrus'), ('Sugar Cane'),
-        ('Strawberry'), ('Pecan'), ('Lettuce'), ('Cotton'),
-        ('Sorghum'), ('Hemp'), ('Hop'), ('Hydrangea'),
-        ('Red Clover'), ('Potato'), ('Blackberry'), ('Raspberry'),
-        ('Sugar Beet'), ('Coffee')
+        ('Strawberry'), ('Honey Bee'), ('Pecan'), ('Lettuce'),
+        ('Cotton'), ('Sorghum'), ('Hemp'), ('Hop'),
+        ('Hydrangea'), ('Red Clover'), ('Potato'), ('Blackberry'),
+        ('Raspberry'), ('Sugar Beet'), ('Coffee')
     ) AS src(crop_name)
     ON CONFLICT (id) DO
         -- want case changes or space changes to overwrite existing
