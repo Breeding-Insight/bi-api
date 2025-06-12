@@ -383,6 +383,9 @@ public class GermplasmProcessor implements Processor {
     private boolean processExistingGermplasm(Germplasm germplasm, ValidationErrors validationErrors, List<BrAPIImport> importRows, Program program, UUID importListId, boolean commit, PendingImport mappedImportRow, int rowIndex) {
         BrAPIGermplasm existingGermplasm;
         String gid = germplasm.getAccessionNumber();
+        boolean mutated = false;
+        boolean updatePedigree = false;
+
         if (germplasmByAccessionNumber.containsKey(gid)) {
             existingGermplasm = germplasmByAccessionNumber.get(gid).getBrAPIObject();
             // Serialize and deserialize to deep copy
@@ -410,15 +413,20 @@ public class GermplasmProcessor implements Processor {
 
         if(germplasm.pedigreeExists()) {
             validatePedigree(germplasm, rowIndex + 2, validationErrors);
+            updatePedigree = true;
         }
 
-        germplasm.updateBrAPIGermplasm(existingGermplasm, program, importListId, commit, true);
+        mutated = germplasm.updateBrAPIGermplasm(existingGermplasm, program, importListId, commit, updatePedigree);
 
-        updatedGermplasmList.add(existingGermplasm);
-        mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.MUTATED, existingGermplasm));
+        if (mutated) {
+            updatedGermplasmList.add(existingGermplasm);
+            mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.MUTATED, existingGermplasm));
+        } else {
+            mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
+        }
+
+        // add to list regardless of mutated or not
         importList.addDataItem(existingGermplasm.getGermplasmName());
-
-
         return true;
     }
 
@@ -631,7 +639,8 @@ public class GermplasmProcessor implements Processor {
         }
 
         // Create list
-        if (!newGermplasmList.isEmpty() || !updatedGermplasmList.isEmpty()) {
+        // create & update flows both unconditionally add germplasm names to importList so use that for check
+        if (!importList.getData().isEmpty()) {
             try {
                 // Create germplasm list
                 brAPIListDAO.createBrAPILists(List.of(importList), program.getId(), upload);
