@@ -417,7 +417,8 @@ public class GermplasmProcessor implements Processor {
             }
         }
 
-        if(germplasm.pedigreeExists()) {
+        // if no existing pedigree and file has pedigree then validate and update
+        if(germplasm.pedigreeExists() && !hasPedigree(existingGermplasm)) {
             validatePedigree(germplasm, rowIndex + 2, validationErrors);
             updatePedigree = true;
         }
