@@ -87,6 +87,8 @@ public class GermplasmProcessor implements Processor {
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
     BrAPIListNewRequest importList = new BrAPIListNewRequest();
 
+    private int numNewPedigreeConnections = 0;
+
     public static String missingGIDsMsg = "The following GIDs were not found in the database: %s";
     public static String missingParentalGIDsMsg = "The following parental GIDs were not found in the database: %s";
     public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the database: %s";
@@ -332,7 +334,7 @@ public class GermplasmProcessor implements Processor {
         createPostOrder();
 
         // Construct our response object
-        return getStatisticsMap(importRows);
+        return getStatisticsMap();
     }
 
     private void processNewGermplasm(Germplasm germplasm, ValidationErrors validationErrors, Map<String, ProgramBreedingMethodEntity> breedingMethods,
@@ -358,6 +360,10 @@ public class GermplasmProcessor implements Processor {
         }
 
         validatePedigree(germplasm, i + 2, validationErrors);
+
+        if (germplasm.pedigreeExists()) {
+            numNewPedigreeConnections++;
+        }
 
         BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal, importListId);
 
@@ -421,6 +427,9 @@ public class GermplasmProcessor implements Processor {
         if (mutated) {
             updatedGermplasmList.add(existingGermplasm);
             mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.MUTATED, existingGermplasm));
+            if (updatePedigree) {
+                numNewPedigreeConnections++;
+            }
         } else {
             mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
         }
@@ -529,20 +538,17 @@ public class GermplasmProcessor implements Processor {
                 germplasm.pedigreeExists();
     }
 
-    private Map<String, ImportPreviewStatistics> getStatisticsMap(List<BrAPIImport> importRows) {
+    private Map<String, ImportPreviewStatistics> getStatisticsMap() {
 
         ImportPreviewStatistics germplasmStats = ImportPreviewStatistics.builder()
                 .newObjectCount(newGermplasmList.size())
                 .ignoredObjectCount(germplasmByAccessionNumber.size())
                 .build();
 
-        //Modified logic here to check for female parent accession number or entry no, removed check for male due to assumption that shouldn't have only male parent
-        int newObjectCount = newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size();
+        // TODO: numNewPedigreeConnections is global modified in existing and new flows, refactor at some point
         ImportPreviewStatistics pedigreeConnectStats = ImportPreviewStatistics.builder()
-                .newObjectCount(importRows.stream().filter(germplasmImport ->
-                        germplasmImport.getGermplasm() != null &&
-                                (germplasmImport.getGermplasm().getFemaleParentAccessionNumber() != null || germplasmImport.getGermplasm().getFemaleParentEntryNo() != null)
-                ).collect(Collectors.toList()).size()).build();
+                .newObjectCount(numNewPedigreeConnections)
+                .build();
 
         return Map.of(
                 "Germplasm", germplasmStats,
