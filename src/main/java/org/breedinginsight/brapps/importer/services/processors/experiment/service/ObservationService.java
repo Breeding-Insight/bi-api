@@ -107,6 +107,7 @@ public class ObservationService {
     public OffsetDateTime parseDateTime(String dateString) {
         // Try parsing as ISO-8601
         try {
+            if(dateString==null){ return null; }
             return OffsetDateTime.parse(dateString);
         } catch (DateTimeParseException e) {
             // If ISO-8601 parsing fails, try YY-MM-DD format

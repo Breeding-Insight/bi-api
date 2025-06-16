@@ -79,21 +79,28 @@ public class FileUtil {
             columns = new HashMap<>();
             headerRow = sheet.getRow(headerRowIndex);
             // Build column map, throw if duplicate (non-blank) column header values are found.
+            int headerRowSize = 0;
             for (Cell cell: headerRow) {
+                headerRowSize++;
                 if (columns.containsKey(formatter.formatCellValue(cell)) && !formatter.formatCellValue(cell).isBlank()) {
                     // Duplicate (non-blank) column header found.
                     throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
                 }
-                columns.put(formatter.formatCellValue(cell), new ArrayList<>());
+                String header_key = formatter.formatCellValue(cell);
+                columns.put(header_key, new ArrayList<>());
             }
             for (int i = headerRowIndex + 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 Iterator<Cell> cellIterator = row.cellIterator();
-                for (int k=0; k < columns.values().size(); k++) {
+//                for (int k=0; k <= columns.values().size(); k++) {
+                for (int k=0; k <= headerRowSize; k++) {
+                    if (k==headerRowSize){
+                        String debug = "debug";
+                    }
                     Cell cell = row.getCell(k, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
                     String header = formatter.formatCellValue(headerRow.getCell(k));
-                    if (cell == null) {
-                        if(!header.isBlank()) {
+                        if (cell == null) {
+                        if(!header.isBlank()) { //guard against blank columns
                             columns.get(header).add(null);
                         }
                     } else if (cell.getCellType() == CellType.NUMERIC) {

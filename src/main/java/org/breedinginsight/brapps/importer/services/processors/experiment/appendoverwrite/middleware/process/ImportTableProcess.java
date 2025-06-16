@@ -408,7 +408,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
      * Updates the preview statistics for processed observation data.
      *
      * This method updates various statistical metrics related to the processed
-     * observation data and stores them in the provided context.
+     * observation data and stores them in the provided context.x
      *
      * @param processedData The VisitedObservationData object containing the processed observation data.
      * @param context The AppendOverwriteMiddlewareContext object where the updated statistics will be stored.
