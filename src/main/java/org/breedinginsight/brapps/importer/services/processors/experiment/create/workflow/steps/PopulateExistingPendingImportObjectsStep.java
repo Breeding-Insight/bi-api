@@ -192,34 +192,6 @@ public class PopulateExistingPendingImportObjectsStep {
     }
 
     /**
-     * Adds a new map entry to observationUnitByName based on the brAPIObservationUnit passed in and sets the
-     * expUnitId in the rowsByObsUnitId map.
-     *
-     * @param brAPIObservationUnit the BrAPI observation unit object
-     * @param refSource the reference source
-     * @param program the program object
-     * @param observationUnitByName the map of observation units by name (will be modified in place)
-     * @param rowByObsUnitId the map of rows by observation unit ID (will be modified in place)
-     *
-     * @throws InternalServerException
-     */
-    private void processAndCacheObservationUnit(BrAPIObservationUnit brAPIObservationUnit, String refSource, Program program,
-                                                Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByName,
-                                                Map<String, ExperimentObservation> rowByObsUnitId) {
-        BrAPIExternalReference idRef = Utilities.getExternalReference(brAPIObservationUnit.getExternalReferences(), refSource)
-                .orElseThrow(() -> new InternalServerException("An ObservationUnit ID was not found in any of the external references"));
-
-        ExperimentObservation row = rowByObsUnitId.get(idRef.getReferenceId());
-        row.setExpUnitId(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getObservationUnitName(), program.getKey()));
-        observationUnitByName.put(ExperimentUtilities.createObservationUnitKey(row),
-                new PendingImportObject<>(ImportObjectState.EXISTING,
-                        brAPIObservationUnit,
-                        UUID.fromString(idRef.getReferenceId())));
-    }
-
-
-
-    /**
      * Initializes studies by name without scope.
      *
      * @param program The program object.

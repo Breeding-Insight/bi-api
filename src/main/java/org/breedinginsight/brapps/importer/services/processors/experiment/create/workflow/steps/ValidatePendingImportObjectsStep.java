@@ -232,16 +232,6 @@ public class ValidatePendingImportObjectsStep {
 //            if(StringUtils.isNotBlank(importRow.getObsUnitID())) {
 //                ExperimentUtilities.addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, "ObsUnitID cannot be specified when creating a new environment", validationErrors, rowNum);
 //            }
-        } else {
-            // TODO: is this validation still needed?
-            //Check if existing environment. If so, ObsUnitId must be assigned
-//            validateRequiredCell(
-//                    importRow.getObsUnitID(),
-//                    ExperimentObservation.Columns.OBS_UNIT_ID,
-//                    ExperimentUtilities.MISSING_OBS_UNIT_ID_ERROR,
-//                    validationErrors,
-//                    rowNum
-//            );
         }
     }
 

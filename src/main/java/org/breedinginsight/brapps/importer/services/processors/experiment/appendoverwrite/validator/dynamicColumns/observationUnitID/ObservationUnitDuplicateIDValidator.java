@@ -47,7 +47,6 @@ public class ObservationUnitDuplicateIDValidator implements DynamicColumnValidat
         Column<?> idCol = ctx.getImportContext().getData().columns(idColName).get(0);
 
         for (int rowNum = 0; rowNum < ctx.getImportContext().getImportRows().size(); rowNum++) {
-            String id = idCol.get(rowNum).toString();
             if (referenceOUIds.contains(idCol.get(rowNum).toString())) {
                 // Check if ObsUnitID is duplicated
                 ExperimentUtilities.addRowError(idColName, VVCN.getValue(), rowErrors, rowNum);
