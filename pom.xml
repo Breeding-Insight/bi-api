@@ -90,9 +90,11 @@
         <okhttp.version>4.9.3</okhttp.version>
         <mockito.version>4.3.1</mockito.version>
         <brapi-java-client.version>2.1-SNAPSHOT</brapi-java-client.version>
-        <tika-app.version>2.9.2</tika-app.version>
-        <!-- Hard-coded version of transitive dependency commons compress seems to be needed. -->
-        <commons-compress.version>1.26.1</commons-compress.version>
+        <commons-io.version>2.11.0</commons-io.version>
+        <tika-app.version>2.2.1</tika-app.version>
+        <!-- Version of apache-poi depends on version of tika. Tika uses these. -->
+        <apache-poi.version>4.1.2</apache-poi.version>
+        <apache-poi-ooxml.version>4.1.2</apache-poi-ooxml.version>
         <javaxmail.version>1.6.2</javaxmail.version>
         <st4.version>4.3.1</st4.version>
         <tablesaw.version>1.0.0-SNAPSHOT</tablesaw.version>
@@ -382,14 +384,34 @@
             <version>${brapi-java-client.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.tika</groupId>
-            <artifactId>tika-app</artifactId>
-            <version>${tika-app.version}</version>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>${apache-commons-csv.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>${apache-poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${apache-poi-ooxml.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
-            <artifactId>commons-compress</artifactId>
-            <version>${commons-compress.version}</version>
+            <artifactId>commons-lang3</artifactId>
+            <version>${apache-commons-lang.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>${commons-io.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-app</artifactId>
+            <version>${tika-app.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.mail</groupId>
@@ -473,7 +495,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-	                    <filters>
+                            <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
                                     <excludes>
@@ -482,9 +504,9 @@
                                         <exclude>META-INF/*.RSA</exclude>
                                     </excludes>
                                 </filter>
-                            </filters>	
-				
-			    <transformers>
+                            </filters>
+
+                            <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>${exec.mainClass}</mainClass>
                                 </transformer>
@@ -519,98 +541,98 @@
                     <target>${maven.compiler.target}</target>
                 </configuration>
             </plugin>
-        <plugin>
-            <groupId>org.jooq</groupId>
-            <artifactId>jooq-codegen-maven</artifactId>
-            <version>${jooq.version}</version>
-            <executions>
-                <execution>
-                    <goals>
-                        <goal>generate</goal>
-                    </goals>
-                </execution>
-            </executions>
+            <plugin>
+                <groupId>org.jooq</groupId>
+                <artifactId>jooq-codegen-maven</artifactId>
+                <version>${jooq.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
 
-            <configuration>
-                <jdbc>
-                    <driver>org.postgresql.Driver</driver>
+                <configuration>
+                    <jdbc>
+                        <driver>org.postgresql.Driver</driver>
+                        <url>jdbc:postgresql://${DB_SERVER}/${DB_NAME}</url>
+                        <user>${DB_USER}</user>
+                        <password>${DB_PASSWORD}</password>
+                    </jdbc>
+                    <generator>
+                        <name>org.breedinginsight.generation.JooqDaoGenerator</name>
+                        <database>
+                            <name>org.jooq.meta.postgres.PostgresDatabase</name>
+                            <includes>.*</includes>
+                            <inputSchema>public</inputSchema>
+                            <includeTables>true</includeTables>
+                            <includeUDTs>true</includeUDTs>
+                            <includeRoutines>false</includeRoutines>
+                            <includePrimaryKeys>true</includePrimaryKeys>
+                            <includeUniqueKeys>true</includeUniqueKeys>
+                            <includeForeignKeys>true</includeForeignKeys>
+                            <includeCheckConstraints>true</includeCheckConstraints>
+                            <includeIndexes>false</includeIndexes>
+                            <excludes>
+                                flyway_schema_history|base_entity|base_track_edit_entity|spatial_ref_sys
+                            </excludes>
+                        </database>
+
+                        <strategy>
+                            <matchers>
+                                <tables>
+                                    <table>
+                                        <pojoClass>
+                                            <transform>PASCAL</transform>
+                                            <expression>$0_ENTITY</expression>
+                                        </pojoClass>
+                                        <tableClass>
+                                            <transform>PASCAL</transform>
+                                            <expression>$0_TABLE</expression>
+                                        </tableClass>
+                                    </table>
+                                </tables>
+                            </matchers>
+                        </strategy>
+
+                        <target>
+                            <packageName>org.breedinginsight.dao.db</packageName>
+                            <directory>target/generated-sources/jooq</directory>
+                        </target>
+                        <generate>
+                            <pojos>true</pojos>
+                            <daos>true</daos>
+                            <fluentSetters>false</fluentSetters>
+                            <javaTimeTypes>true</javaTimeTypes>
+                        </generate>
+                    </generator>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.breedinginsight</groupId>
+                        <artifactId>bi-jooq-codegen</artifactId>
+                        <version>${jooq.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>${flyway.version}</version>
+                <configuration>
                     <url>jdbc:postgresql://${DB_SERVER}/${DB_NAME}</url>
                     <user>${DB_USER}</user>
                     <password>${DB_PASSWORD}</password>
-                </jdbc>
-                <generator>
-                    <name>org.breedinginsight.generation.JooqDaoGenerator</name>
-                    <database>
-                        <name>org.jooq.meta.postgres.PostgresDatabase</name>
-                        <includes>.*</includes>
-                        <inputSchema>public</inputSchema>
-                        <includeTables>true</includeTables>
-                        <includeUDTs>true</includeUDTs>
-                        <includeRoutines>false</includeRoutines>
-                        <includePrimaryKeys>true</includePrimaryKeys>
-                        <includeUniqueKeys>true</includeUniqueKeys>
-                        <includeForeignKeys>true</includeForeignKeys>
-                        <includeCheckConstraints>true</includeCheckConstraints>
-                        <includeIndexes>false</includeIndexes>
-                        <excludes>
-                            flyway_schema_history|base_entity|base_track_edit_entity|spatial_ref_sys
-                        </excludes>
-                    </database>
-
-                    <strategy>
-                        <matchers>
-                            <tables>
-                                <table>
-                                    <pojoClass>
-                                        <transform>PASCAL</transform>
-                                        <expression>$0_ENTITY</expression>
-                                    </pojoClass>
-                                    <tableClass>
-                                        <transform>PASCAL</transform>
-                                        <expression>$0_TABLE</expression>
-                                    </tableClass>
-                                </table>
-                            </tables>
-                        </matchers>
-                    </strategy>
-
-                    <target>
-                        <packageName>org.breedinginsight.dao.db</packageName>
-                        <directory>target/generated-sources/jooq</directory>
-                    </target>
-                    <generate>
-                        <pojos>true</pojos>
-                        <daos>true</daos>
-                        <fluentSetters>false</fluentSetters>
-                        <javaTimeTypes>true</javaTimeTypes>
-                    </generate>
-                </generator>
-            </configuration>
-            <dependencies>
-                <dependency>
-                    <groupId>org.breedinginsight</groupId>
-                    <artifactId>bi-jooq-codegen</artifactId>
-                    <version>${jooq.version}</version>
-                </dependency>
-            </dependencies>
-        </plugin>
-        <plugin>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-maven-plugin</artifactId>
-            <version>${flyway.version}</version>
-            <configuration>
-                <url>jdbc:postgresql://${DB_SERVER}/${DB_NAME}</url>
-                <user>${DB_USER}</user>
-                <password>${DB_PASSWORD}</password>
-            </configuration>
-            <dependencies>
-                <dependency>
-                    <groupId>org.postgresql</groupId>
-                    <artifactId>postgresql</artifactId>
-                    <version>${postgres.version}</version>
-                </dependency>
-            </dependencies>
-        </plugin>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.postgresql</groupId>
+                        <artifactId>postgresql</artifactId>
+                        <version>${postgres.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
         </plugins>
         <pluginManagement>
             <plugins>

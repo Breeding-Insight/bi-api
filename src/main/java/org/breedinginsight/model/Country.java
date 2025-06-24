@@ -81,4 +81,9 @@ public class Country extends CountryEntity {
         Country that = (Country) o;
         return Objects.equals(getId(), that.getId()) && Objects.equals(getName(), that.getName());
     }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), getName());
+    }
 }

@@ -1,0 +1,4 @@
+GID,Germplasm Name,Breeding Method,Source,Female Parent GID,Male Parent GID,Entry No,Female Parent Entry No,Male Parent Entry No,External UID,Synonyms
+,EntryNoDescGerm 1,BCR,Test,,,3,,,3,
+,EntryNoDescGerm 2,BCR,Test,,,2,,,2,
+,EntryNoDescGerm 3,BCR,Test,,,1,2,3,1,

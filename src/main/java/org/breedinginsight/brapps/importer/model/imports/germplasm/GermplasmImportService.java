@@ -18,18 +18,13 @@
 package org.breedinginsight.brapps.importer.model.imports.germplasm;
 
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
-import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
+import org.breedinginsight.brapps.importer.services.processors.germplasm.GermplasmProcessor;
 import org.breedinginsight.brapps.importer.services.processors.Processor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.User;
-import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
