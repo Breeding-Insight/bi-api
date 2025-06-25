@@ -15,28 +15,8 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.daos;
+ALTER TABLE bi_user
+RENAME COLUMN orcid TO oauth_id;
 
-import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
-import org.breedinginsight.dao.db.tables.records.BiUserRecord;
-import org.breedinginsight.model.User;
-import org.jooq.DAO;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-public interface UserDAO extends DAO<BiUserRecord, BiUserEntity, UUID> {
-
-    List<User> getUsers();
-
-    Optional<User> getUser(UUID id);
-
-    Optional<User> getUserByOAuthId(String oAuthId);
-
-    BiUserEntity fetchOneById(UUID value);
-
-    List<BiUserEntity> fetchByEmail(String... values);
-
-    List<BiUserEntity> fetchByOauthId(String... values);
-}
+ALTER TABLE bi_user
+ADD COLUMN oauth_provider text;

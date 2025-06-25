@@ -39,7 +39,6 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jooq.DSLContext;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -95,7 +94,7 @@ public class JobControllerIntegrationTest extends DatabaseTest {
             program = programs.get(0);
 
             // Insert system roles
-            testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID)
+            testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID)
                               .get();
             dsl.execute(securityFp.get("InsertSystemRoleAdmin"),
                         testUser.getId()

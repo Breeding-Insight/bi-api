@@ -180,7 +180,7 @@ public class ImportTestUtils {
                 .getAsJsonArray("data")
                 .get(0).getAsJsonObject().get("id").getAsString();
 
-        BiUserEntity testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        BiUserEntity testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).get();
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId());
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
