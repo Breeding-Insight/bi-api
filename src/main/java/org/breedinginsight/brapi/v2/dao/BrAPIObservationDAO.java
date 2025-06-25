@@ -370,8 +370,10 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                 }
                 updatedObservations.add(updatedObservation);
 
-                if (!Objects.equals(observation.getValue(), updatedObservation.getValue())
-                        || !Objects.equals(observation.getObservationTimeStamp(), updatedObservation.getObservationTimeStamp())) {
+                if (
+                        observation.getObservationTimeStamp() != null
+                        && (!Objects.equals(observation.getValue(), updatedObservation.getValue())
+                        || !Objects.equals(observation.getObservationTimeStamp(), updatedObservation.getObservationTimeStamp()))) {
                     String message;
                     if (!Objects.equals(observation.getValue(), updatedObservation.getValue())) {
                         message = String.format("Updated observation, %s, from BrAPI service does not match requested update %s.", updatedObservation.getValue(), observation.getValue());
