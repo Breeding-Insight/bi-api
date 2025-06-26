@@ -352,7 +352,7 @@ public class UserService {
         sendAccountSignUpEmail(biUser, jwt.getSignedJWT());
     }
 
-    public void updateOAuthId(UUID userId, String oAuthId) throws DoesNotExistException, AlreadyExistsException {
+    public void updateOAuthInfo(UUID userId, String oAuthId, String oAuthProvider) throws DoesNotExistException, AlreadyExistsException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
@@ -368,6 +368,7 @@ public class UserService {
         }
 
         biUser.setOauthId(oAuthId);
+        biUser.setOauthProvider(oAuthProvider);
         biUser.setAccountToken(null);
         dao.update(biUser);
     }

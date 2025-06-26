@@ -114,6 +114,6 @@ public class User extends BiUserEntity {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getOauthId(), getName(), getEmail(), getCreatedAt(), getUpdatedAt(), getCreatedBy(), getUpdatedBy(), getActive(), getAccountToken());
+        return Objects.hash(getId(), getOauthId(), getName(), getEmail(), getCreatedAt(), getUpdatedAt(), getCreatedBy(), getUpdatedBy(), getActive(), getAccountToken(), getOauthProvider());
     }
 }

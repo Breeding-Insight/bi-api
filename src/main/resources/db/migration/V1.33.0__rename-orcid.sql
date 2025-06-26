@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
+-- Rename orcid column to more generic oauth_id.
 ALTER TABLE bi_user
 RENAME COLUMN orcid TO oauth_id;
 
+-- Add a column to store the OAuth provider with 'orcid' as the default value.
 ALTER TABLE bi_user
-ADD COLUMN oauth_provider text;
+ADD COLUMN oauth_provider text DEFAULT 'orcid';

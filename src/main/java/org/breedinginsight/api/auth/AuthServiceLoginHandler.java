@@ -158,9 +158,20 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         }
     }
 
+    private String parseOAuthProvider(HttpRequest request) {
+        // The request path will be something like "/sso/success/github".
+        if (request.getPath().toLowerCase().contains("github")) {
+            return "github";
+        } else {
+            // Default to ORCID.
+            return "orcid";
+        }
+    }
+
     private MutableHttpResponse newAccountCreationResponse(UserDetails userDetails, String accountToken, HttpRequest request) {
 
         String oAuthId = userDetails.getUsername();
+        String oAuthProvider = parseOAuthProvider(request);
         SignUpJWT signUpJWT;
         try {
             signUpJWT = signUpJwtService.validateAndParseAccountSignUpJwt(accountToken);
@@ -184,9 +195,9 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         }
 
         if (newUser.getAccountToken().equals(signUpJWT.getJwtId().toString())) {
-            // Assign oAuthId to that user.
+            // Assign OAuth Id and provider to that user.
             try {
-                userService.updateOAuthId(newUser.getId(), oAuthId);
+                userService.updateOAuthInfo(newUser.getId(), oAuthId, oAuthProvider);
             } catch (DoesNotExistException e) {
                 MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
                 return resp;

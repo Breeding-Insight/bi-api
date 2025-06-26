@@ -60,7 +60,7 @@ public class UserQueryMapperUnitTest {
 
         assertEquals(user.getName(), userQueryMapper.getField("name").apply(user), "Wrong getter");
         assertEquals(user.getEmail(), userQueryMapper.getField("email").apply(user), "Wrong getter");
-        assertEquals(user.getOauthId(), userQueryMapper.getField("orcid").apply(user), "Wrong getter");
+        assertEquals(user.getOauthId(), userQueryMapper.getField("oauthId").apply(user), "Wrong getter");
         assertEquals(user.getSystemRoles().stream().map(role -> role.getDomain()).collect(Collectors.toList()),
                 userQueryMapper.getField("systemRoles").apply(user), "Wrong getter");
         assertEquals(user.getProgramRoles().stream().map(role -> role.getProgram().getName()).collect(Collectors.toList()),
