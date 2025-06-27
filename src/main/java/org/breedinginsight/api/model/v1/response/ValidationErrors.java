@@ -49,6 +49,18 @@ public class ValidationErrors {
         rowErrors.add(newRow);
     }
 
+    public boolean hasErrorAtCell(int rowIndex, String field) {
+        for (RowValidationErrors row: rowErrors) {
+            if (row.getRowIndex() == rowIndex){
+                return row.getErrors()
+                        .stream()
+                        .anyMatch(error -> error.getField().equals(field));
+            }
+        }
+
+        return false;
+    }
+
     public void merge(ValidationErrors validationErrors){
         for (RowValidationErrors rowValidationErrors: validationErrors.getRowErrors()){
             for (ValidationError validationError: rowValidationErrors.getErrors()) {

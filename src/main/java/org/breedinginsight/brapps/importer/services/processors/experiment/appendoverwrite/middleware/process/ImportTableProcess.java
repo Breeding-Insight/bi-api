@@ -114,6 +114,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
         Table data = context.getImportContext().getData();
         List<String> phenotypeColNames = Arrays.stream(upload.getDynamicColumnNames())
                 .filter(name -> !name.endsWith(OBSERVATION_UNIT_ID_SUFFIX))
+                .filter(name -> !name.contains(SUB_UNIT_NUMBER))
                 .collect(Collectors.toList());
 
         // don't allow periods (.) or square brackets in Phenotype Column Names

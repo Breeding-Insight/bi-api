@@ -54,7 +54,10 @@ public class ObservationUnitIDFormatValidator implements DynamicColumnValidator 
 
             // Validate UUID format
             if (id == null || !UUID_PATTERN.matcher(id).matches()) {
-                ExperimentUtilities.addRowError(idColName, BITB.getValue(), rowErrors, rowNum);
+                if (!rowErrors.hasErrorAtCell(rowNum + 2, idColName)) { // take header row into account
+                    // don't add another error for format if it already has an error for being blank
+                    ExperimentUtilities.addRowError(idColName, BITB.getValue(), rowErrors, rowNum);
+                }
             }
         }
     }

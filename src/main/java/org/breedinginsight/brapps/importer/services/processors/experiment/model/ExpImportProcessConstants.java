@@ -39,7 +39,7 @@ public class ExpImportProcessConstants {
         UNMATCHED_COLUMN("Ontology term(s) not found: "),
         OBS_UNIT_NOT_FOUND("Invalid ObsUnitID"),
         DUPLICATE_OBS_UNIT_ID("ObsUnitId is repeated"),
-        OZEX("Missing ObsUnitID column. Import cannot proceed"),
+        OZEX("Missing ObsUnitID column"),
         VVCN("ObsUnitID is duplicated"),
         BITB("Invalid or missing ObsUnitID");
 

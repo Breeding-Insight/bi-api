@@ -65,12 +65,15 @@ public class AppendOverwriteIDValidation extends AppendOverwriteMiddleware {
             ouIdValidator.validateDynamicColumns(context);
             Set<String> uniqueOUIds = ExperimentUtilities.collateUniqueOUIds(context);
             context.getAppendOverwriteWorkflowContext().setReferenceOUIds(uniqueOUIds);
-            brAPIObservationUnitReadWorkflowInitialization.execute();  // Fetch the obs units from the BrAPi service
 
             // Check for tabular errors collected during validation
             if (validationErrors.hasErrors()) {
                 throw new ValidatorException(validationErrors);
             }
+
+            // Fetch the obs units from the BrAPi service
+            brAPIObservationUnitReadWorkflowInitialization.execute();
+
             return processNext(context);
         } catch (EntityNotFoundException e) {
             /**
