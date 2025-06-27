@@ -70,7 +70,7 @@ public class BrAPIDAOUtilUnitTest {
     @BeforeEach
     void setup() {
         //Create instance of DAO
-        brAPIDAOUtil = new BrAPIDAOUtil(1000, Duration.of(10, ChronoUnit.MINUTES), 1, 100, programService());
+        brAPIDAOUtil = new BrAPIDAOUtil(1000, Duration.of(10, ChronoUnit.MINUTES), 1, 100, 65000, programService());
 
         //Set the page size field
         Field pageSize = BrAPIDAOUtil.class.getDeclaredField("pageSize");

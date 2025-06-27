@@ -987,10 +987,11 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         }
         assertEquals(requestedImportRows.size(),matchingImportRows.size());
 
+        //Observation level for tests should be "Plot"
         // Observation units populated.
-        assertEquals(0, table.column("ObsUnitID").countMissing());
+        assertEquals(0, table.column("Plot ObsUnitID").countMissing());
         // Observation Unit IDs are assigned.
-        assertEquals(requestedImportRows.size(), table.column("ObsUnitID").countUnique());
+        assertEquals(requestedImportRows.size(), table.column("Plot ObsUnitID").countUnique());
     }
 
     private boolean isMatchedRow(Map<String, Object> importRow, Row downloadRow) {

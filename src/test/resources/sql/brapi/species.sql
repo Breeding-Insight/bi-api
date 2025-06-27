@@ -17,22 +17,28 @@
  */
 
 -- name: InsertSpecies
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '4', 'Blueberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '5', 'Salmon') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '6', 'Grape') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '7', 'Alfalfa') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '8', 'Sweet Potato') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '9', 'Trout') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '10', 'Soybean') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '11', 'Cranberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '12', 'Cucumber') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '13', 'Oat') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '14', 'Citrus') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '15', 'Sugar Cane') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '16', 'Strawberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '17', 'Honey') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '18', 'Pecan') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '19', 'Lettuce') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '20', 'Cotton') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '21', 'Sorghum') ON CONFLICT DO NOTHING;
-INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '22', 'Hemp') ON CONFLICT DO NOTHING;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+DO $$
+DECLARE
+v_auth_id CONSTANT uuid := 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA';
+BEGIN
+INSERT INTO crop (id, auth_user_id, crop_name)
+SELECT
+    uuid_generate_v5('9a4deca9-4068-46a3-9efe-db0c181f491a'::uuid,
+                     regexp_replace(lower(trim(crop_name)), '\s', '', 'g')),
+    v_auth_id,
+    crop_name
+FROM (VALUES
+          ('Blueberry'), ('Salmon'), ('Grape'), ('Alfalfa'),
+          ('Sweet Potato'), ('Trout'), ('Soybean'), ('Cranberry'),
+          ('Cucumber'), ('Oat'), ('Citrus'), ('Sugar Cane'),
+          ('Strawberry'), ('Honey Bee'), ('Pecan'), ('Lettuce'),
+          ('Cotton'), ('Sorghum'), ('Hemp'), ('Hop'),
+          ('Hydrangea'), ('Red Clover'), ('Potato'), ('Blackberry'),
+          ('Raspberry'), ('Sugar Beet'), ('Coffee')
+     ) AS src(crop_name)
+    ON CONFLICT (id) DO
+UPDATE SET crop_name = EXCLUDED.crop_name
+WHERE crop.crop_name IS DISTINCT FROM EXCLUDED.crop_name;
+END $$;

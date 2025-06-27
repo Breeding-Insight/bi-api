@@ -81,7 +81,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
     }
 
 
-    @Scheduled(initialDelay = "2s")
+    @Scheduled(initialDelay = "${startup.delay.trial}")
     public void setup() {
         if(!runScheduledTasks) {
             return;

@@ -62,7 +62,7 @@ public class DatabaseTest implements TestPropertyProvider {
             network = Network.newNetwork();
         }
         if(dbContainer == null) {
-            dbContainer = new GenericContainer<>("postgres:11.4")
+            dbContainer = new GenericContainer<>("postgres:17.5")
                     .withNetwork(network)
                     .withNetworkAliases("testdb")
                     .withImagePullPolicy(PullPolicy.defaultPolicy())

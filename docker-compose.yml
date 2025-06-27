@@ -71,7 +71,7 @@ services:
     networks:
       - backend
   bidb:
-    image: postgres:11.4
+    image: postgres:17.5
     container_name: bidb
     environment:
       - POSTGRES_DB=${DB_NAME}
