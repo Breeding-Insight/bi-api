@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.OBSERVATION_UNIT_ID_SUFFIX;
+
 public enum ExperimentFileColumns {
 
     GERMPLASM_NAME(ExperimentObservation.Columns.GERMPLASM_NAME, Column.ColumnDataType.STRING),
@@ -47,8 +49,7 @@ public enum ExperimentFileColumns {
     LONG(ExperimentObservation.Columns.LONG, Column.ColumnDataType.STRING),
     ELEVATION(ExperimentObservation.Columns.ELEVATION, Column.ColumnDataType.STRING),
     RTK(ExperimentObservation.Columns.RTK, Column.ColumnDataType.STRING),
-    TREATMENT_FACTORS(ExperimentObservation.Columns.TREATMENT_FACTORS, Column.ColumnDataType.STRING),
-    OBS_UNIT_ID(ExperimentObservation.Columns.OBS_UNIT_ID, Column.ColumnDataType.STRING);
+    TREATMENT_FACTORS(ExperimentObservation.Columns.TREATMENT_FACTORS, Column.ColumnDataType.STRING);
 
     private final Column column;
 

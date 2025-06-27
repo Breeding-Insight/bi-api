@@ -145,10 +145,6 @@ public class ExperimentObservation implements BrAPIImport {
     @ImportFieldMetadata(id = "treatmentFactors", name = Columns.TREATMENT_FACTORS, description = "Treatment factors in an experiment with applied variables, like fertilizer or water regimens.")
     private String treatmentFactors;
 
-    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "ObsUnitID", name = Columns.OBS_UNIT_ID, description = "A database generated unique identifier for experimental observation units")
-    private String obsUnitID;
-
     public BrAPITrial constructBrAPITrial(Program program, User user, boolean commit, String referenceSource, UUID id, String expSeqValue) {
         BrAPIProgram brapiProgram = program.getBrapiProgram();
         BrAPITrial trial = new BrAPITrial();
@@ -363,10 +359,6 @@ public class ExperimentObservation implements BrAPIImport {
             observationUnit.setTreatments(List.of(treatment));
         }
 
-        if (getObsUnitID() != null) {
-            observationUnit.setObservationUnitDbId(getObsUnitID());
-        }
-
         return observationUnit;
     }
 
@@ -478,7 +470,6 @@ public class ExperimentObservation implements BrAPIImport {
         public static final String ELEVATION = "Elevation";
         public static final String RTK = "RTK";
         public static final String TREATMENT_FACTORS = "Treatment Factors";
-        public static final String OBS_UNIT_ID = "ObsUnitID";
     }
 
 }
