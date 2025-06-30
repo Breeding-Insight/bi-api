@@ -407,7 +407,7 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
                 .get(0).getAsJsonObject().get("id").getAsString();
 
         JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
-                importTestUtils.writeExperimentDataToFile(List.of(makeExpImportRow("Env1")), null, false),
+                importTestUtils.writeExperimentDataToFile(List.of(makeExpImportRow("Env1")), null, false, false, null),
                 null,
                 true,
                 client,
