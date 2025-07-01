@@ -19,6 +19,10 @@
 ALTER TABLE bi_user
 RENAME COLUMN orcid TO oauth_id;
 
+-- Rename unique constraint.
+ALTER TABLE bi_user
+RENAME CONSTRAINT orcid_unique TO oauth_id_unique;
+
 -- Add a column to store the OAuth provider with 'orcid' as the default value.
 ALTER TABLE bi_user
 ADD COLUMN oauth_provider text DEFAULT 'orcid';
