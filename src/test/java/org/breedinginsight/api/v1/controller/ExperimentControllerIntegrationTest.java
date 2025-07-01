@@ -265,7 +265,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     @SneakyThrows
     void downloadDatasets(boolean includeTimestamps, String extension, int numberOfEnvsRequested) {
         // How many columns are expected in the output?
-        int expectedColNumber = columns.size();
+        int expectedColNumber = columns.size() + 1; //Need to account for ObsUnitID column which is present in export but not import
         if (includeTimestamps) {
             expectedColNumber += traits.size();
         }

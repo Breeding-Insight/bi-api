@@ -177,7 +177,6 @@ public class ExperimentTrialService {
         initializeTrialsForExistingObservationUnits(program, observationUnitByNameNoScope, trialByName);
 
         List<String> uniqueTrialNames = experimentImportRows.stream()
-                .filter(row -> StringUtils.isBlank(row.getObsUnitID()))
                 .map(ExperimentObservation::getExpTitle)
                 .distinct()
                 .collect(Collectors.toList());

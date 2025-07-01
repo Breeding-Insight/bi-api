@@ -310,7 +310,7 @@ public class PopulateNewPendingImportObjectsStep {
 
             // creating new units for existing experiments and environments is not possible
             if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() &&
-                    (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
+                    (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
                 throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
             }
         } else if (!trialByNameNoScope.isEmpty()) {
