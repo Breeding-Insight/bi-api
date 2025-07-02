@@ -193,7 +193,6 @@ public class ExperimentFileImportTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    //@Disabled
     public void appendExperimentWithObsVarFromPriorDataset() {
         log.debug("appendExperimentWithObsVarFromPriorDataset");
 
@@ -235,8 +234,6 @@ public class ExperimentFileImportTest extends BrAPITest {
 
         // Assert 200 response
         assertEquals(HttpStatus.OK, postResponse.getStatus());
-
-        // Grab the system ids for the sub-entity dataset units
         JsonObject result = JsonParser.parseString(postResponse.body()).getAsJsonObject().getAsJsonObject("result");
 
         // Export the plant-level sub-entity dataset
@@ -250,12 +247,12 @@ public class ExperimentFileImportTest extends BrAPITest {
         );
         HttpResponse<byte[]> plantResponse = plantExportCall.blockingFirst();
 
-        // Make sub-entity dataset export request.
-        ByteArrayInputStream bodyStream = new ByteArrayInputStream(Objects.requireNonNull(plantResponse.body()));
-        Table exportTable = FileUtil.parseTableFromCsv(bodyStream);
-
         // Assert 200 response
         assertEquals(HttpStatus.OK, plantResponse.getStatus());
+
+        // Parse the export table
+        ByteArrayInputStream bodyStream = new ByteArrayInputStream(Objects.requireNonNull(plantResponse.body()));
+        Table exportTable = FileUtil.parseTableFromCsv(bodyStream);
 
         // Build a request to append tt_test_1 observation data on the sub-entity dataset
         String sub1ObsUnitId = exportTable.row(0).getString("Plant ObsUnitID");
@@ -298,6 +295,133 @@ public class ExperimentFileImportTest extends BrAPITest {
         // Verify that the validation check returns a 400-level response since tt_test_1 is already used in the plot-level dataset
         JsonObject previewResponse = importTestUtils.uploadAndFetchWorkflowPreview(importTestUtils.writeExperimentDataToFile(List.of(sub1, sub2), null, true, false, "Plant"), null, true, client, program, mappingId, appendOverwriteWorkflowId);
         assertEquals(422, previewResponse.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
+    }
+
+    @Test
+    @SneakyThrows
+    public void appendExperimentMultipleDatasets() {
+        log.debug("appendExperimentMultipleDatasets");
+
+        // Create a plot-level dataset
+        List<Trait> traits = importTestUtils.createTraits(1);
+        Program program = createProgram("Append Exp with Multiple Datasets", "MULSET", "MULSET", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Map<String, Object> newExp = new HashMap<>();
+        newExp.put(Columns.GERMPLASM_GID, "1");
+        newExp.put(Columns.TEST_CHECK, "T");
+        newExp.put(Columns.EXP_TITLE, "Test Exp");
+        newExp.put(Columns.EXP_UNIT, "Plot");
+        newExp.put(Columns.EXP_TYPE, "Phenotyping");
+        newExp.put(Columns.ENV, "New Env");
+        newExp.put(Columns.ENV_LOCATION, "Location A");
+        newExp.put(Columns.ENV_YEAR, "2023");
+        newExp.put(Columns.EXP_UNIT_ID, "a-1");
+        newExp.put(Columns.REP_NUM, "1");
+        newExp.put(Columns.BLOCK_NUM, "1");
+        newExp.put(Columns.ROW, "1");
+        newExp.put(Columns.COLUMN, "1");
+        //newExp.put(traits.get(0).getObservationVariableName(), null);
+
+        JsonObject importResponse = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newExp), null, false, false, null), null, true, client, program, mappingId, newExperimentWorkflowId);
+        String expId = importResponse
+                .get("preview").getAsJsonObject()
+                .get("rows").getAsJsonArray()
+                .get(0).getAsJsonObject()
+                .get("trial").getAsJsonObject()
+                .get("id").getAsString();
+
+        // Create two sub-entity datasets that have two plant-level units
+        Flowable<HttpResponse<String>> sub1PostCall = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/dataset",
+                                program.getId().toString(), expId),
+                        "{\"name\":\"Plant\",\"repeatedMeasures\":2}")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                String.class);
+        HttpResponse<String> sub1PostResponse = sub1PostCall.blockingFirst();
+        Flowable<HttpResponse<String>> sub2PostCall = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/dataset",
+                                program.getId().toString(), expId),
+                        "{\"name\":\"Plant\",\"repeatedMeasures\":2}")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                String.class);
+        HttpResponse<String> sub2PostResponse = sub2PostCall.blockingFirst();
+
+        // Assert 200 response
+        assertEquals(HttpStatus.OK, sub1PostResponse.getStatus());
+        assertEquals(HttpStatus.OK, sub2PostResponse.getStatus());
+        JsonObject sub1Result = JsonParser.parseString(sub1PostResponse.body())
+                .getAsJsonObject()
+                .getAsJsonObject("result");
+        JsonObject sub2Result = JsonParser.parseString(sub2PostResponse.body())
+                .getAsJsonObject()
+                .getAsJsonObject("result");
+
+        // Export the plant-level sub-entity datasets
+        String extension = "CSV";
+        BrAPITrial experiment = experimentService.getTrialDataByUUID(program.getId(), UUID.fromString(expId), false);
+        String plant1DatasetId = DatasetUtil.getDatasetIdByNameFromJson(experiment.getAdditionalInfo().getAsJsonArray("datasets"), "Plant");
+        Flowable<HttpResponse<byte[]>> plant1ExportCall = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/export?all=true&includeTimestamps=false&fileExtension=%s&datasetId=%s",
+                        program.getId().toString(), expId, extension, plant1DatasetId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
+        );
+        HttpResponse<byte[]> plant1Response = plant1ExportCall.blockingFirst();
+
+
+        String plant2DatasetId = DatasetUtil.getDatasetIdByNameFromJson(experiment.getAdditionalInfo().getAsJsonArray("datasets"), "Plant");
+        Flowable<HttpResponse<byte[]>> plant2ExportCall = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/export?all=true&includeTimestamps=false&fileExtension=%s&datasetId=%s",
+                        program.getId().toString(), expId, extension, plant2DatasetId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
+        );
+        HttpResponse<byte[]> plant2Response = plant2ExportCall.blockingFirst();
+
+        // Parse the export tables
+        ByteArrayInputStream bodyStream1 = new ByteArrayInputStream(Objects.requireNonNull(plant1Response.body()));
+        Table exportTable1 = FileUtil.parseTableFromCsv(bodyStream1);
+        ByteArrayInputStream bodyStream2 = new ByteArrayInputStream(Objects.requireNonNull(plant2Response.body()));
+        Table exportTable2 = FileUtil.parseTableFromCsv(bodyStream2);
+
+        // Build a request to append tt_test_1 observation data on observation units from two separate datasets
+        String sub1ObsUnitId = exportTable1.row(0).getString("Plant ObsUnitID");
+        String sub2ObsUnitId = exportTable2.row(0).getString("Plant ObsUnitID");
+
+        Map<String, Object> sub1 = new HashMap<>();
+        sub1.put(Columns.GERMPLASM_GID, "1");
+        sub1.put(Columns.TEST_CHECK, "T");
+        sub1.put(Columns.EXP_TITLE, "Test Exp");
+        sub1.put(Columns.EXP_UNIT, "Plot");
+        sub1.put(Columns.EXP_TYPE, "Phenotyping");
+        sub1.put(Columns.ENV, "New Env");
+        sub1.put(Columns.ENV_LOCATION, "Location A");
+        sub1.put(Columns.ENV_YEAR, "2023");
+        sub1.put(Columns.EXP_UNIT_ID, "a-1");
+        sub1.put(Columns.REP_NUM, "1");
+        sub1.put(Columns.BLOCK_NUM, "1");
+        sub1.put(Columns.ROW, "1");
+        sub1.put(Columns.COLUMN, "1");
+        sub1.put("Plant " + OBSERVATION_UNIT_ID_SUFFIX, sub1ObsUnitId);
+        sub1.put(traits.get(0).getObservationVariableName(), "1");
+
+        Map<String, Object> sub2 = new HashMap<>();
+        sub1.put(Columns.GERMPLASM_GID, "1");
+        sub1.put(Columns.TEST_CHECK, "T");
+        sub1.put(Columns.EXP_TITLE, "Test Exp");
+        sub1.put(Columns.EXP_UNIT, "Plot");
+        sub1.put(Columns.EXP_TYPE, "Phenotyping");
+        sub1.put(Columns.ENV, "New Env");
+        sub1.put(Columns.ENV_LOCATION, "Location A");
+        sub1.put(Columns.ENV_YEAR, "2023");
+        sub1.put(Columns.EXP_UNIT_ID, "a-1");
+        sub1.put(Columns.REP_NUM, "1");
+        sub1.put(Columns.BLOCK_NUM, "1");
+        sub1.put(Columns.ROW, "1");
+        sub1.put(Columns.COLUMN, "1");
+        sub1.put("Plant " + OBSERVATION_UNIT_ID_SUFFIX, sub2ObsUnitId);
+        sub1.put(traits.get(0).getObservationVariableName(), "2");
+
+        // Verify that the validation check returns a 400-level response since obervation units belonging to different datasets are included
+        JsonObject previewResponse = importTestUtils.uploadAndFetchWorkflowPreview(importTestUtils.writeExperimentDataToFile(List.of(sub1, sub2), null, true, false, "Plant"), null, true, client, program, mappingId, appendOverwriteWorkflowId);
+        assertEquals(422, previewResponse.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + sub1Result + sub2Result);
     }
 
     @Test
