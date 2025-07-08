@@ -74,6 +74,9 @@ public class AppendOverwriteIDValidation extends AppendOverwriteMiddleware {
             // Fetch the obs units from the BrAPi service
             brAPIObservationUnitReadWorkflowInitialization.execute();
 
+            // Validate retrieved observation units
+            ouIdValidator.validateDynamicColumns(context);
+
             return processNext(context);
         } catch (EntityNotFoundException e) {
             /**

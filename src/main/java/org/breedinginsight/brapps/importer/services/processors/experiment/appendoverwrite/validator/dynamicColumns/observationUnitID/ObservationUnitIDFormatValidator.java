@@ -40,6 +40,9 @@ public class ObservationUnitIDFormatValidator implements DynamicColumnValidator 
 
     @Override
     public void validateDynamicColumns(AppendOverwriteMiddlewareContext ctx) throws BadRequestException {
+        // Skip this validation if the observation units have already been fetched from the BrAPI service
+        if (!ctx.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().isEmpty()) return;
+
         if (ctx.getAppendOverwriteWorkflowContext().getObsUnitColName() == null) {
             throw new BadRequestException(OZEX.getValue());
         }

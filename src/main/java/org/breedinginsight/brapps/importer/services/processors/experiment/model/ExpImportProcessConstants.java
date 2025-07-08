@@ -41,7 +41,8 @@ public class ExpImportProcessConstants {
         DUPLICATE_OBS_UNIT_ID("ObsUnitId is repeated"),
         OZEX("Missing ObsUnitID column"),
         VVCN("ObsUnitID is duplicated"),
-        BITB("Invalid or missing ObsUnitID");
+        BITB("Invalid or missing ObsUnitID"),
+        PJZH("Required field is blank");
 
         private String value;
 

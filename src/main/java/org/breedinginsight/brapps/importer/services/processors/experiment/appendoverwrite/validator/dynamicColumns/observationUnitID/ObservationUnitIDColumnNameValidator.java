@@ -41,6 +41,9 @@ public class ObservationUnitIDColumnNameValidator implements DynamicColumnValida
         // Skip this validation if it has already been successfully completed
         if (ctx.getAppendOverwriteWorkflowContext().getObsUnitColName() != null) return;
 
+        // Skip this validation if the observation units have already been fetched from the BrAPI service
+        if (!ctx.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().isEmpty()) return;
+
         // Get the names of all the dynamic columns with observation unit ids
         String[] idColNames = Arrays.stream(ctx.getImportContext().getUpload().getDynamicColumnNames())
                 .filter(name->name.endsWith(OBSERVATION_UNIT_ID_SUFFIX)).toArray(String[]::new);
