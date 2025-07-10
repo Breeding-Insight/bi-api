@@ -320,10 +320,24 @@ public class CommitPendingImportObjectsStep {
         Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = pendingData.getObservationUnitByNameNoScope();
         Map<String, PendingImportObject<BrAPIObservation>> observationByHash = pendingData.getObservationByHash();
 
+        // Create a lookup map for observations
+        // Key: studyName_observationUnitName (composite key)
+        // Value: List of observations matching the key
+        Map<String, List<PendingImportObject<BrAPIObservation>>> observationsByStudyAndUnit = new java.util.HashMap<>();
+        for (PendingImportObject<BrAPIObservation> obsPio : observationByHash.values()) {
+            BrAPIObservation obs = obsPio.getBrAPIObject();
+            if (obs.getAdditionalInfo() != null && obs.getAdditionalInfo().get(BrAPIAdditionalInfoFields.STUDY_NAME) != null) {
+                String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(obs.getAdditionalInfo().get(BrAPIAdditionalInfoFields.STUDY_NAME).getAsString(), programKey);
+                String obsUnitName = Utilities.removeProgramKeyAndUnknownAdditionalData(obs.getObservationUnitName(), programKey);
+                String key = studyName + "_" + obsUnitName;
+                observationsByStudyAndUnit.computeIfAbsent(key, k -> new ArrayList<>()).add(obsPio);
+            }
+        }
+
         // update the observations study DbIds, Observation Unit DbIds and Germplasm DbIds
         observationUnitByNameNoScope.values().stream()
                 .map(PendingImportObject::getBrAPIObject)
-                .forEach(obsUnit -> updateObservationDbIds(pendingData, obsUnit, programKey));
+                .forEach(obsUnit -> updateObservationDbIds(observationsByStudyAndUnit, obsUnit, programKey)); // Pass the new map
 
         // Update ObservationVariable DbIds
         List<Trait> traits = getTraitList(program);
@@ -340,33 +354,27 @@ public class CommitPendingImportObjectsStep {
         }
     }
 
-    // Update each ovservation's observationUnit DbId, study DbId, and germplasm DbId
-    private void updateObservationDbIds(PendingData pendingData, BrAPIObservationUnit obsUnit, String programKey) {
-        Map<String, PendingImportObject<BrAPIObservation>> observationByHash = pendingData.getObservationByHash();
+    // Update each observation's observationUnit DbId, study DbId, and germplasm DbId
+    private void updateObservationDbIds(Map<String, List<PendingImportObject<BrAPIObservation>>> observationsByStudyAndUnit, BrAPIObservationUnit obsUnit, String programKey) { // Modified signature
 
-        // FILTER LOGIC: Match on Env and Exp Unit ID
-        observationByHash.values()
-                .stream()
-                .filter(obs -> obs.getBrAPIObject()
-                        .getAdditionalInfo() != null
-                        && obs.getBrAPIObject()
-                        .getAdditionalInfo()
-                        .get(BrAPIAdditionalInfoFields.STUDY_NAME) != null
-                        && obs.getBrAPIObject()
-                        .getAdditionalInfo()
-                        .get(BrAPIAdditionalInfoFields.STUDY_NAME)
-                        .getAsString()
-                        .equals(Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getStudyName(), programKey))
-                        && Utilities.removeProgramKeyAndUnknownAdditionalData(obs.getBrAPIObject().getObservationUnitName(), programKey)
-                        .equals(Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getObservationUnitName(), programKey))
-                )
-                .forEach(obs -> {
-                    if (StringUtils.isBlank(obs.getBrAPIObject().getObservationUnitDbId())) {
-                        obs.getBrAPIObject().setObservationUnitDbId(obsUnit.getObservationUnitDbId());
-                    }
-                    obs.getBrAPIObject().setStudyDbId(obsUnit.getStudyDbId());
-                    obs.getBrAPIObject().setGermplasmDbId(obsUnit.getGermplasmDbId());
-                });
+        String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getStudyName(), programKey);
+        String obsUnitName = Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getObservationUnitName(), programKey);
+        String key = studyName + "_" + obsUnitName;
+
+        List<PendingImportObject<BrAPIObservation>> matchingObservations = observationsByStudyAndUnit.get(key);
+
+        if (matchingObservations != null) {
+            for (PendingImportObject<BrAPIObservation> obsPio : matchingObservations) {
+                BrAPIObservation obs = obsPio.getBrAPIObject();
+                // FILTER LOGIC is now implicitly handled by the map structure and the key lookup
+
+                if (StringUtils.isBlank(obs.getObservationUnitDbId())) {
+                    obs.setObservationUnitDbId(obsUnit.getObservationUnitDbId());
+                }
+                obs.setStudyDbId(obsUnit.getStudyDbId());
+                obs.setGermplasmDbId(obsUnit.getGermplasmDbId());
+            }
+        }
     }
 
     private List<Trait> getTraitList(Program program) {
