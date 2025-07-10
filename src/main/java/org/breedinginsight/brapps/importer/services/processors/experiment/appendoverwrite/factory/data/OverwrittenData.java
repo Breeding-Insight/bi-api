@@ -135,15 +135,11 @@ public class OverwrittenData extends VisitedObservationData {
             original = observation.getValue();
         }
 
-        if (!isTimestampMatched()) {
+        if (!isTimestampMatched() && timestamp != null) {
             // Update the timestamp
-            if (timestamp == null) {
-                update.setObservationTimeStamp(null);
-            } else {
-                DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
-                String formattedTimeStampValue = formatter.format(observationService.parseDateTime(timestamp));
-                update.setObservationTimeStamp(OffsetDateTime.parse(formattedTimeStampValue));
-            }
+            DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
+            String formattedTimeStampValue = formatter.format(observationService.parseDateTime(timestamp));
+            update.setObservationTimeStamp(OffsetDateTime.parse(formattedTimeStampValue));
 
             // Add original timestamp to changelog entry
             original = Optional.ofNullable(original).map(o -> o + " " + observation.getObservationTimeStamp()).orElse(String.valueOf(observation.getObservationTimeStamp()));
