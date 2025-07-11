@@ -33,9 +33,7 @@ import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Singleton
 public class DatasetService {
@@ -86,6 +84,16 @@ public class DatasetService {
                 .getResult());
 
         return dataSetDetails;
+    }
+
+    public Optional<List<BrAPIListDetails>> fetchDatasetsByIds(Set<String> datasetIds, Program program) throws ApiException {
+        List<BrAPIListDetails> datasets = new ArrayList<>();
+        for (String datasetId : datasetIds) {
+            Optional<BrAPIListDetails> dataSetDetailsOptional = fetchDatasetById(datasetId, program);
+            dataSetDetailsOptional.ifPresent(datasets::add);
+        }
+
+        return datasets.isEmpty() ? Optional.empty() : Optional.of(datasets);
     }
 
     /**

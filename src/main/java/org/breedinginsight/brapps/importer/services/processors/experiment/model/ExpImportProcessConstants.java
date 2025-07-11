@@ -42,7 +42,8 @@ public class ExpImportProcessConstants {
         OZEX("Missing ObsUnitID column"),
         VVCN("ObsUnitID is duplicated"),
         BITB("Invalid or missing ObsUnitID"),
-        PJZH("Required field is blank");
+        PJZH("Required field is blank"),
+        JABH("Observation variable(s) are already associated with another dataset(s) in this experiment");
 
         private String value;
 

@@ -107,60 +107,14 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
 
     @Override
     public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
-        log.debug("verifying traits listed in import");
-
-        // Get all the phenotypic columns of the import
-        ImportUpload upload = context.getImportContext().getUpload();
-        Table data = context.getImportContext().getData();
-        List<String> phenotypeColNames = Arrays.stream(upload.getDynamicColumnNames())
-                .filter(name -> !name.endsWith(OBSERVATION_UNIT_ID_SUFFIX))
-                .filter(name -> !name.contains(SUB_UNIT_NUMBER))
-                .collect(Collectors.toList());
-
-        // don't allow periods (.) or square brackets in Phenotype Column Names
-        for (String phenotypeColumnName: phenotypeColNames) {
-            if(phenotypeColumnName.contains(".") || phenotypeColumnName.contains("[") || phenotypeColumnName.contains("]")){
-                String errorMsg = String.format("Observation columns may not contain periods or square brackets (see column '%s')", phenotypeColumnName);
-                throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, errorMsg);
-            }
-        }
-        List<Column<?>> dynamicCols = data.columns(phenotypeColNames.toArray(new String[0]));
-
-        // Collect the columns for observation variable data
-        List<Column<?>> phenotypeCols = dynamicCols.stream().filter(col -> !col.name().startsWith(TIMESTAMP_PREFIX)).collect(Collectors.toList());
-        List<String> varNames = phenotypeCols.stream().map(Column::name).collect(Collectors.toList());
-
-        // Collect the columns for observation timestamps
-        List<Column<?>> timestampCols = dynamicCols.stream().filter(col -> col.name().startsWith(TIMESTAMP_PREFIX)).collect(Collectors.toList());
-        Set<String> tsNames = timestampCols.stream().map(Column::name).collect(Collectors.toSet());
-
-        // Construct validation errors for any timestamp columns that don't have a matching variable column
-        List<BrAPIImport> importRows = context.getImportContext().getImportRows();
-        Optional.ofNullable(context.getAppendOverwriteWorkflowContext().getValidationErrors()).orElseGet(() -> {
-            context.getAppendOverwriteWorkflowContext().setValidationErrors(new ValidationErrors());
-            return new ValidationErrors();
-        });
-        ValidationErrors validationErrors = context.getAppendOverwriteWorkflowContext().getValidationErrors();
-        List<ValidationError> tsValErrs = observationVariableService.validateMatchedTimestamps(Set.copyOf(varNames), timestampCols).orElse(new ArrayList<>());
-        for (int i = 0; i < importRows.size(); i++) {
-            int rowNum = i;
-            tsValErrs.forEach(validationError -> validationErrors.addError(rowNum, validationError));
-        }
-
         try {
-            // Stop processing the import if there are unmatched timestamp columns
-            if (tsValErrs.size() > 0) {
-                throw new UnprocessableEntityException("One or more timestamp columns do not have a matching observation variable");
-            }
-
-            //Now know timestamps all valid phenotypes, can associate with phenotype column name for easy retrieval
-            Map<String, Column<?>> tsColByPheno = timestampCols.stream().collect(Collectors.toMap(col -> col.name().replaceFirst(TIMESTAMP_REGEX, StringUtils.EMPTY), col -> col));
-
-            // Add the map to the context for use in processing import
-            context.getAppendOverwriteWorkflowContext().setTimeStampColByPheno(tsColByPheno);
+            ValidationErrors validationErrors = context.getAppendOverwriteWorkflowContext().getValidationErrors();
+            Map<String, Column<?>> tsColByPheno = context.getAppendOverwriteWorkflowContext().getTimeStampColByPheno();
+            List<Column<?>> phenotypeCols = context.getAppendOverwriteWorkflowContext().getPhenotypeCols();
+            List<String> varNames = context.getAppendOverwriteWorkflowContext().getVarNames();
+            Program program = context.getImportContext().getProgram();
 
             // Fetch the traits named in the observation variable columns
-            Program program = context.getImportContext().getProgram();
             List<Trait> traits = observationVariableService.fetchTraitsByName(Set.copyOf(varNames), program);
 
             // Map trait by phenotype column name
