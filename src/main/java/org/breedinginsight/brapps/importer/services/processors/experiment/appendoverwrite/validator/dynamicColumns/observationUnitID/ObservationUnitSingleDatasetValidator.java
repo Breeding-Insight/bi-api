@@ -24,14 +24,12 @@ import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.DynamicColumnValidator;
 import org.breedinginsight.services.exceptions.BadRequestException;
 import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Singleton;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,7 +38,7 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 
 @Slf4j
 @Singleton
-public class ObservationUnitSingleDatasetValidator implements DynamicColumnValidator {
+public class ObservationUnitSingleDatasetValidator implements DynamicObsUnitValidator {
     private final String referenceSourceBase;
 
     public ObservationUnitSingleDatasetValidator(@Property(name = "brapi.server.reference-source") String referenceSourceBase) {

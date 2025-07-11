@@ -20,7 +20,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.DynamicColumnValidator;
 import org.breedinginsight.services.exceptions.BadRequestException;
 
 import javax.inject.Singleton;
@@ -32,7 +31,7 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 
 @Slf4j
 @Singleton
-public class ObservationUnitIDColumnNameValidator implements DynamicColumnValidator {
+public class ObservationUnitIDColumnNameValidator implements DynamicObsUnitValidator {
 
     public ObservationUnitIDColumnNameValidator() {}
 

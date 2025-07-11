@@ -28,7 +28,6 @@ import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.DynamicColumnValidator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
 import org.breedinginsight.services.exceptions.BadRequestException;
 import org.breedinginsight.utilities.Utilities;
@@ -40,17 +39,19 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 
 @Slf4j
 @Singleton
-public class ObservationVariablePriorDatasetValidator implements DynamicColumnValidator {
+public class ObservationVariablePriorDatasetValidator implements DynamicObsVarValidator {
     private final String referenceSourceBase;
     private final DatasetService datasetService;
 
-    public ObservationVariablePriorDatasetValidator(@Property(name = "brapi.server.reference-source") String referenceSourceBase, DatasetService datasetService) {
+    public ObservationVariablePriorDatasetValidator(
+            @Property(name = "brapi.server.reference-source") String referenceSourceBase,
+            DatasetService datasetService) {
         this.referenceSourceBase = referenceSourceBase;
         this.datasetService = datasetService;
     }
 
     @Override
-    public void validateDynamicColumns(AppendOverwriteMiddlewareContext ctx) throws BadRequestException {
+    public void validateDynamicColumns(AppendOverwriteMiddlewareContext ctx) throws BadRequestException, ApiException {
         // Skip the validation if the dependencies have not been fetched from the BrAPI service
         if(noMappings(ctx)) return;
 

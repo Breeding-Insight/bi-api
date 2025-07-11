@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.observationVariable;
 
-import io.micronaut.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.breedinginsight.api.model.v1.response.ValidationError;
@@ -25,10 +24,8 @@ import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.DynamicColumnValidator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationVariableService;
 import org.breedinginsight.services.exceptions.BadRequestException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
@@ -40,7 +37,7 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 
 @Slf4j
 @Singleton
-public class ObservationVariableTimestampValidator implements DynamicColumnValidator {
+public class ObservationVariableTimestampValidator implements DynamicObsVarValidator {
     private final ObservationVariableService observationVariableService;
 
     public ObservationVariableTimestampValidator(ObservationVariableService observationVariableService) {

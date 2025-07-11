@@ -21,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.DynamicColumnValidator;
 import org.breedinginsight.services.exceptions.BadRequestException;
 import tech.tablesaw.columns.Column;
 
@@ -34,7 +33,7 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 
 @Slf4j
 @Singleton
-public class ObservationUnitDuplicateIDValidator implements DynamicColumnValidator {
+public class ObservationUnitDuplicateIDValidator implements DynamicObsUnitValidator {
     @Override
     public void validateDynamicColumns(AppendOverwriteMiddlewareContext ctx) throws BadRequestException {
         // Skip this validation if the observation units have already been fetched from the BrAPI service
