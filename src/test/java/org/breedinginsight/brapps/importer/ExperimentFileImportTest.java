@@ -1185,19 +1185,19 @@ public class ExperimentFileImportTest extends BrAPITest {
         List<Trait> traits = importTestUtils.createTraits(2);
         Program program = createProgram("Exp with TS and additional Uploads ", "EXTSAU", "EXTSAU", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
-        newExp.put(Columns.GERMPLASM_GID, Integer.valueOf("1"));
+        newExp.put(Columns.GERMPLASM_GID, "1");
         newExp.put(Columns.TEST_CHECK, "T");
         newExp.put(Columns.EXP_TITLE, "Test Exp");
         newExp.put(Columns.EXP_UNIT, "Plot");
         newExp.put(Columns.EXP_TYPE, "Phenotyping");
         newExp.put(Columns.ENV, "New Env");
         newExp.put(Columns.ENV_LOCATION, "Location A");
-        newExp.put(Columns.ENV_YEAR, Integer.valueOf("2025"));
+        newExp.put(Columns.ENV_YEAR, "2025");
         newExp.put(Columns.EXP_UNIT_ID, "a-1");
-        newExp.put(Columns.REP_NUM, Integer.valueOf("1"));
-        newExp.put(Columns.BLOCK_NUM, Integer.valueOf("1"));
-        newExp.put(Columns.ROW, Integer.valueOf("1"));
-        newExp.put(Columns.COLUMN, Integer.valueOf("1"));
+        newExp.put(Columns.REP_NUM, "1");
+        newExp.put(Columns.BLOCK_NUM, "1");
+        newExp.put(Columns.ROW, "1");
+        newExp.put(Columns.COLUMN, "1");
         newExp.put(traits.get(0).getObservationVariableName(), "1");
         newExp.put("TS:" + traits.get(0).getObservationVariableName(), "2019-12-19T12:14:50Z");
 
@@ -1215,24 +1215,24 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertTrue(ouIdXref.isPresent());
 
         Map<String, Object> newObservation = new HashMap<>();
-        newObservation.put(Columns.GERMPLASM_GID, Integer.valueOf("1"));
+        newObservation.put(Columns.GERMPLASM_GID, "1");
         newObservation.put(Columns.TEST_CHECK, "T");
         newObservation.put(Columns.EXP_TITLE, "Test Exp");
         newObservation.put(Columns.EXP_UNIT, "Plot");
         newObservation.put(Columns.EXP_TYPE, "Phenotyping");
         newObservation.put(Columns.ENV, "New Env");
         newObservation.put(Columns.ENV_LOCATION, "Location A");
-        newObservation.put(Columns.ENV_YEAR, Integer.valueOf("2025"));
+        newObservation.put(Columns.ENV_YEAR, "2025");
         newObservation.put(Columns.EXP_UNIT_ID, "a-1");
-        newObservation.put(Columns.REP_NUM, Integer.valueOf("1"));
-        newObservation.put(Columns.BLOCK_NUM, Integer.valueOf("1"));
-        newObservation.put(Columns.ROW, Integer.valueOf("1"));
-        newObservation.put(Columns.COLUMN, Integer.valueOf("1"));
+        newObservation.put(Columns.REP_NUM, "1");
+        newObservation.put(Columns.BLOCK_NUM, "1");
+        newObservation.put(Columns.ROW, "1");
+        newObservation.put(Columns.COLUMN, "1");
         newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
         newObservation.put(traits.get(0).getObservationVariableName(), "1");
         newObservation.put(traits.get(1).getObservationVariableName(), "1");
 
-        // Pass overwrite in request body to allow append workflow to work normally.
+        // Send overwrite parameters in request body to allow the append workflow to work normally.
         Map<String, String> userData = Map.of("overwrite", "true", "overwriteReason", "testing");
         JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), userData, true, client, program, mappingId, appendOverwriteWorkflowId);
 
