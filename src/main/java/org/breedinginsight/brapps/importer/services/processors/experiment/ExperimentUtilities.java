@@ -92,7 +92,7 @@ public class ExperimentUtilities {
      */
     public boolean isInvalidMemberListForClass(List<?> list, Class<?> clazz) {
         // Check if the input list is null, empty, or contains any member that is not an instance of the specified class
-        return list == null || list.isEmpty() || !list.stream().allMatch(clazz::isInstance);
+        return (list == null) || !list.stream().allMatch(clazz::isInstance);
     }
 
     /**

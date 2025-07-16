@@ -27,7 +27,7 @@ import java.util.Arrays;
 
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.OZEX;
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.OBSERVATION_UNIT_ID_SUFFIX;
-import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.SUB_UNIT_NUMBER;
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.SUB_UNIT_ID;
 
 @Slf4j
 @Singleton
@@ -57,7 +57,7 @@ public class ObservationUnitIDColumnNameValidator implements DynamicObsUnitValid
         if (idColCount == 2) {
             // if sub-entity ids in import then check for presence of sub-unit # column
             Arrays.stream(ctx.getImportContext().getUpload().getDynamicColumnNames())
-                    .filter(name-> name.equals(SUB_UNIT_NUMBER))
+                    .filter(name-> name.equals(SUB_UNIT_ID))
                     .findAny()
                     .orElseThrow(()->new BadRequestException(OZEX.getValue()));
 

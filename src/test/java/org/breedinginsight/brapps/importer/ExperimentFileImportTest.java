@@ -213,9 +213,9 @@ public class ExperimentFileImportTest extends BrAPITest {
         newExp.put(Columns.BLOCK_NUM, "1");
         newExp.put(Columns.ROW, "1");
         newExp.put(Columns.COLUMN, "1");
-        newExp.put(traits.get(0).getObservationVariableName(), null);
+        newExp.put(traits.get(0).getObservationVariableName(), "1");
 
-        JsonObject importResponse = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newExp), null, false, false, null), null, true, client, program, mappingId, newExperimentWorkflowId);
+        JsonObject importResponse = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newExp), traits, false, false, null), null, true, client, program, mappingId, newExperimentWorkflowId);
         String expId = importResponse
                 .get("preview").getAsJsonObject()
                 .get("rows").getAsJsonArray()
@@ -293,8 +293,8 @@ public class ExperimentFileImportTest extends BrAPITest {
         sub2.put(traits.get(0).getObservationVariableName(), "2");
 
         // Verify that the validation check returns a 400-level response since tt_test_1 is already used in the plot-level dataset
-        JsonObject previewResponse = importTestUtils.uploadAndFetchWorkflowPreview(importTestUtils.writeExperimentDataToFile(List.of(sub1, sub2), null, true, false, "Plant"), null, true, client, program, mappingId, appendOverwriteWorkflowId);
-        assertEquals(422, previewResponse.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
+        JsonObject previewResponse = importTestUtils.uploadAndFetchWorkflowPreview(importTestUtils.writeExperimentDataToFile(List.of(sub1, sub2), traits, true, true, "Plant"), null, true, client, program, mappingId, appendOverwriteWorkflowId);
+        assertEquals(400, previewResponse.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
     }
 
     @Test

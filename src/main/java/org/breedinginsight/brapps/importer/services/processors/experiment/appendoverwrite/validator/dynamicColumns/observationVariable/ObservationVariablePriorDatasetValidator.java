@@ -34,6 +34,7 @@ import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Singleton;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.JABH;
 
@@ -78,10 +79,16 @@ public class ObservationVariablePriorDatasetValidator implements DynamicObsVarVa
 
     private Set<String> getDatasetVariables(AppendOverwriteMiddlewareContext ctx, Set<String> ids) throws ApiException {
         Set<String> variables = new HashSet<>();
+        String progKey = ctx.getImportContext().getProgram().getKey();
         List<BrAPIListDetails> varListDetails = datasetService
                 .fetchDatasetsByIds(ids, ctx.getImportContext().getProgram()).orElse(new ArrayList<>());
         for (BrAPIListDetails brAPIListDetails : varListDetails) {
-            variables.addAll(brAPIListDetails.getData());
+            List<String> priorVariablesNoScope = brAPIListDetails
+                    .getData()
+                    .stream()
+                    .map((scopedVariable) -> Utilities.removeProgramKey(scopedVariable, progKey))
+                    .collect(Collectors.toList());
+            variables.addAll(priorVariablesNoScope);
         }
 
         return variables;
@@ -139,6 +146,9 @@ public class ObservationVariablePriorDatasetValidator implements DynamicObsVarVa
                 .getAppendOverwriteWorkflowContext()
                 .getPendingObsDatasetByOUId();
 
-        return !(trialByOUId == null || trialByOUId.isEmpty() || datasetByOUId == null || datasetByOUId.isEmpty());
+        if (trialByOUId == null) return true;
+        if (trialByOUId.isEmpty()) return true;
+        if (datasetByOUId == null) return true;
+        return false;
     }
 }

@@ -38,9 +38,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.servic
 import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.Utilities;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Prototype
@@ -122,7 +120,10 @@ public class PendingDataset implements ExperimentImportEntity<BrAPIListDetails> 
                 .get();
 
         // Get the dataset
-        return List.of(datasetService.fetchDatasetById(datasetId, importContext.getProgram()).orElseThrow(ApiException::new));
+        return datasetService
+                .fetchDatasetById(datasetId, importContext.getProgram())
+                .map(List::of)
+                .orElseGet(List::of);
     }
 
     /**
@@ -242,18 +243,22 @@ public class PendingDataset implements ExperimentImportEntity<BrAPIListDetails> 
                 .collect(Collectors.toMap(pio -> pio.getBrAPIObject().getListName(),pio -> pio));
 
         // Construct a hashmap to look up the pending dataset by the observation unit ID of a unit stored in the BrAPI service
-        Map<String, PendingImportObject<BrAPIListDetails>> pendingObsDatasetByOUId = cache.getPendingObsUnitByOUId().entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> {
-                            if (cache.getPendingTrialByOUId().isEmpty() ||
-                                    pendingDatasetByName.isEmpty() ||
-                                    cache.getPendingTrialByOUId().values().iterator().next().getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS).isEmpty()) {
-                                throw new IllegalStateException("There is not an observation data set for this unit: " + e.getKey());
+        Map<String, PendingImportObject<BrAPIListDetails>> pendingObsDatasetByOUId;
+        if (pendingDatasetByName.isEmpty()) {
+            pendingObsDatasetByOUId = Collections.emptyMap();
+        } else {
+            pendingObsDatasetByOUId = cache.getPendingObsUnitByOUId().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            e -> {
+                                if (cache.getPendingTrialByOUId().isEmpty() ||
+                                        cache.getPendingTrialByOUId().values().iterator().next().getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS).isEmpty()) {
+                                    throw new IllegalStateException("There is not an observation data set for this unit: " + e.getKey());
+                                }
+                                return pendingDatasetByName.values().iterator().next();
                             }
-                            return pendingDatasetByName.values().iterator().next();
-                        }
-                ));
+                    ));
+        }
 
         // Add the maps to the context for use in processing import
         cache.setObsVarDatasetByName(pendingDatasetByName);

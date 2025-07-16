@@ -72,10 +72,8 @@ public class DatasetService {
                         program.getId(),
                         String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()),
                         UUID.fromString(id));
-
-        // Check if the existing dataset summaries are returned, throw exception if not
         if (existingDatasets == null || existingDatasets.isEmpty()) {
-            throw new InternalServerException("Existing dataset summary not returned from BrAPI server");
+            return Optional.empty();
         }
 
         // Retrieve dataset details using the list DB ID from the existing dataset summary

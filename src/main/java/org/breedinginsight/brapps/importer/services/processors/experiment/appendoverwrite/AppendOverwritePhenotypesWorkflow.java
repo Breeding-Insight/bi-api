@@ -28,6 +28,7 @@ import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 import org.breedinginsight.brapps.importer.services.ImportStatusService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.AppendOverwriteIDValidation;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.AppendOverwriteVariableValidation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit.BrAPICommit;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.initialize.WorkflowInitialization;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.ImportTableProcess;
@@ -46,20 +47,24 @@ import java.util.Optional;
 @Singleton
 public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
     private final ExperimentWorkflowNavigator.Workflow workflow;
+    private final AppendOverwriteMiddleware validationMiddleware;
     private final AppendOverwriteMiddleware importPreviewMiddleware;
     private final AppendOverwriteMiddleware brapiCommitMiddleware;
     private final ImportStatusService statusService;
 
     @Inject
     public AppendOverwritePhenotypesWorkflow(AppendOverwriteIDValidation expUnitIDValidation,
+                                             AppendOverwriteVariableValidation obsVariableValidation,
                                              WorkflowInitialization workflowInitialization,
                                              ImportTableProcess importTableProcess,
                                              BrAPICommit brAPICommit,
                                              ImportStatusService statusService){
         this.statusService = statusService;
         this.workflow = ExperimentWorkflowNavigator.Workflow.APPEND_OVERWRITE;
+        this.validationMiddleware = (AppendOverwriteMiddleware) AppendOverwriteMiddleware.link(
+            expUnitIDValidation,
+            obsVariableValidation);
         this.importPreviewMiddleware = (AppendOverwriteMiddleware) AppendOverwriteMiddleware.link(
-                expUnitIDValidation,
                 workflowInitialization,
                 importTableProcess);
         this.brapiCommitMiddleware = (AppendOverwriteMiddleware) AppendOverwriteMiddleware.link(brAPICommit);
@@ -115,11 +120,15 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
                 .appendOverwriteWorkflowContext(new AppendOverwriteWorkflowContext())
                 .build();
 
+        // Validate the import
+        AppendOverwriteMiddlewareContext validatedImportContext = this.validationMiddleware.process(workflowContext);
+
         // Process the import preview
-        AppendOverwriteMiddlewareContext processedPreviewContext = this.importPreviewMiddleware.process(workflowContext);
+        AppendOverwriteMiddlewareContext processedPreviewContext = this.importPreviewMiddleware.process(validatedImportContext);
 
         // Stop and return any errors that occurred while processing
-        Optional<MiddlewareException> previewException = Optional.ofNullable(processedPreviewContext.getAppendOverwriteWorkflowContext().getProcessError());
+        Optional<MiddlewareException> previewException = Optional
+                .ofNullable(processedPreviewContext.getAppendOverwriteWorkflowContext().getProcessError());
         if (previewException.isPresent()) {
             log.debug(String.format("%s in %s", previewException.get().getException().getClass().getName(), previewException.get().getLocalTransactionName()));
             result.ifPresent(importWorkflowResult -> importWorkflowResult.setCaughtException(Optional.ofNullable(previewException.get().getException())));

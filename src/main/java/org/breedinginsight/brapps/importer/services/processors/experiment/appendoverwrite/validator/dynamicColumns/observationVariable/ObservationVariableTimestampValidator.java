@@ -51,9 +51,12 @@ public class ObservationVariableTimestampValidator implements DynamicObsVarValid
         // Get all the phenotypic columns of the import
         ImportUpload upload = ctx.getImportContext().getUpload();
         Table data = ctx.getImportContext().getData();
-        List<String> phenotypeColNames = Arrays.stream(upload.getDynamicColumnNames())
+        List<String> phenotypeColNames = upload
+                .getDynamicColumnNamesList()
+                .stream()
                 .filter(name -> !name.endsWith(OBSERVATION_UNIT_ID_SUFFIX))
-                .filter(name -> !name.contains(SUB_UNIT_NUMBER))
+                .filter(name -> !name.contains(SUB_UNIT_ID))
+                .filter(name -> !name.contains(SUB_OBS_UNIT))
                 .collect(Collectors.toList());
 
         // don't allow periods (.) or square brackets in Phenotype Column Names

@@ -68,6 +68,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.*;
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.DATASET_NOT_FOUND;
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.MULTIPLE_EXP_TITLES;
 
 @Slf4j
@@ -130,17 +131,28 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
             // Sort the traits to match the order of the headers in the import file
             List<Trait> sortedTraits = experimentUtil.sortByField(varNames, new ArrayList<>(traits), TraitEntity::getObservationVariableName);
 
-            // Get the pending observation dataset
-            PendingImportObject<BrAPITrial> pendingTrial = ExperimentUtilities.getSingleEntryValue(context.getAppendOverwriteWorkflowContext().getTrialByNameNoScope()).orElseThrow(()->new UnprocessableEntityException(MULTIPLE_EXP_TITLES.getValue()));
-            String datasetName = String.format("Observation Dataset [%s-%s]", program.getKey(), pendingTrial.getBrAPIObject().getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER).getAsString());
-            PendingImportObject<BrAPIListDetails> pendingDataset = context.getAppendOverwriteWorkflowContext().getObsVarDatasetByName().get(datasetName);
+            // Get the pending observation dataset; there should only be a single dataset used for the import
+            PendingImportObject<BrAPITrial> pendingTrial = ExperimentUtilities
+                    .getSingleEntryValue(context.getAppendOverwriteWorkflowContext().getTrialByNameNoScope())
+                    .orElseThrow(()->new UnprocessableEntityException(MULTIPLE_EXP_TITLES.getValue()));
+            PendingImportObject<BrAPIListDetails> pendingDataset = context
+                    .getAppendOverwriteWorkflowContext()
+                    .getPendingObsDatasetByOUId()
+                    .values()
+                    .stream()
+                    .findAny()
+                    .orElseGet(()-> new PendingImportObject<BrAPIListDetails>(ImportObjectState.NEW, new BrAPIListDetails()));
 
             // Add new phenotypes to the pending observation dataset list (NOTE: "obsVarName [programKey]" is used instead of obsVarDbId)
             // TODO: Change to using actual dbIds as per the BrAPI spec, instead of namespaced obsVar names (was necessary for Breedbase)
-            List<String> datasetObsVarDbIds = pendingDataset.getBrAPIObject().getData().stream().collect(Collectors.toList());
+            List<String> datasetObsVarDbIds = Optional.ofNullable(pendingDataset.getBrAPIObject().getData())
+                    .map(ArrayList::new)
+                    .orElseGet(ArrayList::new);
             List<String> phenoDbIds = sortedTraits.stream().map(t->Utilities.appendProgramKey(t.getObservationVariableName(), program.getKey())).collect(Collectors.toList());
             phenoDbIds.removeAll(datasetObsVarDbIds);
-            pendingDataset.getBrAPIObject().getData().addAll(phenoDbIds);
+            for (String phenoDbId : phenoDbIds) {
+                pendingDataset.getBrAPIObject().addDataItem(phenoDbId);
+            }
 
             // Update pending status
             if (ImportObjectState.EXISTING == pendingDataset.getState()) {
