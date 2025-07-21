@@ -62,4 +62,4 @@ jobs:
           GITHUB_OAUTH_CLIENT_ID: 12345678901234567890
           GITHUB_OAUTH_CLIENT_SECRET: 1234567890123456789012345678901234567890
           BRAPI_REFERENCE_SOURCE: breedinginsight.org
-          FLYWAY_LOCATIONS: classpath:org/breedinginsight/db/migration,classpath:db/migration
+          FLYWAY_LOCATIONS: filesystem:src/main/java/org/breedinginsight/db/migration,filesystem:src/main/resources/db/migration
