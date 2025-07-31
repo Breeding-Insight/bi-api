@@ -366,7 +366,6 @@ public class CommitPendingImportObjectsStep {
         if (matchingObservations != null) {
             for (PendingImportObject<BrAPIObservation> obsPio : matchingObservations) {
                 BrAPIObservation obs = obsPio.getBrAPIObject();
-                // FILTER LOGIC is now implicitly handled by the map structure and the key lookup
 
                 if (StringUtils.isBlank(obs.getObservationUnitDbId())) {
                     obs.setObservationUnitDbId(obsUnit.getObservationUnitDbId());
