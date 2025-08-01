@@ -501,14 +501,16 @@ public class BrAPITrialService {
         }
 
         // Set treatment factors.
-        List<BrAPIObservationTreatment> treatmentFactors = new ArrayList<>();
-        for (BrAPIObservationTreatment t : expUnit.getTreatments()) {
-            BrAPIObservationTreatment treatment = new BrAPIObservationTreatment();
-            treatment.setFactor(t.getFactor());
-            treatment.setModality(t.getModality());
-            treatmentFactors.add(treatment);
+        if (!expUnit.getTreatments().isEmpty()) {
+            List<BrAPIObservationTreatment> treatmentFactors = new ArrayList<>();
+            for (BrAPIObservationTreatment t : expUnit.getTreatments()) {
+                BrAPIObservationTreatment treatment = new BrAPIObservationTreatment();
+                treatment.setFactor(t.getFactor());
+                treatment.setModality(t.getModality());
+                treatmentFactors.add(treatment);
+            }
+            observationUnit.setTreatments(treatmentFactors);
         }
-        observationUnit.setTreatments(treatmentFactors);
 
         // Put level in additional info: keep this in case we decide to rename levels in future.
         observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, subEntityDatasetName);
