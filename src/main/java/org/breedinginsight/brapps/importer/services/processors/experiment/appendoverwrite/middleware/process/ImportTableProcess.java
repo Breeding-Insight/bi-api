@@ -398,11 +398,8 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
         if (!cellData.isBlank() && !cellData.equals(observation.getValue())){
             return true;
         }
-        // Only check timestamp if the TS:<trait> column was present in the uploaded file.
-        if (timestampColumnPresent) {
-            if (StringUtils.isBlank(newTimestamp)) {
-                return (observation.getObservationTimeStamp()!=null);
-            }
+        // Only check timestamp if the TS:<trait> column was present in the uploaded file and there's a valid timestamp.
+        if (timestampColumnPresent && !StringUtils.isBlank(newTimestamp)) {
             return !observationService.parseDateTime(newTimestamp).equals(observation.getObservationTimeStamp());
         }
         return false;
