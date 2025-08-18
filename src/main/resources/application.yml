@@ -145,7 +145,7 @@ web:
   logout:
     url: ${web.base-url}
   signup:
-    url-timeout: 60m
+    url-timeout: 24h
     signup:
       url: ${web.base-url}/signup
     success:
@@ -173,6 +173,19 @@ brapi:
   search:
     wait-time: 1000
   post-group-size: ${POST_CHUNK_SIZE:1000}
+  paginate:
+    # These props are used as flippers for specific cache entities to be fetched all at once or paginated.
+    # If the props are set to true, there's a possibility the BrAPI server could run out of memory grabbing all the
+    # data and assigning it to entities in memory given a program that has a large amount of those types of entities.
+    # At that point these flippers should be set to true.
+    germplasm: ${CACHE_PAGINATE_GERMPLASM:false}
+  cache:
+    # This prop sets how many program cache entity records can be fetched at a time from BrAPI. Today, if over 65000 is used,
+    # a SQL error can happen for programs that have more than this page size, because to fetch these certain entities
+    # the same amount of IDs must be passed for any collections that need to be fetched in the entity, and SQL has a max of ~65355 params.
+    # The ProgramCache will iterate through all pages of an entity to retrieve all the data from BrAPI.
+    fetch-page-size: ${CACHE_BRAPI_FETCH_PAGE_SIZE:65000}
+
 
 email:
   relay-server:

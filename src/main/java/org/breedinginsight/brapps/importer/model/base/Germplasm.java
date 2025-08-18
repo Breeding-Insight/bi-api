@@ -155,7 +155,19 @@ public class Germplasm implements BrAPIObject {
         return String.format("%s [%s-germplasm]", listName, program.getKey());
     }
 
-    public void updateBrAPIGermplasm(BrAPIGermplasm germplasm, Program program, UUID listId, boolean commit, boolean updatePedigree) {
+    /**
+     * Will mutate synonym and pedigree fields if changed and meet change criteria
+     *
+     * @param germplasm germplasm object
+     * @param program program
+     * @param listId list id
+     * @param commit flag indicating if commit changes should be made
+     * @param updatePedigree flag indicating if pedigree should be updated
+     * @return mutated indicator
+     */
+    public boolean updateBrAPIGermplasm(BrAPIGermplasm germplasm, Program program, UUID listId, boolean commit, boolean updatePedigree) {
+
+        boolean mutated = false;
 
         if (updatePedigree) {
             if (!StringUtils.isBlank(getFemaleParentAccessionNumber())) {
@@ -170,6 +182,7 @@ public class Germplasm implements BrAPIObject {
             if (!StringUtils.isBlank(getMaleParentEntryNo())) {
                 germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_ENTRY_NO, getMaleParentEntryNo());
             }
+            mutated = true;
         }
 
         // Append synonyms to germplasm that don't already exist
@@ -181,6 +194,7 @@ public class Germplasm implements BrAPIObject {
                 brapiSynonym.setSynonym(synonym);
                 if (!existingSynonyms.contains(brapiSynonym)) {
                     germplasm.addSynonymsItem(brapiSynonym);
+                    mutated = true;
                 }
             }
         }
@@ -193,6 +207,8 @@ public class Germplasm implements BrAPIObject {
         if (commit) {
             setUpdateCommitFields(germplasm, program.getKey());
         }
+
+        return mutated;
     }
 
 

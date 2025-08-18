@@ -49,7 +49,7 @@ public class BrAPITest extends DatabaseTest {
     public BrAPITest() {
         super();
 
-        brapiContainer = new GenericContainer<>("breedinginsight/brapi-java-server:rc")
+        brapiContainer = new GenericContainer<>("breedinginsight/brapi-java-server:develop")
                 .withNetwork(super.getNetwork())
                 .withImagePullPolicy(PullPolicy.ageBased(Duration.ofMinutes(60)))
                 .withExposedPorts(8080)
@@ -60,6 +60,7 @@ public class BrAPITest extends DatabaseTest {
                 .withEnv("BRAPI_DB", "postgres")
                 .withEnv("BRAPI_DB_USER", "postgres")
                 .withEnv("BRAPI_DB_PASSWORD", "postgres")
+                .withEnv("SECURITY_ISSUER_URL", "http://example.com/issuerurl")
                 .withClasspathResourceMapping("sql/brapi/mount", "/home/brapi/db/sql", BindMode.READ_WRITE)  // HACK - READ_WRITE forces testcontainers to use a bind mount (which overwrites) instead of copying files.
                 .withClasspathResourceMapping("brapi/properties/application.properties", "/home/brapi/properties/application.properties", BindMode.READ_ONLY)
                 .waitingFor(Wait.forLogMessage(".*Started BrapiTestServer in \\d*.\\d* seconds.*", 1).withStartupTimeout(Duration.ofMinutes(1)));

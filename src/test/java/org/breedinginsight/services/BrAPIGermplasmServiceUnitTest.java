@@ -141,9 +141,9 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         when(programDAO.getAll()).thenReturn(Arrays.asList(Program.builder().id(testProgramId).name("Test Program").active(true).build()));
         when(programDAO.fetchOneById(any(UUID.class))).thenReturn(testProgram);
         when(programDAO.get(any(UUID.class))).thenReturn(Arrays.asList(testProgram));
-        when(brAPIDAOUtil.search(any(Function.class),
-                                     any(Function3.class),
-                                     any(BrAPIGermplasmSearchRequest.class))).thenReturn(germplasm);
+        when(brAPIDAOUtil.searchNoPaging(any(Function.class),
+                any(Function3.class),
+                any(BrAPIGermplasmSearchRequest.class))).thenReturn(germplasm);
 
         //Create germplasm cache of stub data
         Method setupMethod = BrAPIGermplasmDAO.class.getDeclaredMethod("setup");
