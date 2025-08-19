@@ -573,6 +573,8 @@ public class BrAPITrialService {
         levelRelationships.add(expUnitLevel);
         position.setObservationLevelRelationships(levelRelationships);
 
+        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.EXP_UNIT_ID, expUnit.getObservationUnitName());
+
         // Set ObservationUnitPosition.
         observationUnit.setObservationUnitPosition(position);
 
