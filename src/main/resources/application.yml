@@ -114,7 +114,9 @@ jackson:
 flyway:
   datasources:
     default:
-      locations: ${FLYWAY_LOCATIONS:classpath:org/breedinginsight/db/migration,classpath:db/migration}
+      locations:
+        - classpath:org/breedinginsight/db/migration
+        - classpath:db/migration
       enabled: true
       placeholders:
         default-url: ${brapi.server.default-url}
