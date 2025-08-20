@@ -84,8 +84,8 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
         dsl.execute(fp.get("InsertUserProgramAssociations"));
         dsl.execute(fp.get("InsertManyUsers"));
 
-        testUser = biUserDao.fetchByOrcid(TestTokenValidator.TEST_USER_ORCID).get(0);
-        otherTestUser = biUserDao.fetchByOrcid(TestTokenValidator.OTHER_TEST_USER_ORCID).get(0);
+        testUser = biUserDao.fetchByOauthId(TestTokenValidator.TEST_USER_ORCID).get(0);
+        otherTestUser = biUserDao.fetchByOauthId(TestTokenValidator.OTHER_TEST_USER_ORCID).get(0);
 
         dsl.execute(fp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
         dsl.execute(fp.get("InsertSystemRoleAdmin"), otherTestUser.getId().toString());

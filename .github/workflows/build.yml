@@ -73,5 +73,7 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           OAUTH_CLIENT_ID: 123abc
           OAUTH_CLIENT_SECRET: asdfljkhalkbaldsfjasdfi238497098asdf
+          GITHUB_OAUTH_CLIENT_ID: 12345678901234567890
+          GITHUB_OAUTH_CLIENT_SECRET: 1234567890123456789012345678901234567890
           BRAPI_REFERENCE_SOURCE: breedinginsight.org
           BRAPI_DOCKER_IMAGE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.brapi_server_image || 'breedinginsight/brapi-java-server:develop' }}

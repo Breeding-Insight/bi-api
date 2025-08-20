@@ -72,7 +72,7 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
         brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
         brapiObservationFp = FannyPack.fill("src/test/resources/sql/brapi/BrAPIOntologyControllerIntegrationTest.sql");
 
-        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        User testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).get();
         super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
