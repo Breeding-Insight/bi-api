@@ -55,6 +55,8 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.OBSERVATION_UNIT_ID_SUFFIX;
+
 @Slf4j
 @Singleton
 public class BrAPITrialService {
@@ -185,6 +187,11 @@ public class BrAPITrialService {
             log.error(logHash + ": Error fetching observation units for a study by its DbId" +
                     Utilities.generateApiExceptionLogMessage(err), err);
         }
+
+        //add obsUnitID as dynamic column with observation level appended to header
+        String observationLvl =  ous.get(0).getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
+        columns = dynamicUpdateObsUnitIDLabel(columns, observationLvl);
+
         if (params.getDatasetId() != null) {
             log.debug(logHash + ": fetching " + params.getDatasetId() + " dataset observation variables for export");
             obsVars = getDatasetObsVars(params.getDatasetId(), program);
@@ -228,16 +235,12 @@ public class BrAPITrialService {
             }
         }
 
-        //dynamically append observation level to obsUnitID column header
-        String observationLvl =  ous.get(0).getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
-        columns = dynamicUpdateObsUnitIDLabel(columns, observationLvl);
-
         log.debug(logHash + ": writing data to file for export");
         // If one or more envs requested, create a separate file for each env, then zip if there are multiple.
         if (!requestedEnvIds.isEmpty()) {
             // This will hold a list of rows for each study, each list will become a separate file.
             Map<String, List<Map<String, Object>>> rowsByStudyId = new HashMap<>();
-            String obsUnitIDLabel = observationLvl + " " + ExperimentObservation.Columns.OBS_UNIT_ID;
+            String obsUnitIDLabel = observationLvl + " " + OBSERVATION_UNIT_ID_SUFFIX;
 
             for (Map<String, Object> row: rowByOUId.values()) {
                 String studyId = studyDbIdByOUId.get((String)row.get(obsUnitIDLabel));
@@ -312,15 +315,10 @@ public class BrAPITrialService {
     }
 
     public List<Column> dynamicUpdateObsUnitIDLabel(List<Column> columns, String observationLvl){
-        Column oldObsUnitIDCol = new Column(ExperimentObservation.Columns.OBS_UNIT_ID, Column.ColumnDataType.STRING);
-        String dynamicLabel =  observationLvl + " " + ExperimentObservation.Columns.OBS_UNIT_ID;
-        Column dynamicLabelObsUnitIDCol = new Column(dynamicLabel, Column.ColumnDataType.STRING);
-        //need to check index of is valid
-        int index = columns.indexOf(oldObsUnitIDCol);
-        //find item in cols with val ExperimentObservation.Columns.OBS_UNIT_ID
-        if (index != -1) {
-            columns.set(index, dynamicLabelObsUnitIDCol);
-        }
+        String dynamicLabel =  observationLvl + " " + OBSERVATION_UNIT_ID_SUFFIX;
+        Column ObsUnitIDCol = new Column(dynamicLabel, Column.ColumnDataType.STRING);
+        columns.add(ObsUnitIDCol);
+
         return columns;
     }
 
@@ -503,14 +501,16 @@ public class BrAPITrialService {
         }
 
         // Set treatment factors.
-        List<BrAPIObservationTreatment> treatmentFactors = new ArrayList<>();
-        for (BrAPIObservationTreatment t : expUnit.getTreatments()) {
-            BrAPIObservationTreatment treatment = new BrAPIObservationTreatment();
-            treatment.setFactor(t.getFactor());
-            treatment.setModality(t.getModality());
-            treatmentFactors.add(treatment);
+        if (!expUnit.getTreatments().isEmpty()) {
+            List<BrAPIObservationTreatment> treatmentFactors = new ArrayList<>();
+            for (BrAPIObservationTreatment t : expUnit.getTreatments()) {
+                BrAPIObservationTreatment treatment = new BrAPIObservationTreatment();
+                treatment.setFactor(t.getFactor());
+                treatment.setModality(t.getModality());
+                treatmentFactors.add(treatment);
+            }
+            observationUnit.setTreatments(treatmentFactors);
         }
-        observationUnit.setTreatments(treatmentFactors);
 
         // Put level in additional info: keep this in case we decide to rename levels in future.
         observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, subEntityDatasetName);
@@ -806,7 +806,7 @@ public class BrAPITrialService {
 
         //Append observation level to obsUnitID
         String observationLvl = ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
-        row.put(observationLvl + " " + ExperimentObservation.Columns.OBS_UNIT_ID, ouId);
+        row.put(observationLvl + " " + OBSERVATION_UNIT_ID_SUFFIX, ouId);
 
         return row;
     }

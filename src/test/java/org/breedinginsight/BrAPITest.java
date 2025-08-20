@@ -49,7 +49,12 @@ public class BrAPITest extends DatabaseTest {
     public BrAPITest() {
         super();
 
-        brapiContainer = new GenericContainer<>("breedinginsight/brapi-java-server:develop")
+        String dockerImage = System.getenv("BRAPI_DOCKER_IMAGE");
+        if (dockerImage == null || dockerImage.isEmpty()) {
+            dockerImage = "breedinginsight/brapi-java-server:develop";
+        }
+
+        brapiContainer = new GenericContainer<>(dockerImage)
                 .withNetwork(super.getNetwork())
                 .withImagePullPolicy(PullPolicy.ageBased(Duration.ofMinutes(60)))
                 .withExposedPorts(8080)
