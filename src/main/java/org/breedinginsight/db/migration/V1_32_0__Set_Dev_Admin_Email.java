@@ -78,8 +78,12 @@ public class V1_32_0__Set_Dev_Admin_Email extends BaseJavaMigration {
 
         // Add new constraint
         try (Statement altTable = context.getConnection().createStatement()) {
+            // NOTE: because Java-based migrations don't run at build time, they end up running last (out of order) on
+            // application startup. If they haven't been applied to the database already. For that reason, the reference
+            // to column `orcid` was changed to `oauth_id` 2025-08-25 to allow this migration to run after
+            // V1.34.0__rename-orcid.sql.
             String sql = "ALTER TABLE bi_user\n" +
-                    "ADD CONSTRAINT " +CONSTRAINT_NAME+ " CHECK ( (email IS NOT NULL ) OR (orcid IS NULL) ) ;";
+                    "ADD CONSTRAINT " +CONSTRAINT_NAME+ " CHECK ( (email IS NOT NULL ) OR (oauth_id IS NULL) ) ;";
             log.debug(sql);
             altTable.executeUpdate(sql);
         }
