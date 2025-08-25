@@ -60,8 +60,8 @@ micronaut:
             user-info:
               url: ${OAUTH_OPENID_USERINFOURL:`https://sandbox.orcid.org/oauth/userinfo`}
         github:
-          client-id: ${GITHUB_OAUTH_CLIENT_ID}
-          client-secret: ${GITHUB_OAUTH_CLIENT_SECRET}
+          client-id: ${GITHUB_OAUTH_CLIENT_ID:`placeholder`}
+          client-secret: ${GITHUB_OAUTH_CLIENT_SECRET:`placeholder`}
           scopes:
             - user:email
             - read:user
