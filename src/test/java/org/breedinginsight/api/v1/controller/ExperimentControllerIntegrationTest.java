@@ -113,8 +113,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         FannyPack brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
         // Test User
-        testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
-        otherTestUser = userDAO.getUserByOrcId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
+        testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
+        otherTestUser = userDAO.getUserByOAuthId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
 
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
@@ -265,7 +265,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     @SneakyThrows
     void downloadDatasets(boolean includeTimestamps, String extension, int numberOfEnvsRequested) {
         // How many columns are expected in the output?
-        int expectedColNumber = columns.size();
+        int expectedColNumber = columns.size() + 1; //Need to account for ObsUnitID column which is present in export but not import
         if (includeTimestamps) {
             expectedColNumber += traits.size();
         }
@@ -987,10 +987,11 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         }
         assertEquals(requestedImportRows.size(),matchingImportRows.size());
 
+        //Observation level for tests should be "Plot"
         // Observation units populated.
-        assertEquals(0, table.column("ObsUnitID").countMissing());
+        assertEquals(0, table.column("Plot ObsUnitID").countMissing());
         // Observation Unit IDs are assigned.
-        assertEquals(requestedImportRows.size(), table.column("ObsUnitID").countUnique());
+        assertEquals(requestedImportRows.size(), table.column("Plot ObsUnitID").countUnique());
     }
 
     private boolean isMatchedRow(Map<String, Object> importRow, Row downloadRow) {

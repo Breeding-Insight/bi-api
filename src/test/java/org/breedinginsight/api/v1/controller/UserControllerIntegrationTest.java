@@ -110,8 +110,8 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         dsl.execute(fp.get("InsertProgram"));
         dsl.execute(fp.get("InsertUserProgramAssociations"));
 
-        testUser = biUserDao.fetchByOrcid(TestTokenValidator.TEST_USER_ORCID).get(0);
-        otherTestUser = biUserDao.fetchByOrcid(TestTokenValidator.OTHER_TEST_USER_ORCID).get(0);
+        testUser = biUserDao.fetchByOauthId(TestTokenValidator.TEST_USER_ORCID).get(0);
+        otherTestUser = biUserDao.fetchByOauthId(TestTokenValidator.OTHER_TEST_USER_ORCID).get(0);
         validSystemRole = systemRoleDao.findAll().get(0);
         validRole = roleDao.findAll().get(0);
         validPrograms = programDao.findAll();
@@ -144,7 +144,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(testUser.getId().toString(), result.get("id").getAsString(), "Wrong id");
         assertEquals("Test User", result.get("name").getAsString(), "Wrong name");
-        assertEquals(testUser.getOrcid(), result.get("orcid").getAsString(), "Wrong orcid");
+        assertEquals(testUser.getOauthId(), result.get("oauthId").getAsString(), "Wrong OAuthId");
         assertEquals("test@test.com", result.get("email").getAsString(), "Wrong email");
 
         JsonArray resultRoles = (JsonArray) result.get("systemRoles");
@@ -203,12 +203,12 @@ public class UserControllerIntegrationTest extends DatabaseTest {
 
         String name = "Test User4";
         String email = "test4@test.com";
-        String orcid = "0000-0000-0000-0000";
+        String oAuthId = "0000-0000-0000-0000";
 
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("name", name);
         requestBody.addProperty("email", email);
-        requestBody.addProperty("orcid", orcid);
+        requestBody.addProperty("oauthId", oAuthId);
         JsonObject role = new JsonObject();
         role.addProperty("id", invalidUUID);
         JsonArray roles = new JsonArray();
@@ -584,7 +584,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(otherTestUser.getName(), result.get("name").getAsString(), "Wrong name");
-        assertEquals(otherTestUser.getOrcid(), result.get("orcid").getAsString(), "Wrong orcid");
+        assertEquals(otherTestUser.getOauthId(), result.get("oauthId").getAsString(), "Wrong orcid");
         assertEquals(otherTestUser.getEmail(), result.get("email").getAsString(), "Wrong email");
         assertEquals(otherTestUser.getId().toString(), result.get("id").getAsString(), "Wrong id");
 

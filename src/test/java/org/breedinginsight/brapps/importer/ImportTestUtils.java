@@ -52,6 +52,7 @@ import java.util.regex.Pattern;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.OBSERVATION_UNIT_ID_SUFFIX;
 
 /**
  * Intended to be a utility class, but methods being static was causing issues.
@@ -180,7 +181,7 @@ public class ImportTestUtils {
                 .getAsJsonArray("data")
                 .get(0).getAsJsonObject().get("id").getAsString();
 
-        BiUserEntity testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        BiUserEntity testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).get();
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId());
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
@@ -296,7 +297,7 @@ public class ImportTestUtils {
         return traits;
     }
 
-    public File writeExperimentDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
+    public File writeExperimentDataToFile(List<Map<String, Object>> data, List<Trait> traits, boolean ObsUnitIDCol) throws IOException {
         File file = File.createTempFile("test", ".csv");
 
         List<Column> columns = new ArrayList<>();
@@ -322,7 +323,10 @@ public class ImportTestUtils {
         columns.add(Column.builder().value(ExperimentObservation.Columns.ELEVATION).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.RTK).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.TREATMENT_FACTORS).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.OBS_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
+
+        if (ObsUnitIDCol) {
+            columns.add(Column.builder().value("Plot "+OBSERVATION_UNIT_ID_SUFFIX).dataType(Column.ColumnDataType.STRING).build());
+        }
 
         if(traits != null) {
             traits.forEach(trait -> {

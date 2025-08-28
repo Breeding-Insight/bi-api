@@ -28,7 +28,6 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -60,7 +59,7 @@ public class DSLTransactionResultIntegrationTest extends DatabaseTest {
 
     @BeforeAll
     void setup() throws Exception {
-        Optional<User> userOptional = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
+        Optional<User> userOptional = userService.getByOAuthId(TestTokenValidator.TEST_USER_ORCID);
         actingUser = userOptional.get();
     }
 

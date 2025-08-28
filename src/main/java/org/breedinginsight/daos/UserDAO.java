@@ -32,11 +32,11 @@ public interface UserDAO extends DAO<BiUserRecord, BiUserEntity, UUID> {
 
     Optional<User> getUser(UUID id);
 
-    Optional<User> getUserByOrcId(String orcid);
+    Optional<User> getUserByOAuthId(String oAuthId);
 
     BiUserEntity fetchOneById(UUID value);
 
     List<BiUserEntity> fetchByEmail(String... values);
 
-    List<BiUserEntity> fetchByOrcid(String... values);
+    List<BiUserEntity> fetchByOauthId(String... values);
 }

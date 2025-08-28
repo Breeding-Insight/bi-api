@@ -55,6 +55,8 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.OBSERVATION_UNIT_ID_SUFFIX;
+
 @Slf4j
 @Singleton
 public class BrAPITrialService {
@@ -185,6 +187,11 @@ public class BrAPITrialService {
             log.error(logHash + ": Error fetching observation units for a study by its DbId" +
                     Utilities.generateApiExceptionLogMessage(err), err);
         }
+
+        //add obsUnitID as dynamic column with observation level appended to header
+        String observationLvl =  ous.get(0).getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
+        columns = dynamicUpdateObsUnitIDLabel(columns, observationLvl);
+
         if (params.getDatasetId() != null) {
             log.debug(logHash + ": fetching " + params.getDatasetId() + " dataset observation variables for export");
             obsVars = getDatasetObsVars(params.getDatasetId(), program);
@@ -233,9 +240,10 @@ public class BrAPITrialService {
         if (!requestedEnvIds.isEmpty()) {
             // This will hold a list of rows for each study, each list will become a separate file.
             Map<String, List<Map<String, Object>>> rowsByStudyId = new HashMap<>();
+            String obsUnitIDLabel = observationLvl + " " + OBSERVATION_UNIT_ID_SUFFIX;
 
             for (Map<String, Object> row: rowByOUId.values()) {
-                String studyId = studyDbIdByOUId.get((String)row.get(ExperimentObservation.Columns.OBS_UNIT_ID));
+                String studyId = studyDbIdByOUId.get((String)row.get(obsUnitIDLabel));
                 // Initialize key with empty list if it is not present.
                 if (!rowsByStudyId.containsKey(studyId))
                 {
@@ -304,6 +312,14 @@ public class BrAPITrialService {
         }).start();
         // NOTE: Micronaut doesn't define application/zip in MediaType, use application/octet-stream.
         return new StreamedFile(in, new MediaType(MediaType.APPLICATION_OCTET_STREAM));
+    }
+
+    public List<Column> dynamicUpdateObsUnitIDLabel(List<Column> columns, String observationLvl){
+        String dynamicLabel =  observationLvl + " " + OBSERVATION_UNIT_ID_SUFFIX;
+        Column ObsUnitIDCol = new Column(dynamicLabel, Column.ColumnDataType.STRING);
+        columns.add(ObsUnitIDCol);
+
+        return columns;
     }
 
     public Dataset getDatasetData(Program program, UUID experimentId, UUID datasetId, Boolean stats) throws ApiException, DoesNotExistException {
@@ -485,14 +501,16 @@ public class BrAPITrialService {
         }
 
         // Set treatment factors.
-        List<BrAPIObservationTreatment> treatmentFactors = new ArrayList<>();
-        for (BrAPIObservationTreatment t : expUnit.getTreatments()) {
-            BrAPIObservationTreatment treatment = new BrAPIObservationTreatment();
-            treatment.setFactor(t.getFactor());
-            treatment.setModality(t.getModality());
-            treatmentFactors.add(treatment);
+        if (!expUnit.getTreatments().isEmpty()) {
+            List<BrAPIObservationTreatment> treatmentFactors = new ArrayList<>();
+            for (BrAPIObservationTreatment t : expUnit.getTreatments()) {
+                BrAPIObservationTreatment treatment = new BrAPIObservationTreatment();
+                treatment.setFactor(t.getFactor());
+                treatment.setModality(t.getModality());
+                treatmentFactors.add(treatment);
+            }
+            observationUnit.setTreatments(treatmentFactors);
         }
-        observationUnit.setTreatments(treatmentFactors);
 
         // Put level in additional info: keep this in case we decide to rename levels in future.
         observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, subEntityDatasetName);
@@ -785,7 +803,10 @@ public class BrAPITrialService {
         } else {
             row.put(ExperimentObservation.Columns.TREATMENT_FACTORS, null);
         }
-        row.put(ExperimentObservation.Columns.OBS_UNIT_ID, ouId);
+
+        //Append observation level to obsUnitID
+        String observationLvl = ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
+        row.put(observationLvl + " " + OBSERVATION_UNIT_ID_SUFFIX, ouId);
 
         return row;
     }

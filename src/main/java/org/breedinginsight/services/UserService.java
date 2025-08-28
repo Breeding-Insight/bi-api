@@ -91,10 +91,10 @@ public class UserService {
     }
 
 
-    public Optional<User> getByOrcid(String orcid) {
+    public Optional<User> getByOAuthId(String oAuthId) {
 
-        // User has been authenticated against orcid, check they have a bi account.
-        Optional<User> users = dao.getUserByOrcId(orcid);
+        // User has been authenticated against OAuth provider, check they have a bi account.
+        Optional<User> users = dao.getUserByOAuthId(oAuthId);
 
         if (users.isEmpty()) {
             return Optional.empty();
@@ -113,7 +113,7 @@ public class UserService {
 
     public Optional<User> getById(UUID userId) {
 
-        // User has been authenticated against orcid, check they have a bi account.
+        // User has been authenticated against OAuth provider, check they have a bi account.
         Optional<User> user = dao.getUser(userId);
 
         if (!user.isPresent()) {
@@ -146,7 +146,7 @@ public class UserService {
                     insertSystemRoles(actingUser, newUser.getId(), systemRoles);
                 }
 
-                // Start OrcID association flow
+                // Start OAuth account association flow
                 createAndSendAccountToken(newUser.getId());
 
                 return getById(newUser.getId()).get();
@@ -352,7 +352,7 @@ public class UserService {
         sendAccountSignUpEmail(biUser, jwt.getSignedJWT());
     }
 
-    public void updateOrcid(UUID userId, String orcid) throws DoesNotExistException, AlreadyExistsException {
+    public void updateOAuthInfo(UUID userId, String oAuthId, String oAuthProvider) throws DoesNotExistException, AlreadyExistsException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
@@ -360,14 +360,15 @@ public class UserService {
             throw new DoesNotExistException("UUID for user does not exist");
         }
 
-        List<BiUserEntity> biUserWithOrcidList = dao.fetchByOrcid(orcid);
-        for (BiUserEntity biUserWithOrcid: biUserWithOrcidList){
-            if (!biUserWithOrcid.getId().equals(userId)){
-                throw new AlreadyExistsException("Orcid already in use");
+        List<BiUserEntity> biUserWithOAuthIdList = dao.fetchByOauthId(oAuthId);
+        for (BiUserEntity biUserWithOAuthId: biUserWithOAuthIdList){
+            if (!biUserWithOAuthId.getId().equals(userId)){
+                throw new AlreadyExistsException("OAuth Id already in use");
             }
         }
 
-        biUser.setOrcid(orcid);
+        biUser.setOauthId(oAuthId);
+        biUser.setOauthProvider(oAuthProvider);
         biUser.setAccountToken(null);
         dao.update(biUser);
     }
