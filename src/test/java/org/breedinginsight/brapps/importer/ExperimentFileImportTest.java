@@ -1204,7 +1204,7 @@ public class ExperimentFileImportTest extends BrAPITest {
 
         // In the first upload, only 1 trait should be present.
         List<Trait> initialTraits = List.of(traits.get(0));
-        importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newExp), initialTraits), null, true, client, program, mappingId, newExperimentWorkflowId);
+        importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newExp), initialTraits, false), null, true, client, program, mappingId, newExperimentWorkflowId);
 
         BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of((String)newExp.get(Columns.EXP_TITLE)), program).get(0);
         Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(brAPITrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()));
@@ -1229,13 +1229,13 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.BLOCK_NUM, "1");
         newObservation.put(Columns.ROW, "1");
         newObservation.put(Columns.COLUMN, "1");
-        newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
+        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
         newObservation.put(traits.get(0).getObservationVariableName(), "1");
         newObservation.put(traits.get(1).getObservationVariableName(), "1");
 
         // Send overwrite parameters in request body to allow the append workflow to work normally.
         Map<String, String> userData = Map.of("overwrite", "true", "overwriteReason", "testing");
-        JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), userData, true, client, program, mappingId, appendOverwriteWorkflowId);
+        JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits, true), userData, true, client, program, mappingId, appendOverwriteWorkflowId);
 
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         assertEquals(1, previewRows.size());
