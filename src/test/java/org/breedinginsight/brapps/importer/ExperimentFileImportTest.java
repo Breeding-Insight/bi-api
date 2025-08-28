@@ -1174,6 +1174,82 @@ public class ExperimentFileImportTest extends BrAPITest {
     }
 
     /*
+   Scenario:
+   - an experiment was created with observations and timestamps
+   - do a second upload with additional observations for the experiment, but without the timestamp column
+   - verify the second set of observations get uploaded successfully
+    */
+    @Test
+    @SneakyThrows
+    public void importNewObsAfterFirstExpWithObsAndTimestamps() {
+        log.debug("importNewObsAfterFirstExpWithObsAndTimestamps");
+        List<Trait> traits = importTestUtils.createTraits(2);
+        Program program = createProgram("Exp with TS and additional Uploads ", "EXTSAU", "EXTSAU", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Map<String, Object> newExp = new HashMap<>();
+        newExp.put(Columns.GERMPLASM_GID, "1");
+        newExp.put(Columns.TEST_CHECK, "T");
+        newExp.put(Columns.EXP_TITLE, "Test Exp");
+        newExp.put(Columns.EXP_UNIT, "Plot");
+        newExp.put(Columns.EXP_TYPE, "Phenotyping");
+        newExp.put(Columns.ENV, "New Env");
+        newExp.put(Columns.ENV_LOCATION, "Location A");
+        newExp.put(Columns.ENV_YEAR, "2025");
+        newExp.put(Columns.EXP_UNIT_ID, "a-1");
+        newExp.put(Columns.REP_NUM, "1");
+        newExp.put(Columns.BLOCK_NUM, "1");
+        newExp.put(Columns.ROW, "1");
+        newExp.put(Columns.COLUMN, "1");
+        newExp.put(traits.get(0).getObservationVariableName(), "1");
+        newExp.put("TS:" + traits.get(0).getObservationVariableName(), "2019-12-19T12:14:50Z");
+
+        // In the first upload, only 1 trait should be present.
+        List<Trait> initialTraits = List.of(traits.get(0));
+        importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newExp), initialTraits, false), null, true, client, program, mappingId, newExperimentWorkflowId);
+
+        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of((String)newExp.get(Columns.EXP_TITLE)), program).get(0);
+        Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(brAPITrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()));
+        assertTrue(trialIdXref.isPresent());
+        BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(trialIdXref.get().getReferenceId()), program).get(0);
+
+        BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
+        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
+        assertTrue(ouIdXref.isPresent());
+
+        Map<String, Object> newObservation = new HashMap<>();
+        newObservation.put(Columns.GERMPLASM_GID, "1");
+        newObservation.put(Columns.TEST_CHECK, "T");
+        newObservation.put(Columns.EXP_TITLE, "Test Exp");
+        newObservation.put(Columns.EXP_UNIT, "Plot");
+        newObservation.put(Columns.EXP_TYPE, "Phenotyping");
+        newObservation.put(Columns.ENV, "New Env");
+        newObservation.put(Columns.ENV_LOCATION, "Location A");
+        newObservation.put(Columns.ENV_YEAR, "2025");
+        newObservation.put(Columns.EXP_UNIT_ID, "a-1");
+        newObservation.put(Columns.REP_NUM, "1");
+        newObservation.put(Columns.BLOCK_NUM, "1");
+        newObservation.put(Columns.ROW, "1");
+        newObservation.put(Columns.COLUMN, "1");
+        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
+        newObservation.put(traits.get(0).getObservationVariableName(), "1");
+        newObservation.put(traits.get(1).getObservationVariableName(), "1");
+
+        // Send overwrite parameters in request body to allow the append workflow to work normally.
+        Map<String, String> userData = Map.of("overwrite", "true", "overwriteReason", "testing");
+        JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits, true), userData, true, client, program, mappingId, appendOverwriteWorkflowId);
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        assertEquals(1, previewRows.size());
+        JsonObject row = previewRows.get(0).getAsJsonObject();
+
+        assertEquals("EXISTING", row.getAsJsonObject("trial").get("state").getAsString());
+        assertEquals("EXISTING", row.getAsJsonObject("location").get("state").getAsString());
+        assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
+        assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());
+        assertRowSaved(newObservation, program, traits);
+
+    }
+
+    /*
     Scenario:
     - Create an experiment with valid observations.
     - Upload a second file with (1) a blank observation, (2) a changed valid observation, and (3) a new observation for the experiment.

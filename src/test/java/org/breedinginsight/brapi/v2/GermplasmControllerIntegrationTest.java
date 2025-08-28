@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+
 import static io.micronaut.http.HttpRequest.GET;
 import static io.micronaut.http.HttpRequest.POST;
 import static org.junit.jupiter.api.Assertions.*;
@@ -243,6 +244,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
             }
         }
     }
+  
     @ParameterizedTest
     @CsvSource(value = {"CSV", "XLSX", "XLS"})
     @SneakyThrows
@@ -275,6 +277,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         int dataSize = download.rowCount();
         assertEquals(3, dataSize, "Wrong number of germplasm were returned");
     }
+  
     @Test
     @SneakyThrows
     public void getAllGermplasmByListSuccess() {

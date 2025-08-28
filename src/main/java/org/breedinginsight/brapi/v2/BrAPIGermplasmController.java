@@ -221,6 +221,7 @@ public class BrAPIGermplasmController {
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
         }
     }
+
     @Get("/programs/{programId}/germplasm/lists/{listDbId}/export{?fileExtension}")
     @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
