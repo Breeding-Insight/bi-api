@@ -222,6 +222,26 @@ public class BrAPIGermplasmController {
         }
     }
 
+    @Get("/programs/{programId}/germplasm/lists/{listDbId}/export{?fileExtension}")
+    @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    public HttpResponse<StreamedFile> germplasmListExport(
+            @PathVariable("programId") UUID programId, @PathVariable("listDbId") String listDbId, @QueryValue(defaultValue = "XLSX") String fileExtension) {
+        String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
+        try {
+            FileType extension = Enum.valueOf(FileType.class, fileExtension);
+            DownloadFile germplasmListFile = germplasmService.exportGermplasmList(programId, listDbId, extension);
+            HttpResponse<StreamedFile> germplasmListExport = HttpResponse.ok(germplasmListFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename="+germplasmListFile.getFileName()+extension.getExtension());
+            return germplasmListExport;
+        }
+        catch (Exception e) {
+            log.info(e.getMessage(), e);
+            e.printStackTrace();
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
+            return response;
+        }
+    }
+
     @Get("/programs/{programId}/germplasm/export{?fileExtension,list}")
     @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})

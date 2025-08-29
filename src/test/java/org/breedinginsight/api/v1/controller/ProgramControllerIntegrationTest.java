@@ -22,7 +22,6 @@ import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
-import com.google.gson.reflect.TypeToken;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -42,7 +41,6 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
-import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -58,7 +56,6 @@ import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -165,13 +162,13 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
 
         // Insert system roles
-        testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
-        otherUser = userDAO.getUserByOrcId(TestTokenValidator.OTHER_TEST_USER_ORCID).get();
+        testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).get();
+        otherUser = userDAO.getUserByOAuthId(TestTokenValidator.OTHER_TEST_USER_ORCID).get();
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
 
-        Optional<User> optionalUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
+        Optional<User> optionalUser = userService.getByOAuthId(TestTokenValidator.TEST_USER_ORCID);
         testUser = optionalUser.get();
 
         // Get species for tests
@@ -275,7 +272,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
     public User fetchTestUser() throws Exception{
 
-        Optional<User> user = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
+        Optional<User> user = userService.getByOAuthId(TestTokenValidator.TEST_USER_ORCID);
         if (!user.isPresent()){
             throw new Exception("Failed to insert test user");
         }

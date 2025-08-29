@@ -35,7 +35,7 @@ public class UserQueryMapper extends AbstractQueryMapper {
         fields = Map.ofEntries(
                 Map.entry("name", User::getName),
                 Map.entry("email", User::getEmail),
-                Map.entry("orcid", User::getOrcid),
+                Map.entry("oauthId", User::getOauthId),
                 Map.entry("systemRoles",
                         user -> user.getSystemRoles() != null ? user.getSystemRoles().stream()
                                 .map(role -> role.getDomain()).collect(Collectors.toList()) : null),

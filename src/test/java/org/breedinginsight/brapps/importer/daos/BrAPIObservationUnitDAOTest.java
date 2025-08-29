@@ -92,7 +92,7 @@ public class BrAPIObservationUnitDAOTest extends BrAPITest {
 
         // Insert system admin role so can create program
         FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
-        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        User testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).get();
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         SpeciesRequest speciesRequest = SpeciesRequest.builder()

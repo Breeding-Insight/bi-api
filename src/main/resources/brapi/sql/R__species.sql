@@ -13,21 +13,6 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
--- See the NOTICE file distributed with this work for additional information
--- regarding copyright ownership.
---
--- Licensed under the Apache License, Version 2.0 (the "License");
--- you may not use this file except in compliance with the License.
--- You may obtain a copy of the License at
---
---     http://www.apache.org/licenses/LICENSE-2.0
---
--- Unless required by applicable law or agreed to in writing, software
--- distributed under the License is distributed on an "AS IS" BASIS,
--- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
--- See the License for the specific language governing permissions and
--- limitations under the License.
-
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 DO $$
@@ -39,6 +24,7 @@ BEGIN
        • Do it this way so no schema changes are required
        • Removed the Honey Bee special case because all systems will be starting fresh
        ------------------------------------------------------------------------------------------ */
+
     INSERT INTO crop (id, auth_user_id, crop_name)
     SELECT
         uuid_generate_v5('9a4deca9-4068-46a3-9efe-db0c181f491a'::uuid,
@@ -52,10 +38,10 @@ BEGIN
         ('Blueberry'), ('Salmon'), ('Grape'), ('Alfalfa'),
         ('Sweet Potato'), ('Trout'), ('Soybean'), ('Cranberry'),
         ('Cucumber'), ('Oat'), ('Citrus'), ('Sugar Cane'),
-        ('Strawberry'), ('Pecan'), ('Lettuce'), ('Cotton'),
-        ('Sorghum'), ('Hemp'), ('Hop'), ('Hydrangea'),
-        ('Red Clover'), ('Potato'), ('Blackberry'), ('Raspberry'),
-        ('Sugar Beet'), ('Coffee')
+        ('Strawberry'), ('Honey Bee'), ('Pecan'), ('Lettuce'),
+        ('Cotton'), ('Sorghum'), ('Hemp'), ('Hop'),
+        ('Hydrangea'), ('Red Clover'), ('Potato'), ('Blackberry'),
+        ('Raspberry'), ('Sugar Beet'), ('Coffee')
     ) AS src(crop_name)
     ON CONFLICT (id) DO
         -- want case changes or space changes to overwrite existing

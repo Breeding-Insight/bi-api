@@ -254,7 +254,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                         BrAPIObservation observation = gson.fromJson(gson.toJson(observationByObsHash.get(observationHash)), BrAPIObservation.class);
 
                         // Is there a change to the prior data?
-                        if (isChanged(cellData, observation, cell.timestamp)) {
+                        if (isChanged(cellData, observation, cell.timestamp, tsColByPheno.containsKey(phenoColumnName))) {
 
                             // Is prior data protected?
                             /**
@@ -364,14 +364,15 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
         }
     }
 
-    private boolean isChanged(String cellData, BrAPIObservation observation, String newTimestamp) {
+    private boolean isChanged(String cellData, BrAPIObservation observation, String newTimestamp, boolean timestampColumnPresent) {
         if (!cellData.isBlank() && !cellData.equals(observation.getValue())){
             return true;
         }
-        if (StringUtils.isBlank(newTimestamp)) {
-            return (observation.getObservationTimeStamp()!=null);
+        // Only check timestamp if the TS:<trait> column was present in the uploaded file and there's a valid timestamp.
+        if (timestampColumnPresent && !StringUtils.isBlank(newTimestamp)) {
+            return !observationService.parseDateTime(newTimestamp).equals(observation.getObservationTimeStamp());
         }
-        return !observationService.parseDateTime(newTimestamp).equals(observation.getObservationTimeStamp());
+        return false;
     }
 
     /**

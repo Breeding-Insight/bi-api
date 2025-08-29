@@ -25,16 +25,23 @@ import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.services.SpeciesService;
+import org.breedinginsight.utilities.FileUtil;
 import org.breedinginsight.utilities.response.mappers.GermplasmQueryMapper;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
 
 import static io.micronaut.http.HttpRequest.GET;
 import static io.micronaut.http.HttpRequest.POST;
@@ -81,7 +88,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
         var brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
-        testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).get();
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Set up BrAPI
@@ -237,7 +244,40 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
             }
         }
     }
+  
+    @ParameterizedTest
+    @CsvSource(value = {"CSV", "XLSX", "XLS"})
+    @SneakyThrows
+    public void germplasmListExport(String extension) {
+        String programId = validProgram.getId().toString();
+        String germplasmListDbId = fetchGermplasmListDbId(programId);
 
+        // Build the endpoint to get germplasm by germplasm list.
+        String endpoint = String.format("/programs/%s/germplasm/lists/%s/export?fileExtension=%s", programId, germplasmListDbId, extension);
+
+        // Get germplasm by list.
+        Flowable<HttpResponse<byte[]>> call = client.exchange(
+                GET(endpoint).cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
+        );
+
+        HttpResponse<byte[]> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+
+        ByteArrayInputStream bodyStream = new ByteArrayInputStream(Objects.requireNonNull(response.body()));
+
+        Table download = Table.create();
+        if (extension.equals("CSV")) {
+            download = FileUtil.parseTableFromCsv(bodyStream);
+        }
+        if (extension.equals("XLS") || extension.equals("XLSX")) {
+            download = FileUtil.parseTableFromExcel(bodyStream, 0);
+        }
+        int dataSize = download.rowCount();
+        assertEquals(3, dataSize, "Wrong number of germplasm were returned");
+    }
+  
     @Test
     @SneakyThrows
     public void getAllGermplasmByListSuccess() {

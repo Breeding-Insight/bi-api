@@ -17,8 +17,8 @@
  */
 
 -- name: CreateUser
-INSERT INTO bi_user (id, orcid, name, email, created_by, updated_by, active)
-VALUES ('594ec70e-0476-4c40-baf5-581ab0cfcd75', '0000-0001-2345-6789', 'Tester', 'tester@mailinator.com', '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', true);
+INSERT INTO bi_user (id, oauth_id, name, email, created_by, updated_by, active, oauth_provider)
+VALUES ('594ec70e-0476-4c40-baf5-581ab0cfcd75', '0000-0001-2345-6789', 'Tester', 'tester@mailinator.com', '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', true, 'orcid');
 
 -- name: CreateProgram
 INSERT INTO program (id, species_id, name, created_by, updated_by, active, key, germplasm_sequence, exp_sequence, env_sequence)

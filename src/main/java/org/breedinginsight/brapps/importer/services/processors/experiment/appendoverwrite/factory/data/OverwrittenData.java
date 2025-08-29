@@ -135,7 +135,7 @@ public class OverwrittenData extends VisitedObservationData {
             original = observation.getValue();
         }
 
-        if (!isTimestampMatched()) {
+        if (!isTimestampMatched() && StringUtils.isNotBlank(timestamp)) {
             // Update the timestamp
             DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
             String formattedTimeStampValue = formatter.format(observationService.parseDateTime(timestamp));

@@ -15,28 +15,18 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.daos;
+package org.breedinginsight.api.auth;
 
-import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
-import org.breedinginsight.dao.db.tables.records.BiUserRecord;
-import org.breedinginsight.model.User;
-import org.jooq.DAO;
+import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.Header;
+import io.micronaut.http.client.annotation.Client;
+import io.reactivex.Flowable;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+@Header(name = "User-Agent", value = "Micronaut")
+@Client("https://api.github.com")
+public interface GithubApiClient {
 
-public interface UserDAO extends DAO<BiUserRecord, BiUserEntity, UUID> {
-
-    List<User> getUsers();
-
-    Optional<User> getUser(UUID id);
-
-    Optional<User> getUserByOAuthId(String oAuthId);
-
-    BiUserEntity fetchOneById(UUID value);
-
-    List<BiUserEntity> fetchByEmail(String... values);
-
-    List<BiUserEntity> fetchByOauthId(String... values);
+    @Get("/user")
+    Flowable<GithubUser> getUser(@Header("Authorization") String authorization);
 }
+
