@@ -113,8 +113,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         FannyPack brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
         // Test User
-        testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
-        otherTestUser = userDAO.getUserByOrcId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
+        testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
+        otherTestUser = userDAO.getUserByOAuthId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
 
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 

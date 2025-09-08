@@ -45,11 +45,9 @@ import javax.inject.Inject;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static io.micronaut.http.HttpRequest.POST;
-import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -106,8 +104,8 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends BrAPITest {
 
         dsl.execute(fp.get("InsertPrograms"));
         programs = programDAO.getAll();
-        testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
-        otherTestUser = userDAO.getUserByOrcId(TestTokenValidator.OTHER_TEST_USER_ORCID).get();
+        testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).get();
+        otherTestUser = userDAO.getUserByOAuthId(TestTokenValidator.OTHER_TEST_USER_ORCID).get();
 
         // Insert system roles
         dsl.execute(fp.get("InsertSystemRoleAdmin"), testUser.getId().toString());

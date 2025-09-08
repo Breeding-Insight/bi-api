@@ -53,7 +53,7 @@ public class TestTokenValidator extends JwtTokenValidator {
 
     public Publisher<Authentication> validateToken(String token) {
         if (token.equals("test-registered-user")) {
-            Optional<User> testUser = userService.getByOrcid(TEST_USER_ORCID);
+            Optional<User> testUser = userService.getByOAuthId(TEST_USER_ORCID);
             Map<String, Object> adminClaims = new HashMap<>();
             List<String> roles = new ArrayList<>();
             roles.add("SYSTEM ADMINISTRATOR");
@@ -61,14 +61,14 @@ public class TestTokenValidator extends JwtTokenValidator {
             adminClaims.put("id", testUser.get().getId().toString());
             return Flowable.just(new DefaultAuthentication(TEST_USER_ORCID, adminClaims));
         } else if (token.equals("other-registered-user")) {
-            Optional<User> otherTestUser = userService.getByOrcid(OTHER_TEST_USER_ORCID);
+            Optional<User> otherTestUser = userService.getByOAuthId(OTHER_TEST_USER_ORCID);
             Map<String, Object> userClaims = new HashMap<>();
             List<String> roles = new ArrayList<>();
             userClaims.put("roles", roles);
             userClaims.put("id", otherTestUser.get().getId().toString());
             return Flowable.just(new DefaultAuthentication(OTHER_TEST_USER_ORCID, userClaims));
         } else if (token.equals("another-registered-user")) {
-            Optional<User> anotherTestUser = userService.getByOrcid(ANOTHER_TEST_USER_ORCID);
+            Optional<User> anotherTestUser = userService.getByOAuthId(ANOTHER_TEST_USER_ORCID);
             Map<String, Object> userClaims = new HashMap<>();
             List<String> roles = new ArrayList<>();
             userClaims.put("roles", roles);
@@ -82,7 +82,7 @@ public class TestTokenValidator extends JwtTokenValidator {
             adminClaims.put("id", NON_EXISTENT_USER_ID);
             return Flowable.just(new DefaultAuthentication(NON_EXISTENT_USER_ID, adminClaims));
         } else if (token.equals("inactive-user")) {
-            Optional<User> inactiveUser = userService.getByOrcid(INACTIVE_USER_ORCID);
+            Optional<User> inactiveUser = userService.getByOAuthId(INACTIVE_USER_ORCID);
             Map<String, Object> adminClaims = new HashMap<>();
             List<String> roles = new ArrayList<>();
             roles.add("SYSTEM ADMINISTRATOR");

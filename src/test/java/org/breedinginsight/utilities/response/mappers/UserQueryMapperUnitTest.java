@@ -48,7 +48,7 @@ public class UserQueryMapperUnitTest {
         User user = User.builder()
                 .name("Test User")
                 .email("test@user.com")
-                .orcid("000000-000000-000000-00000")
+                .oauthId("000000-000000-000000-00000")
                 .systemRoles(List.of(SystemRole.builder().domain("System Administrator").build()))
                 .programRoles(List.of(ProgramUser.builder().program(Program.builder().name("Test program").build()).build()))
                 .active(false)
@@ -60,7 +60,7 @@ public class UserQueryMapperUnitTest {
 
         assertEquals(user.getName(), userQueryMapper.getField("name").apply(user), "Wrong getter");
         assertEquals(user.getEmail(), userQueryMapper.getField("email").apply(user), "Wrong getter");
-        assertEquals(user.getOrcid(), userQueryMapper.getField("orcid").apply(user), "Wrong getter");
+        assertEquals(user.getOauthId(), userQueryMapper.getField("oauthId").apply(user), "Wrong getter");
         assertEquals(user.getSystemRoles().stream().map(role -> role.getDomain()).collect(Collectors.toList()),
                 userQueryMapper.getField("systemRoles").apply(user), "Wrong getter");
         assertEquals(user.getProgramRoles().stream().map(role -> role.getProgram().getName()).collect(Collectors.toList()),
