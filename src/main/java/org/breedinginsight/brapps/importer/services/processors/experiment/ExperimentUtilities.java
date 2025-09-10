@@ -162,26 +162,28 @@ public class ExperimentUtilities {
      * @return a String representing the unique key for the observation unit
      */
     public static String createObservationUnitKey(ExperimentObservation importRow) {
-        // Extract the environment and experimental unit ID from the ExperimentObservation object
+        // Extract the environment and experimental unit ID and germplasm GID from the ExperimentObservation object
         // and pass them to the createObservationUnitKey method
-        return createObservationUnitKey(importRow.getEnv(), importRow.getExpUnitId());
+        return createObservationUnitKey(importRow.getEnv(), importRow.getExpUnitId(), importRow.getGermplasm().getAccessionNumber()); //todo check right one
     }
 
     /**
      * Create Observation Unit Key
      *
-     * This method takes in the name of a study and the name of an observation unit and concatenates them to create a unique key.
+     * This method takes in the name of a study and the name of an observation unit and the germplasm GID and concatenates them to create a unique key.
+     * Germplasm GID needed due to how repeated measures are created and named
      *
-     * If one or both of the inputs is null, returns an empty string since not a valid combination
+     * If any of the inputs are null, returns an empty string since not a valid combination
      *
      * @param studyName The name of the study
      * @param obsUnitName The name of the observation unit
-     * @return A string representing the unique key formed by concatenating the study name and observation unit name
+     * @param germplasmGID The GID of the germplasm
+     * @return A string representing the unique key formed by concatenating the study name and observation unit name and germplasm GID
      */
-    public static String createObservationUnitKey(String studyName, String obsUnitName) {
-        // Concatenate the study name and observation unit name to create the unique key
-        if (studyName != null && obsUnitName != null) {
-            return studyName + obsUnitName;
+    public static String createObservationUnitKey(String studyName, String obsUnitName, String germplasmGID) {
+        // Concatenate the study name and observation unit name to create the unique key //todo needs to take in more because repeated measures in append
+        if (studyName != null && obsUnitName != null && germplasmGID != null) {
+            return studyName + obsUnitName + germplasmGID;
         } else {
             return "";
         }

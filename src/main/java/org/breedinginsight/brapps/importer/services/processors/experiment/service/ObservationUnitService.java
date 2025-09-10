@@ -160,7 +160,8 @@ public class ObservationUnitService {
                     pio.getBrAPIObject().getObservationUnitName(),
                     program.getKey()
             );
-            pendingUnitByNameNoScope.put(ExperimentUtilities.createObservationUnitKey(studyName, observationUnitName), pio);
+            String germplasmGID = pio.getBrAPIObject().getGermplasmDbId();
+            pendingUnitByNameNoScope.put(ExperimentUtilities.createObservationUnitKey(studyName, observationUnitName, germplasmGID), pio); //todo try here dangerous
         }
 
         return pendingUnitByNameNoScope;
