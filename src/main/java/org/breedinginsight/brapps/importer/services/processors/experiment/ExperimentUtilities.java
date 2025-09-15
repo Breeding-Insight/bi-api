@@ -164,7 +164,7 @@ public class ExperimentUtilities {
     public static String createObservationUnitKey(ExperimentObservation importRow) {
         // Extract the environment and experimental unit ID and germplasm GID from the ExperimentObservation object
         // and pass them to the createObservationUnitKey method
-        return createObservationUnitKey(importRow.getEnv(), importRow.getExpUnitId(), importRow.getGermplasm().getAccessionNumber()); //todo check right one
+        return createObservationUnitKey(importRow.getEnv(), importRow.getExpUnitId(), importRow.getGermplasm().getAccessionNumber());
     }
 
     /**
@@ -181,7 +181,7 @@ public class ExperimentUtilities {
      * @return A string representing the unique key formed by concatenating the study name and observation unit name and germplasm GID
      */
     public static String createObservationUnitKey(String studyName, String obsUnitName, String germplasmGID) {
-        // Concatenate the study name and observation unit name to create the unique key //todo needs to take in more because repeated measures in append
+        // Concatenate the study name and observation unit name and germplasm GID to create the unique key
         if (studyName != null && obsUnitName != null && germplasmGID != null) {
             return studyName + obsUnitName + germplasmGID;
         } else {

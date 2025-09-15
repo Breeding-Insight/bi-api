@@ -161,7 +161,7 @@ public class ObservationUnitService {
                     program.getKey()
             );
             String germplasmGID = pio.getBrAPIObject().getGermplasmDbId();
-            pendingUnitByNameNoScope.put(ExperimentUtilities.createObservationUnitKey(studyName, observationUnitName, germplasmGID), pio); //todo try here dangerous
+            pendingUnitByNameNoScope.put(ExperimentUtilities.createObservationUnitKey(studyName, observationUnitName, germplasmGID), pio);
         }
 
         return pendingUnitByNameNoScope;
