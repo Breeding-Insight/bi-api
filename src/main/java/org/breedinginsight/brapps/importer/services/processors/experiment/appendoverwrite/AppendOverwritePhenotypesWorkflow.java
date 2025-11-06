@@ -123,6 +123,14 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
         // Validate the import
         AppendOverwriteMiddlewareContext validatedImportContext = this.validationMiddleware.process(workflowContext);
 
+         //Stop and return any validation errors, needs to be done before processing to avoid null pointer exceptions
+        Optional<ValidationErrors> validationErrorOptional = Optional
+                .ofNullable(validatedImportContext.getAppendOverwriteWorkflowContext().getValidationErrors());
+        if (validationErrorOptional.isPresent() && validationErrorOptional.get().hasErrors()){
+            result.ifPresent(importWorkflowResult -> importWorkflowResult.setCaughtException(Optional.of(new ValidatorException(validationErrorOptional.get()))));
+            return result;
+        }
+
         // Process the import preview
         AppendOverwriteMiddlewareContext processedPreviewContext = this.importPreviewMiddleware.process(validatedImportContext);
 
