@@ -19,6 +19,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
@@ -37,6 +38,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteWorkflowContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
+import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
