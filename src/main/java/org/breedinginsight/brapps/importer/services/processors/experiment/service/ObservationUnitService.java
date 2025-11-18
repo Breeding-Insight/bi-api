@@ -160,7 +160,8 @@ public class ObservationUnitService {
                     pio.getBrAPIObject().getObservationUnitName(),
                     program.getKey()
             );
-            String germplasmGID = pio.getBrAPIObject().getGermplasmDbId();
+            String germplasmGID = pio.getBrAPIObject().getAdditionalInfo().get("gid").getAsString();
+
             pendingUnitByNameNoScope.put(ExperimentUtilities.createObservationUnitKey(studyName, observationUnitName, germplasmGID), pio);
         }
 

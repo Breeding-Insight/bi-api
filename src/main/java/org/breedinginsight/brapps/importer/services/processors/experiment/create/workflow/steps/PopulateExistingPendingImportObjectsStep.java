@@ -513,9 +513,9 @@ public class PopulateExistingPendingImportObjectsStep {
                     String studyName = studyNameByDbId.get(obs.getStudyDbId());
                     String variableName = variableNameByDbId.get(obs.getObservationVariableDbId());
                     String ouName = ouNameByDbId.get(obs.getObservationUnitDbId());
-                    String germplasmGID = obs.getGermplasmDbId();
+                    String germplasmGID = obs.getAdditionalInfo().get("gid").toString();
 
-                    String key = ExperimentUtilities.getObservationHash(ExperimentUtilities.createObservationUnitKey(studyName, ouName, germplasmGID), variableName, studyName);
+                      String key = ExperimentUtilities.getObservationHash(ExperimentUtilities.createObservationUnitKey(studyName, ouName, germplasmGID), variableName, studyName);
 
                     return Map.entry(key, obs);
                 })

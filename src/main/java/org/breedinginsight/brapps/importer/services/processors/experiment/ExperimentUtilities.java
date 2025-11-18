@@ -156,34 +156,35 @@ public class ExperimentUtilities {
     }
 
     /**
-     * This method generates a unique key for an observation unit based on the environment and experimental unit ID.
+     * This method generates a unique key for an observation unit based on the environment and experimental unit ID and germplasm GID.
      *
-     * @param importRow the ExperimentObservation object containing the environment and experimental unit ID
+     * @param importRow the ExperimentObservation object containing the environment and experimental unit ID and germplasm GID
      * @return a String representing the unique key for the observation unit
      */
     public static String createObservationUnitKey(ExperimentObservation importRow) {
         // Extract the environment and experimental unit ID and germplasm GID from the ExperimentObservation object
         // and pass them to the createObservationUnitKey method
-        return createObservationUnitKey(importRow.getEnv(), importRow.getExpUnitId(), importRow.getGermplasm().getAccessionNumber());
+        return createObservationUnitKey(importRow.getEnv(), importRow.getExpUnitId(), importRow.getGid());
     }
 
     /**
      * Create Observation Unit Key
      *
-     * This method takes in the name of a study and the name of an observation unit and the germplasm GID and concatenates them to create a unique key.
-     * Germplasm GID needed due to how repeated measures are created and named
+     * This method takes in the name of a study and the name of an observation unit and the germplasm name and concatenates them to create a unique key.
+     * Sub-observation unit name needed when repeated measures due to how they are created and named
      *
      * If any of the inputs are null, returns an empty string since not a valid combination
      *
      * @param studyName The name of the study
      * @param obsUnitName The name of the observation unit
-     * @param germplasmGID The GID of the germplasm
-     * @return A string representing the unique key formed by concatenating the study name and observation unit name and germplasm GID
+     * @param germplasmGID The germplasm gid
+     * @return A string representing the unique key formed by concatenating the study name and observation unit name and germplasm gid
      */
     public static String createObservationUnitKey(String studyName, String obsUnitName, String germplasmGID) {
-        // Concatenate the study name and observation unit name and germplasm GID to create the unique key
+        // Concatenate the study name and observation unit name and germplasm gid to create the unique key
         if (studyName != null && obsUnitName != null && germplasmGID != null) {
-            return studyName + obsUnitName + germplasmGID;
+            String keyDelim = "@*";
+            return studyName + keyDelim + obsUnitName + keyDelim + germplasmGID;
         } else {
             return "";
         }
