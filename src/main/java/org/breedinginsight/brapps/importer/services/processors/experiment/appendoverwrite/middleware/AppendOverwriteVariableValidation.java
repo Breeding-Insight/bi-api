@@ -20,82 +20,65 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.observationUnitID.ObservationUnitIDValidator;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.EntityNotFoundException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.BrAPIReadFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.WorkflowReadInitialization;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.observationVariable.ObservationVariableValidator;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.EntityNotFoundException;
 import org.breedinginsight.services.exceptions.BadRequestException;
 import org.breedinginsight.services.exceptions.ValidatorException;
-
-import javax.inject.Inject;
-import java.util.Optional;
-import java.util.Set;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 
 @Slf4j
 @Prototype
-public class AppendOverwriteIDValidation extends AppendOverwriteMiddleware {
-    WorkflowReadInitialization<BrAPIObservationUnit> brAPIObservationUnitReadWorkflowInitialization;
-    BrAPIReadFactory brAPIReadFactory;
-    ObservationUnitIDValidator ouIdValidator;
+public class AppendOverwriteVariableValidation extends AppendOverwriteMiddleware {
+    private final ObservationVariableValidator obsVarValidator;
+    private final BrAPIReadFactory brAPIReadFactory;
+    WorkflowReadInitialization<BrAPITrial> brAPITrialReadWorkflowInitialization;
+    WorkflowReadInitialization<BrAPIListDetails> brAPIDatasetReadWorkflowInitialization;
 
-    @Inject
-    public AppendOverwriteIDValidation(BrAPIReadFactory brAPIReadFactory, ObservationUnitIDValidator ouIdValidator) {
+    public AppendOverwriteVariableValidation(ObservationVariableValidator obsVarValidator,
+                                             BrAPIReadFactory brAPIReadFactory) {
+        this.obsVarValidator = obsVarValidator;
         this.brAPIReadFactory = brAPIReadFactory;
-        this.ouIdValidator = ouIdValidator;
     }
 
     @Override
     public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
-        brAPIObservationUnitReadWorkflowInitialization = brAPIReadFactory.observationUnitWorkflowReadInitializationBean(context);
-
-        // Initialize the tabular error collection
-        Optional.ofNullable(context.getAppendOverwriteWorkflowContext().getValidationErrors()).orElseGet(() -> {
-            context.getAppendOverwriteWorkflowContext().setValidationErrors(new ValidationErrors());
-            return new ValidationErrors();
-        });
+        brAPITrialReadWorkflowInitialization = brAPIReadFactory.trialWorkflowReadInitializationBean(context);
+        brAPIDatasetReadWorkflowInitialization = brAPIReadFactory.datasetWorkflowReadInitializationBean(context);
         ValidationErrors validationErrors = context.getAppendOverwriteWorkflowContext().getValidationErrors();
 
         try {
-            ouIdValidator.validateDynamicColumns(context);
-            Set<String> uniqueOUIds = ExperimentUtilities.collateUniqueOUIds(context);
-            context.getAppendOverwriteWorkflowContext().setReferenceOUIds(uniqueOUIds);
+            // Validate any dynamic columns that are phenotype variables
+            obsVarValidator.validateDynamicColumns(context);
 
             // Check for tabular errors collected during validation
             if (validationErrors.hasErrors()) {
                 throw new ValidatorException(validationErrors);
             }
 
-            // Fetch the obs units from the BrAPi service
-            brAPIObservationUnitReadWorkflowInitialization.execute();
+            // Fetch the observation variables owned by all datasets belonging to the experiment involved in the import
+            brAPITrialReadWorkflowInitialization.execute();
+            brAPIDatasetReadWorkflowInitialization.execute();
 
-            // Validate retrieved observation units
-            ouIdValidator.validateDynamicColumns(context);
+            // Validate again to check that none of the phenotypes in the import belong to other datasets
+            obsVarValidator.validateDynamicColumns(context);
 
             return processNext(context);
-        } catch (EntityNotFoundException e) {
-            /**
-             * Return an error response with a list of rows where the unique OU id was not found in the BrAPI service in
-             * addition to rows where there are missing or duplicate OU ids
-             */
+        } catch ( EntityNotFoundException e) {
+            // TODO: change method to handle errors with other entities besides obs units
             ExperimentUtilities.addValidationErrorsForObsUnitsNotFound(e, context);
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(new ValidatorException(validationErrors)));
             return this.compensate(context);
         } catch (BadRequestException | ApiException | ValidatorException e) {
-            /**
-             * If OUs were fetched for all unique reference ids but some of the reference ids failed validation,
-             * return an error response and a list of rows with duplicate or missing ids
-             *
-             * Return an error response if there was a problem connecting to the BrAPI service
-             */
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);
         }
-
     }
 }

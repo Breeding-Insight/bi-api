@@ -15,28 +15,14 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.daos;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.observationVariable;
 
-import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
-import org.breedinginsight.dao.db.tables.records.BiUserRecord;
-import org.breedinginsight.model.User;
-import org.jooq.DAO;
+import io.micronaut.core.order.Ordered;
+import org.brapi.client.v2.model.exceptions.ApiException;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
+import org.breedinginsight.services.exceptions.BadRequestException;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-public interface UserDAO extends DAO<BiUserRecord, BiUserEntity, UUID> {
-
-    List<User> getUsers();
-
-    Optional<User> getUser(UUID id);
-
-    Optional<User> getUserByOAuthId(String oAuthId);
-
-    BiUserEntity fetchOneById(UUID value);
-
-    List<BiUserEntity> fetchByEmail(String... values);
-
-    List<BiUserEntity> fetchByOauthId(String... values);
+@FunctionalInterface
+public interface DynamicObsVarValidator extends Ordered {
+    void validateDynamicColumns(AppendOverwriteMiddlewareContext ctx) throws BadRequestException, ApiException;
 }

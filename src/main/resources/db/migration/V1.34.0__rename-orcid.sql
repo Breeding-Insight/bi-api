@@ -15,28 +15,14 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.daos;
+-- Rename orcid column to more generic oauth_id.
+ALTER TABLE bi_user
+RENAME COLUMN orcid TO oauth_id;
 
-import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
-import org.breedinginsight.dao.db.tables.records.BiUserRecord;
-import org.breedinginsight.model.User;
-import org.jooq.DAO;
+-- Rename unique constraint.
+ALTER TABLE bi_user
+RENAME CONSTRAINT orcid_unique TO oauth_id_unique;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-public interface UserDAO extends DAO<BiUserRecord, BiUserEntity, UUID> {
-
-    List<User> getUsers();
-
-    Optional<User> getUser(UUID id);
-
-    Optional<User> getUserByOAuthId(String oAuthId);
-
-    BiUserEntity fetchOneById(UUID value);
-
-    List<BiUserEntity> fetchByEmail(String... values);
-
-    List<BiUserEntity> fetchByOauthId(String... values);
-}
+-- Add a column to store the OAuth provider with 'orcid' as the default value.
+ALTER TABLE bi_user
+ADD COLUMN oauth_provider text DEFAULT 'orcid';

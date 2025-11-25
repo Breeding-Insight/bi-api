@@ -15,13 +15,14 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.observationUnitID;
 
 import io.micronaut.core.order.Ordered;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.services.exceptions.BadRequestException;
 
 @FunctionalInterface
-public interface DynamicColumnValidator extends Ordered {
-    void validateDynamicColumns(AppendOverwriteMiddlewareContext ctx) throws BadRequestException;
+public interface DynamicObsUnitValidator extends Ordered {
+    void validateDynamicColumns(AppendOverwriteMiddlewareContext ctx) throws BadRequestException, ApiException;
 }

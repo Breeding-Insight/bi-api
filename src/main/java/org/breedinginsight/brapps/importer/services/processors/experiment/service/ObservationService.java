@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.core.BrAPISeason;
@@ -42,6 +43,7 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Singleton
 public class ObservationService {
     private final ExperimentUtilities experimentUtilities;
@@ -115,6 +117,7 @@ public class ObservationService {
                 LocalDate localDate = LocalDate.parse(dateString, formatter);
                 return localDate.atStartOfDay().atOffset(ZoneOffset.UTC);
             } catch (DateTimeParseException ex) {
+                log.error("Failed to parse timestamp: \"{}\".", dateString);
                 // If both parsing attempts fail, return null
                 return null;
             }

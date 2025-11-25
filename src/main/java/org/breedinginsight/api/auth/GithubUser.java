@@ -15,28 +15,23 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.daos;
+package org.breedinginsight.api.auth;
 
-import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
-import org.breedinginsight.dao.db.tables.records.BiUserRecord;
-import org.breedinginsight.model.User;
-import org.jooq.DAO;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import io.micronaut.core.annotation.Introspected;
+import lombok.Getter;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+@Introspected
+@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
+@Getter
+public class GithubUser {
 
-public interface UserDAO extends DAO<BiUserRecord, BiUserEntity, UUID> {
+    private String id;
+    // The login will be the unique GitHub username.
+    private String login;
+    private String name;
+    private String email;
 
-    List<User> getUsers();
-
-    Optional<User> getUser(UUID id);
-
-    Optional<User> getUserByOAuthId(String oAuthId);
-
-    BiUserEntity fetchOneById(UUID value);
-
-    List<BiUserEntity> fetchByEmail(String... values);
-
-    List<BiUserEntity> fetchByOauthId(String... values);
 }
+

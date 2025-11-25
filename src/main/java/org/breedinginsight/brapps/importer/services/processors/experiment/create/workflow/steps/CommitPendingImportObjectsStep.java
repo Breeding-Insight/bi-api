@@ -48,6 +48,7 @@ import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
@@ -57,6 +58,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities.PREEXISTING_EXPERIMENT_TITLE;
 
 @Singleton
 @Slf4j
@@ -88,7 +91,7 @@ public class CommitPendingImportObjectsStep {
     }
 
     // TODO: some common code between workflows here that could be broken out, removed append/update specific code
-    public void process(ProcessContext processContext, ProcessedData processedData) {
+    public void process(ProcessContext processContext, ProcessedData processedData) throws UnprocessableEntityException {
 
         PendingData pendingData = processContext.getPendingData();
         ImportContext importContext = processContext.getImportContext();
@@ -138,6 +141,24 @@ public class CommitPendingImportObjectsStep {
 
         AuthenticatedUser actingUser = new AuthenticatedUser(upload.getUpdatedByUser().getName(), new ArrayList<>(), upload.getUpdatedByUser().getId(), new ArrayList<>());
 
+        // TODO: Implement more robust solution either brapi server side or possibly redis SETNX client side
+        // Do this check here, directly before creating new trials instead of in earlier step to minimize time window of race condition
+        if (!newTrials.isEmpty()) {
+            try {
+                List<BrAPITrial> cachedTrials = brapiTrialDAO.getTrials(program.getId());
+                List<String> existingTrialNames = cachedTrials.stream().map(BrAPITrial::getTrialName).collect(Collectors.toList());
+                List<String> newTrialNames = newTrials.stream().map(t -> Utilities.removeProgramKey(t.getTrialName(), program.getKey())).collect(Collectors.toList());
+                log.debug("** Trials Duplicate Check: {} -> {}", existingTrialNames, newTrialNames);
+                if (newTrialNames.stream().anyMatch(existingTrialNames::contains)) {
+                    log.debug("** New matches existing");
+                    throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
+                }
+            } catch (ApiException e) {
+                log.error("Error getting trials for duplicate name check", e);
+                throw new InternalServerException(e.getMessage(), e);
+            }
+        }
+
         try {
             List<BrAPIListSummary> createdDatasets = new ArrayList<>(brAPIListDAO.createBrAPILists(newDatasetRequests, program.getId(), upload));
             createdDatasets.forEach(summary -> obsVarDatasetByName.get(summary.getListName()).getBrAPIObject().setListDbId(summary.getListDbId()));
@@ -179,7 +200,8 @@ public class CommitPendingImportObjectsStep {
                 // retrieve the BrAPI ObservationUnit from this.observationUnitByNameNoScope
                 String createdObservationUnit_StripedStudyName = Utilities.removeProgramKeyAndUnknownAdditionalData(createdObservationUnit.getStudyName(), program.getKey());
                 String createdObservationUnit_StripedObsUnitName = Utilities.removeProgramKeyAndUnknownAdditionalData(createdObservationUnit.getObservationUnitName(), program.getKey());
-                String createdObsUnit_key = ExperimentUtilities.createObservationUnitKey(createdObservationUnit_StripedStudyName, createdObservationUnit_StripedObsUnitName);
+                String createdObservationUnit_GID = createdObservationUnit.getAdditionalInfo().get("gid").getAsString();
+                String createdObsUnit_key = ExperimentUtilities.createObservationUnitKey(createdObservationUnit_StripedStudyName, createdObservationUnit_StripedObsUnitName, createdObservationUnit_GID);
                 observationUnitByNameNoScope.get(createdObsUnit_key)
                         .getBrAPIObject()
                         .setObservationUnitDbId(createdObservationUnit.getObservationUnitDbId());

@@ -92,7 +92,7 @@ public class ExperimentUtilities {
      */
     public boolean isInvalidMemberListForClass(List<?> list, Class<?> clazz) {
         // Check if the input list is null, empty, or contains any member that is not an instance of the specified class
-        return list == null || list.isEmpty() || !list.stream().allMatch(clazz::isInstance);
+        return (list == null) || !list.stream().allMatch(clazz::isInstance);
     }
 
     /**
@@ -156,32 +156,35 @@ public class ExperimentUtilities {
     }
 
     /**
-     * This method generates a unique key for an observation unit based on the environment and experimental unit ID.
+     * This method generates a unique key for an observation unit based on the environment and experimental unit ID and germplasm GID.
      *
-     * @param importRow the ExperimentObservation object containing the environment and experimental unit ID
+     * @param importRow the ExperimentObservation object containing the environment and experimental unit ID and germplasm GID
      * @return a String representing the unique key for the observation unit
      */
     public static String createObservationUnitKey(ExperimentObservation importRow) {
-        // Extract the environment and experimental unit ID from the ExperimentObservation object
+        // Extract the environment and experimental unit ID and germplasm GID from the ExperimentObservation object
         // and pass them to the createObservationUnitKey method
-        return createObservationUnitKey(importRow.getEnv(), importRow.getExpUnitId());
+        return createObservationUnitKey(importRow.getEnv(), importRow.getExpUnitId(), importRow.getGid());
     }
 
     /**
      * Create Observation Unit Key
      *
-     * This method takes in the name of a study and the name of an observation unit and concatenates them to create a unique key.
+     * This method takes in the name of a study and the name of an observation unit and the germplasm name and concatenates them to create a unique key.
+     * Sub-observation unit name needed when repeated measures due to how they are created and named
      *
-     * If one or both of the inputs is null, returns an empty string since not a valid combination
+     * If any of the inputs are null, returns an empty string since not a valid combination
      *
      * @param studyName The name of the study
      * @param obsUnitName The name of the observation unit
-     * @return A string representing the unique key formed by concatenating the study name and observation unit name
+     * @param germplasmGID The germplasm gid
+     * @return A string representing the unique key formed by concatenating the study name and observation unit name and germplasm gid
      */
-    public static String createObservationUnitKey(String studyName, String obsUnitName) {
-        // Concatenate the study name and observation unit name to create the unique key
-        if (studyName != null && obsUnitName != null) {
-            return studyName + obsUnitName;
+    public static String createObservationUnitKey(String studyName, String obsUnitName, String germplasmGID) {
+        // Concatenate the study name and observation unit name and germplasm gid to create the unique key
+        if (studyName != null && obsUnitName != null && germplasmGID != null) {
+            String keyDelim = "@*";
+            return studyName + keyDelim + obsUnitName + keyDelim + germplasmGID;
         } else {
             return "";
         }

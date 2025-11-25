@@ -68,6 +68,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.*;
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.DATASET_NOT_FOUND;
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.MULTIPLE_EXP_TITLES;
 
 @Slf4j
@@ -107,60 +108,14 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
 
     @Override
     public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
-        log.debug("verifying traits listed in import");
-
-        // Get all the phenotypic columns of the import
-        ImportUpload upload = context.getImportContext().getUpload();
-        Table data = context.getImportContext().getData();
-        List<String> phenotypeColNames = Arrays.stream(upload.getDynamicColumnNames())
-                .filter(name -> !name.endsWith(OBSERVATION_UNIT_ID_SUFFIX))
-                .filter(name -> !name.contains(SUB_UNIT_NUMBER))
-                .collect(Collectors.toList());
-
-        // don't allow periods (.) or square brackets in Phenotype Column Names
-        for (String phenotypeColumnName: phenotypeColNames) {
-            if(phenotypeColumnName.contains(".") || phenotypeColumnName.contains("[") || phenotypeColumnName.contains("]")){
-                String errorMsg = String.format("Observation columns may not contain periods or square brackets (see column '%s')", phenotypeColumnName);
-                throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, errorMsg);
-            }
-        }
-        List<Column<?>> dynamicCols = data.columns(phenotypeColNames.toArray(new String[0]));
-
-        // Collect the columns for observation variable data
-        List<Column<?>> phenotypeCols = dynamicCols.stream().filter(col -> !col.name().startsWith(TIMESTAMP_PREFIX)).collect(Collectors.toList());
-        List<String> varNames = phenotypeCols.stream().map(Column::name).collect(Collectors.toList());
-
-        // Collect the columns for observation timestamps
-        List<Column<?>> timestampCols = dynamicCols.stream().filter(col -> col.name().startsWith(TIMESTAMP_PREFIX)).collect(Collectors.toList());
-        Set<String> tsNames = timestampCols.stream().map(Column::name).collect(Collectors.toSet());
-
-        // Construct validation errors for any timestamp columns that don't have a matching variable column
-        List<BrAPIImport> importRows = context.getImportContext().getImportRows();
-        Optional.ofNullable(context.getAppendOverwriteWorkflowContext().getValidationErrors()).orElseGet(() -> {
-            context.getAppendOverwriteWorkflowContext().setValidationErrors(new ValidationErrors());
-            return new ValidationErrors();
-        });
-        ValidationErrors validationErrors = context.getAppendOverwriteWorkflowContext().getValidationErrors();
-        List<ValidationError> tsValErrs = observationVariableService.validateMatchedTimestamps(Set.copyOf(varNames), timestampCols).orElse(new ArrayList<>());
-        for (int i = 0; i < importRows.size(); i++) {
-            int rowNum = i;
-            tsValErrs.forEach(validationError -> validationErrors.addError(rowNum, validationError));
-        }
-
         try {
-            // Stop processing the import if there are unmatched timestamp columns
-            if (tsValErrs.size() > 0) {
-                throw new UnprocessableEntityException("One or more timestamp columns do not have a matching observation variable");
-            }
-
-            //Now know timestamps all valid phenotypes, can associate with phenotype column name for easy retrieval
-            Map<String, Column<?>> tsColByPheno = timestampCols.stream().collect(Collectors.toMap(col -> col.name().replaceFirst(TIMESTAMP_REGEX, StringUtils.EMPTY), col -> col));
-
-            // Add the map to the context for use in processing import
-            context.getAppendOverwriteWorkflowContext().setTimeStampColByPheno(tsColByPheno);
+            ValidationErrors validationErrors = context.getAppendOverwriteWorkflowContext().getValidationErrors();
+            Map<String, Column<?>> tsColByPheno = context.getAppendOverwriteWorkflowContext().getTimeStampColByPheno();
+            List<Column<?>> phenotypeCols = context.getAppendOverwriteWorkflowContext().getPhenotypeCols();
+            List<String> varNames = context.getAppendOverwriteWorkflowContext().getVarNames();
+            Program program = context.getImportContext().getProgram();
 
             // Fetch the traits named in the observation variable columns
-            Program program = context.getImportContext().getProgram();
             List<Trait> traits = observationVariableService.fetchTraitsByName(Set.copyOf(varNames), program);
 
             // Map trait by phenotype column name
@@ -176,17 +131,28 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
             // Sort the traits to match the order of the headers in the import file
             List<Trait> sortedTraits = experimentUtil.sortByField(varNames, new ArrayList<>(traits), TraitEntity::getObservationVariableName);
 
-            // Get the pending observation dataset
-            PendingImportObject<BrAPITrial> pendingTrial = ExperimentUtilities.getSingleEntryValue(context.getAppendOverwriteWorkflowContext().getTrialByNameNoScope()).orElseThrow(()->new UnprocessableEntityException(MULTIPLE_EXP_TITLES.getValue()));
-            String datasetName = String.format("Observation Dataset [%s-%s]", program.getKey(), pendingTrial.getBrAPIObject().getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER).getAsString());
-            PendingImportObject<BrAPIListDetails> pendingDataset = context.getAppendOverwriteWorkflowContext().getObsVarDatasetByName().get(datasetName);
+            // Get the pending observation dataset; there should only be a single dataset used for the import
+            PendingImportObject<BrAPITrial> pendingTrial = ExperimentUtilities
+                    .getSingleEntryValue(context.getAppendOverwriteWorkflowContext().getTrialByNameNoScope())
+                    .orElseThrow(()->new UnprocessableEntityException(MULTIPLE_EXP_TITLES.getValue()));
+            PendingImportObject<BrAPIListDetails> pendingDataset = context
+                    .getAppendOverwriteWorkflowContext()
+                    .getPendingObsDatasetByOUId()
+                    .values()
+                    .stream()
+                    .findAny()
+                    .orElseGet(()-> new PendingImportObject<BrAPIListDetails>(ImportObjectState.NEW, new BrAPIListDetails()));
 
             // Add new phenotypes to the pending observation dataset list (NOTE: "obsVarName [programKey]" is used instead of obsVarDbId)
             // TODO: Change to using actual dbIds as per the BrAPI spec, instead of namespaced obsVar names (was necessary for Breedbase)
-            List<String> datasetObsVarDbIds = pendingDataset.getBrAPIObject().getData().stream().collect(Collectors.toList());
+            List<String> datasetObsVarDbIds = Optional.ofNullable(pendingDataset.getBrAPIObject().getData())
+                    .map(ArrayList::new)
+                    .orElseGet(ArrayList::new);
             List<String> phenoDbIds = sortedTraits.stream().map(t->Utilities.appendProgramKey(t.getObservationVariableName(), program.getKey())).collect(Collectors.toList());
             phenoDbIds.removeAll(datasetObsVarDbIds);
-            pendingDataset.getBrAPIObject().getData().addAll(phenoDbIds);
+            for (String phenoDbId : phenoDbIds) {
+                pendingDataset.getBrAPIObject().addDataItem(phenoDbId);
+            }
 
             // Update pending status
             if (ImportObjectState.EXISTING == pendingDataset.getState()) {
@@ -288,7 +254,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                         BrAPIObservation observation = gson.fromJson(gson.toJson(observationByObsHash.get(observationHash)), BrAPIObservation.class);
 
                         // Is there a change to the prior data?
-                        if (isChanged(cellData, observation, cell.timestamp)) {
+                        if (isChanged(cellData, observation, cell.timestamp, tsColByPheno.containsKey(phenoColumnName))) {
 
                             // Is prior data protected?
                             /**
@@ -398,14 +364,15 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
         }
     }
 
-    private boolean isChanged(String cellData, BrAPIObservation observation, String newTimestamp) {
+    private boolean isChanged(String cellData, BrAPIObservation observation, String newTimestamp, boolean timestampColumnPresent) {
         if (!cellData.isBlank() && !cellData.equals(observation.getValue())){
             return true;
         }
-        if (StringUtils.isBlank(newTimestamp)) {
-            return (observation.getObservationTimeStamp()!=null);
+        // Only check timestamp if the TS:<trait> column was present in the uploaded file and there's a valid timestamp.
+        if (timestampColumnPresent && !StringUtils.isBlank(newTimestamp)) {
+            return !observationService.parseDateTime(newTimestamp).equals(observation.getObservationTimeStamp());
         }
-        return !observationService.parseDateTime(newTimestamp).equals(observation.getObservationTimeStamp());
+        return false;
     }
 
     /**
