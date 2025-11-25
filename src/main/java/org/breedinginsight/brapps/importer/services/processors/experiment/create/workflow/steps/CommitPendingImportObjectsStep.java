@@ -200,7 +200,8 @@ public class CommitPendingImportObjectsStep {
                 // retrieve the BrAPI ObservationUnit from this.observationUnitByNameNoScope
                 String createdObservationUnit_StripedStudyName = Utilities.removeProgramKeyAndUnknownAdditionalData(createdObservationUnit.getStudyName(), program.getKey());
                 String createdObservationUnit_StripedObsUnitName = Utilities.removeProgramKeyAndUnknownAdditionalData(createdObservationUnit.getObservationUnitName(), program.getKey());
-                String createdObsUnit_key = ExperimentUtilities.createObservationUnitKey(createdObservationUnit_StripedStudyName, createdObservationUnit_StripedObsUnitName);
+                String createdObservationUnit_GID = createdObservationUnit.getAdditionalInfo().get("gid").getAsString();
+                String createdObsUnit_key = ExperimentUtilities.createObservationUnitKey(createdObservationUnit_StripedStudyName, createdObservationUnit_StripedObsUnitName, createdObservationUnit_GID);
                 observationUnitByNameNoScope.get(createdObsUnit_key)
                         .getBrAPIObject()
                         .setObservationUnitDbId(createdObservationUnit.getObservationUnitDbId());

@@ -15,30 +15,14 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.observationUnitID;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.observationVariable;
 
-import io.micronaut.context.annotation.Primary;
+import io.micronaut.core.order.Ordered;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.services.exceptions.BadRequestException;
 
-import javax.inject.Singleton;
-import java.util.List;
-
-@Primary
-@Singleton
-public class ObservationUnitIDValidator implements DynamicObsUnitValidator {
-    private final List<DynamicObsUnitValidator> validators;
-
-    public ObservationUnitIDValidator(List<DynamicObsUnitValidator> validators) {
-        this.validators = validators;
-    }
-
-    @Override
-    public void validateDynamicColumns(AppendOverwriteMiddlewareContext ctx)
-            throws BadRequestException, ApiException {
-        for (DynamicObsUnitValidator validator : validators) {
-            validator.validateDynamicColumns(ctx);
-        }
-    }
+@FunctionalInterface
+public interface DynamicObsVarValidator extends Ordered {
+    void validateDynamicColumns(AppendOverwriteMiddlewareContext ctx) throws BadRequestException, ApiException;
 }

@@ -20,7 +20,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.DynamicColumnValidator;
 import org.breedinginsight.services.exceptions.BadRequestException;
 
 import javax.inject.Singleton;
@@ -28,11 +27,11 @@ import java.util.Arrays;
 
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.OZEX;
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.OBSERVATION_UNIT_ID_SUFFIX;
-import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.SUB_UNIT_NUMBER;
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.SUB_UNIT_ID;
 
 @Slf4j
 @Singleton
-public class ObservationUnitIDColumnNameValidator implements DynamicColumnValidator {
+public class ObservationUnitIDColumnNameValidator implements DynamicObsUnitValidator {
 
     public ObservationUnitIDColumnNameValidator() {}
 
@@ -40,6 +39,9 @@ public class ObservationUnitIDColumnNameValidator implements DynamicColumnValida
     public void validateDynamicColumns(AppendOverwriteMiddlewareContext ctx) throws BadRequestException {
         // Skip this validation if it has already been successfully completed
         if (ctx.getAppendOverwriteWorkflowContext().getObsUnitColName() != null) return;
+
+        // Skip this validation if the observation units have already been fetched from the BrAPI service
+        if (!ctx.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().isEmpty()) return;
 
         // Get the names of all the dynamic columns with observation unit ids
         String[] idColNames = Arrays.stream(ctx.getImportContext().getUpload().getDynamicColumnNames())
@@ -55,7 +57,7 @@ public class ObservationUnitIDColumnNameValidator implements DynamicColumnValida
         if (idColCount == 2) {
             // if sub-entity ids in import then check for presence of sub-unit # column
             Arrays.stream(ctx.getImportContext().getUpload().getDynamicColumnNames())
-                    .filter(name-> name.equals(SUB_UNIT_NUMBER))
+                    .filter(name-> name.equals(SUB_UNIT_ID))
                     .findAny()
                     .orElseThrow(()->new BadRequestException(OZEX.getValue()));
 

@@ -20,7 +20,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.validator.dynamicColumns.DynamicColumnValidator;
 import org.breedinginsight.services.exceptions.BadRequestException;
 import tech.tablesaw.columns.Column;
 import java.util.regex.Pattern;
@@ -33,13 +32,16 @@ import javax.inject.Singleton;
 
 @Slf4j
 @Singleton
-public class ObservationUnitIDFormatValidator implements DynamicColumnValidator {
+public class ObservationUnitIDFormatValidator implements DynamicObsUnitValidator {
     private static final Pattern UUID_PATTERN = Pattern.compile(
             "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     );
 
     @Override
     public void validateDynamicColumns(AppendOverwriteMiddlewareContext ctx) throws BadRequestException {
+        // Skip this validation if the observation units have already been fetched from the BrAPI service
+        if (!ctx.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().isEmpty()) return;
+
         if (ctx.getAppendOverwriteWorkflowContext().getObsUnitColName() == null) {
             throw new BadRequestException(OZEX.getValue());
         }

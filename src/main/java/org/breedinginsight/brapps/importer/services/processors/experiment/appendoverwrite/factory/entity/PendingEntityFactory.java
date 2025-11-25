@@ -19,6 +19,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import org.breedinginsight.brapi.v2.dao.*;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
@@ -45,6 +46,7 @@ public class PendingEntityFactory {
     private final ProgramLocationService programLocationService;
     private final LocationService locationService;
     private final ExperimentUtilities experimentUtilities;
+    private final String referenceSourceBase;
 
     @Inject
     public PendingEntityFactory(TrialService trialService,
@@ -58,7 +60,8 @@ public class PendingEntityFactory {
                                 DatasetService datasetService,
                                 BrAPIObservationDAO brAPIObservationDAO,
                                 OntologyService ontologyService, ProgramLocationService programLocationService, LocationService locationService,
-                                ExperimentUtilities experimentUtilities) {
+                                ExperimentUtilities experimentUtilities,
+                                @Property(name = "brapi.server.reference-source") String referenceSourceBase) {
         this.trialService = trialService;
         this.brapiTrialDAO = brapiTrialDAO;
         this.observationUnitDAO = observationUnitDAO;
@@ -73,6 +76,7 @@ public class PendingEntityFactory {
         this.programLocationService = programLocationService;
         this.locationService = locationService;
         this.experimentUtilities = experimentUtilities;
+        this.referenceSourceBase = referenceSourceBase;
     }
 
     public static PendingTrial pendingTrial(AppendOverwriteMiddlewareContext context,
@@ -105,8 +109,9 @@ public class PendingEntityFactory {
     public static PendingDataset pendingDataset(AppendOverwriteMiddlewareContext context,
                                                 BrAPIListDAO brAPIListDAO,
                                                 DatasetService datasetService,
-                                                ExperimentUtilities experimentUtilities) {
-        return new PendingDataset(context, brAPIListDAO, datasetService, experimentUtilities);
+                                                ExperimentUtilities experimentUtilities,
+                                                String referenceSourceBase) {
+        return new PendingDataset(context, brAPIListDAO, datasetService, experimentUtilities, referenceSourceBase);
     }
 
     public static PendingObservation pendingObservation(AppendOverwriteMiddlewareContext context,
@@ -150,7 +155,7 @@ public class PendingEntityFactory {
     @Bean
     @Prototype
     public PendingDataset pendingDatasetBean(AppendOverwriteMiddlewareContext context) {
-        return pendingDataset(context, brAPIListDAO, datasetService, experimentUtilities);
+        return pendingDataset(context, brAPIListDAO, datasetService, experimentUtilities, referenceSourceBase);
     }
 
     @Bean

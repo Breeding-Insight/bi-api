@@ -33,9 +33,7 @@ import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Singleton
 public class DatasetService {
@@ -74,10 +72,8 @@ public class DatasetService {
                         program.getId(),
                         String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()),
                         UUID.fromString(id));
-
-        // Check if the existing dataset summaries are returned, throw exception if not
         if (existingDatasets == null || existingDatasets.isEmpty()) {
-            throw new InternalServerException("Existing dataset summary not returned from BrAPI server");
+            return Optional.empty();
         }
 
         // Retrieve dataset details using the list DB ID from the existing dataset summary
@@ -86,6 +82,16 @@ public class DatasetService {
                 .getResult());
 
         return dataSetDetails;
+    }
+
+    public Optional<List<BrAPIListDetails>> fetchDatasetsByIds(Set<String> datasetIds, Program program) throws ApiException {
+        List<BrAPIListDetails> datasets = new ArrayList<>();
+        for (String datasetId : datasetIds) {
+            Optional<BrAPIListDetails> dataSetDetailsOptional = fetchDatasetById(datasetId, program);
+            dataSetDetailsOptional.ifPresent(datasets::add);
+        }
+
+        return datasets.isEmpty() ? Optional.empty() : Optional.of(datasets);
     }
 
     /**
