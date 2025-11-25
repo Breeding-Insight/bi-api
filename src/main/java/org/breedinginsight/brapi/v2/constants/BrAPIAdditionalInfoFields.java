@@ -57,4 +57,5 @@ public final class BrAPIAdditionalInfoFields {
     public static final String OBS_UNIT_ID = "obsUnitID";
     public static final String GERMPLASM_NAME = "germplasmName";
     public static final String SUBMISSION_NAME = "submissionName";
+    public static final String EXP_UNIT_ID = "expUnitID";
 }
