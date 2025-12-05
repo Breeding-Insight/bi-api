@@ -5,6 +5,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
@@ -134,6 +135,9 @@ public class ExperimentController {
 
             Response<Dataset> response = new Response(experimentService.createSubEntityDataset(programOptional.get(), experimentId, datasetRequest));
             return HttpResponse.ok(response);
+        } catch (HttpStatusException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(e.getStatus(), e.getMessage());
         } catch (Exception e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());

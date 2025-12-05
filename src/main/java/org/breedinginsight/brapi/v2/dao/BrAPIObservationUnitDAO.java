@@ -26,6 +26,8 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import okhttp3.HttpUrl;
+import okhttp3.Request;
 import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
@@ -441,5 +443,33 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
                 obsUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.TREATMENTS, treatments);
             }
         }
+    }
+
+    public void deleteObservationUnits(Collection<String> observationUnitDbIds, UUID programId) {
+        if (observationUnitDbIds == null || observationUnitDbIds.isEmpty()) {
+            return;
+        }
+        String baseUrl = brAPIDAOUtil.getProgramBrAPIBaseUrl(programId);
+        for (String ouDbId : observationUnitDbIds) {
+            if (StringUtils.isBlank(ouDbId)) {
+                continue;
+            }
+            HttpUrl url = HttpUrl.parse(baseUrl)
+                    .newBuilder()
+                    .addPathSegment("observationunits")
+                    .addPathSegment(ouDbId)
+                    .build();
+            Request request = new Request.Builder()
+                    .url(url)
+                    .delete()
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+            try {
+                brAPIDAOUtil.makeCall(request);
+            } catch (Exception e) {
+                log.warn("Failed to delete observation unit {} during rollback", ouDbId, e);
+            }
+        }
+        repopulateCache(programId);
     }
 }
