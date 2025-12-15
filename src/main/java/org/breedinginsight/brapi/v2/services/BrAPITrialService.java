@@ -135,6 +135,13 @@ public class BrAPITrialService {
         return obUnits.stream().map(BrAPIObservationUnit::getGermplasmDbId).distinct().count();
     }
 
+    private BrAPIObservationUnitLevelRelationship getTopLevel(BrAPIObservationUnit ou) {
+        BrAPIObservationUnitLevelRelationship topLevel = ou.getObservationUnitPosition()
+                .getObservationLevelRelationships().stream()
+                .filter(x -> (x.getLevelOrder() != null && x.getLevelOrder().equals(0))).findFirst().orElse(null);
+        return topLevel;
+    }
+
     public DownloadFile exportObservations(
             Program program,
             UUID experimentId,
@@ -196,9 +203,7 @@ public class BrAPITrialService {
         //add obsUnitID as dynamic column with observation level appended to header
         if (isSubObs) {
             //need to add top level obs unit ids as well
-            BrAPIObservationUnitLevelRelationship topLevel = ous.get(0).getObservationUnitPosition()
-                    .getObservationLevelRelationships().stream()
-                    .filter(x -> (x.getLevelOrder() != null && x.getLevelOrder().equals(0))).findFirst().orElse(null);
+            BrAPIObservationUnitLevelRelationship topLevel = getTopLevel(ous.get(0));
             if (topLevel != null) {
                 String topObservationLvl = StringUtils.capitalize(topLevel.getLevelName());
                 columns = dynamicUpdateObsUnitIDLabel(columns, topObservationLvl);
@@ -827,9 +832,7 @@ public class BrAPITrialService {
         row.put(observationLvl + " " + OBSERVATION_UNIT_ID_SUFFIX, ouId);
 
         if (isSubEntity) {
-            BrAPIObservationUnitLevelRelationship topLevel = ou.getObservationUnitPosition()
-                    .getObservationLevelRelationships().stream()
-                    .filter(x -> (x.getLevelOrder() != null && x.getLevelOrder().equals(0))).findFirst().orElse(null);
+            BrAPIObservationUnitLevelRelationship topLevel = getTopLevel(ou);
 
             if (topLevel != null) {
                 String topLvlName = StringUtils.capitalize(topLevel.getLevelName());
