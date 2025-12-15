@@ -36,10 +36,7 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
-import org.breedinginsight.utilities.DatasetUtil;
-import org.breedinginsight.utilities.IntOrderComparator;
-import org.breedinginsight.utilities.FileUtil;
-import org.breedinginsight.utilities.Utilities;
+import org.breedinginsight.utilities.*;
 import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
@@ -138,6 +135,13 @@ public class BrAPITrialService {
         return obUnits.stream().map(BrAPIObservationUnit::getGermplasmDbId).distinct().count();
     }
 
+    private BrAPIObservationUnitLevelRelationship getTopLevel(BrAPIObservationUnit ou) {
+        BrAPIObservationUnitLevelRelationship topLevel = ou.getObservationUnitPosition()
+                .getObservationLevelRelationships().stream()
+                .filter(x -> (x.getLevelOrder() != null && x.getLevelOrder().equals(0))).findFirst().orElse(null);
+        return topLevel;
+    }
+
     public DownloadFile exportObservations(
             Program program,
             UUID experimentId,
@@ -153,9 +157,6 @@ public class BrAPITrialService {
         List<String> requestedEnvIds = StringUtils.isNotBlank(params.getEnvironments()) ?
                 new ArrayList<>(Arrays.asList(params.getEnvironments().split(","))) : new ArrayList<>();
         FileType fileType = params.getFileExtension();
-
-        // make columns present in all exports
-        List<Column> columns = ExperimentFileColumns.getOrderedColumns();
 
         // add columns for requested dataset obsvars and timestamps
         log.debug(logHash + ": fetching experiment for export");
@@ -188,8 +189,27 @@ public class BrAPITrialService {
                     Utilities.generateApiExceptionLogMessage(err), err);
         }
 
+        boolean isSubObs = isSubEntityDataset(ous);
+
+        List<Column> columns;
+
+        //make columns present in all exports
+        if (isSubObs){
+            columns = ExperimentFileColumns.getOrderedColumnsSubEntity();
+        } else {
+            columns = ExperimentFileColumns.getOrderedColumns();
+        }
+
         //add obsUnitID as dynamic column with observation level appended to header
-        String observationLvl =  ous.get(0).getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
+        if (isSubObs) {
+            //need to add top level obs unit ids as well
+            BrAPIObservationUnitLevelRelationship topLevel = getTopLevel(ous.get(0));
+            if (topLevel != null) {
+                String topObservationLvl = StringUtils.capitalize(topLevel.getLevelName());
+                columns = dynamicUpdateObsUnitIDLabel(columns, topObservationLvl);
+            }
+        }
+        String observationLvl = ous.get(0).getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
         columns = dynamicUpdateObsUnitIDLabel(columns, observationLvl);
 
         if (params.getDatasetId() != null) {
@@ -220,7 +240,8 @@ public class BrAPITrialService {
                 params.isIncludeTimestamps(),
                 obsVars,
                 studyDbIdByOUId,
-                programGermplasmByDbId
+                programGermplasmByDbId,
+                isSubObs
         );
 
         // make export rows for OUs without observations
@@ -230,7 +251,7 @@ public class BrAPITrialService {
                 // Map Observation Unit to the Study it belongs to.
                 studyDbIdByOUId.put(ouId, ou.getStudyDbId());
                 if (!rowByOUId.containsKey(ouId)) {
-                    rowByOUId.put(ouId, createExportRow(experiment, program, ou, studyByDbId, programGermplasmByDbId));
+                    rowByOUId.put(ouId, createExportRow(experiment, program, ou, studyByDbId, programGermplasmByDbId, isSubObs));
                 }
             }
         }
@@ -591,7 +612,8 @@ public class BrAPITrialService {
             boolean includeTimestamp,
             List<Trait> obsVars,
             Map<String, String> studyDbIdByOUId,
-            Map<String, BrAPIGermplasm> programGermplasmByDbId) throws ApiException, DoesNotExistException {
+            Map<String, BrAPIGermplasm> programGermplasmByDbId,
+            boolean isSubObs) throws ApiException, DoesNotExistException {
         Map<String, Trait> varByDbId = new HashMap<>();
         obsVars.forEach(var -> varByDbId.put(var.getObservationVariableDbId(), var));
         for (BrAPIObservation obs: dataset) {
@@ -609,7 +631,7 @@ public class BrAPITrialService {
             } else {
 
                 // otherwise make a new row
-                Map<String, Object> row = createExportRow(experiment, program, ou, studyByDbId, programGermplasmByDbId);
+                Map<String, Object> row = createExportRow(experiment, program, ou, studyByDbId, programGermplasmByDbId, isSubObs);
                 addObsVarDataToRow(row, obs, includeTimestamp, var, program);
                 rowByOUId.put(ouId, row);
             }
@@ -727,7 +749,8 @@ public class BrAPITrialService {
             Program program,
             BrAPIObservationUnit ou,
             Map<String, BrAPIStudy> studyByDbId,
-            Map<String, BrAPIGermplasm> programGermplasmByDbId) throws ApiException, DoesNotExistException {
+            Map<String, BrAPIGermplasm> programGermplasmByDbId,
+            boolean isSubEntity) throws ApiException, DoesNotExistException {
         HashMap<String, Object> row = new HashMap<>();
 
         // get OU id, germplasm, and study
@@ -750,7 +773,6 @@ public class BrAPITrialService {
         row.put(ExperimentObservation.Columns.TEST_CHECK, testCheck);
         row.put(ExperimentObservation.Columns.EXP_TITLE, Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()));
         row.put(ExperimentObservation.Columns.EXP_DESCRIPTION, experiment.getTrialDescription());
-        row.put(ExperimentObservation.Columns.EXP_UNIT, ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
         row.put(ExperimentObservation.Columns.EXP_TYPE, experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE).getAsString());
         row.put(ExperimentObservation.Columns.ENV, Utilities.removeProgramKeyAndUnknownAdditionalData(study.getStudyName(), program.getKey()));
         row.put(ExperimentObservation.Columns.ENV_LOCATION, Utilities.removeProgramKey(study.getLocationName(), program.getKey()));
@@ -776,7 +798,6 @@ public class BrAPITrialService {
 
         BrAPISeason season = seasonDAO.getSeasonById(study.getSeasons().get(0), program.getId());
         row.put(ExperimentObservation.Columns.ENV_YEAR, season.getYear());
-        row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
 
         // get replicate number
         Optional<BrAPIObservationUnitLevelRelationship> repLevel = ou.getObservationUnitPosition()
@@ -809,6 +830,26 @@ public class BrAPITrialService {
         //Append observation level to obsUnitID
         String observationLvl = ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
         row.put(observationLvl + " " + OBSERVATION_UNIT_ID_SUFFIX, ouId);
+
+        if (isSubEntity) {
+            BrAPIObservationUnitLevelRelationship topLevel = getTopLevel(ou);
+
+            if (topLevel != null) {
+                String topLvlName = StringUtils.capitalize(topLevel.getLevelName());
+                row.put(ExperimentObservation.Columns.EXP_UNIT, topLvlName);
+
+                String topLvlOuId = Utilities.removeProgramKeyAndUnknownAdditionalData(topLevel.getLevelCode(), program.getKey());
+                row.put(topLvlName + " " + OBSERVATION_UNIT_ID_SUFFIX, topLvlOuId);
+            }
+            row.put(ExperimentObservation.Columns.EXP_UNIT_ID, ou.getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXP_UNIT_ID).getAsString());
+
+            row.put(ExperimentObservation.Columns.SUB_OBS_UNIT, ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
+            row.put(ExperimentObservation.Columns.SUB_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
+
+        } else {
+            row.put(ExperimentObservation.Columns.EXP_UNIT, ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
+            row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
+        }
 
         return row;
     }
@@ -888,6 +929,10 @@ public class BrAPITrialService {
                 .collect(Collectors.toList());
     }
 
+    private boolean isSubEntityDataset(List<BrAPIObservationUnit> ous){
+        return (ous.get(0).getObservationUnitPosition().getObservationLevelRelationships().size() > 2);
+    }
+
     private void sortDefaultForObservationUnit(List<BrAPIObservationUnit> ous) {
         Comparator<BrAPIObservationUnit> studyNameComparator = Comparator.comparing(BrAPIObservationUnit::getStudyName, new IntOrderComparator());
         Comparator<BrAPIObservationUnit> ouNameComparator = Comparator.comparing(BrAPIObservationUnit::getObservationUnitName, new IntOrderComparator());
@@ -899,7 +944,9 @@ public class BrAPITrialService {
         Comparator<Map<String, Object>> expUnitIdComparator =
                 Comparator.comparing(row -> (row.get(Columns.EXP_UNIT_ID).toString()), new IntOrderComparator());
 
-        exportRows.sort(envComparator.thenComparing(expUnitIdComparator));
+        Comparator<Map<String,Object>> subUnitIdComparator = Comparator.comparing(row -> (row.get(Columns.SUB_UNIT_ID).toString()), new IntOrderComparator());
+
+        exportRows.sort(envComparator.thenComparing(expUnitIdComparator).thenComparing(subUnitIdComparator));
      }
 
     public BrAPIStudy getEnvironment(Program program, UUID envId) throws ApiException {
