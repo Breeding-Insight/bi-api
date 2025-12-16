@@ -935,8 +935,16 @@ public class BrAPITrialService {
 
     private void sortDefaultForObservationUnit(List<BrAPIObservationUnit> ous) {
         Comparator<BrAPIObservationUnit> studyNameComparator = Comparator.comparing(BrAPIObservationUnit::getStudyName, new IntOrderComparator());
-        Comparator<BrAPIObservationUnit> ouNameComparator = Comparator.comparing(BrAPIObservationUnit::getObservationUnitName, new IntOrderComparator());
-        ous.sort( (studyNameComparator).thenComparing(ouNameComparator));
+
+        if (isSubEntityDataset(ous)) {
+            Comparator<BrAPIObservationUnit> subUnitComparator = Comparator.comparing(BrAPIObservationUnit::getObservationUnitName, new IntOrderComparator());
+            Comparator<BrAPIObservationUnit> ouNameComparator = Comparator.comparing(row -> (row.getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXP_UNIT_ID).toString()), new IntOrderComparator());
+            ous.sort((studyNameComparator).thenComparing(ouNameComparator).thenComparing(subUnitComparator));
+        }
+        else {
+            Comparator<BrAPIObservationUnit> ouNameComparator = Comparator.comparing(BrAPIObservationUnit::getObservationUnitName, new IntOrderComparator());
+            ous.sort((studyNameComparator).thenComparing(ouNameComparator));
+        }
     }
 
     private void sortDefaultForExportRows(@NotNull List<Map<String, Object>> exportRows) {
