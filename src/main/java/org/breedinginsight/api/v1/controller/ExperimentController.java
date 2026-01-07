@@ -5,7 +5,6 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
@@ -29,7 +28,9 @@ import org.breedinginsight.services.ExperimentalCollaboratorService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.RoleService;
+import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.CreationBusyException;
 import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
 import javax.inject.Inject;
@@ -135,9 +136,12 @@ public class ExperimentController {
 
             Response<Dataset> response = new Response(experimentService.createSubEntityDataset(programOptional.get(), experimentId, datasetRequest));
             return HttpResponse.ok(response);
-        } catch (HttpStatusException e) {
+        } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
-            return HttpResponse.status(e.getStatus(), e.getMessage());
+            return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
+        } catch (CreationBusyException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
         } catch (Exception e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());

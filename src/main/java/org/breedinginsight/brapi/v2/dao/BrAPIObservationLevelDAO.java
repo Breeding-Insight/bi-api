@@ -27,10 +27,13 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
 import org.breedinginsight.model.DatasetLevel;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -48,17 +51,22 @@ public class BrAPIObservationLevelDAO {
         this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
-    public HttpResponse<String> createObservationLevelName(Program program, String levelName, DatasetLevel levelOrder) throws ApiException {
+    public HttpResponse<String> createObservationLevelName(Program program, String levelName, DatasetLevel levelOrder, String programDbId) throws ApiException {
         HttpUrl url = HttpUrl.parse(brAPIDAOUtil.getProgramBrAPIBaseUrl(program.getId()))
                              .newBuilder()
                              .addPathSegment("observationlevelnames")
                              .build();
-        BrAPIObservationUnitHierarchyLevel level = new BrAPIObservationUnitHierarchyLevel()
-                .levelName(levelName);
+        JsonObject levelJson = new JsonObject();
+        levelJson.addProperty("levelName", levelName);
         if (levelOrder != null) {
-            level.setLevelOrder(levelOrder.getValue());
+            levelJson.addProperty("levelOrder", levelOrder.getValue());
         }
-        RequestBody body = RequestBody.create(gson.toJson(level), JSON_MEDIA_TYPE);
+        if (programDbId != null) {
+            levelJson.addProperty("programDbId", programDbId);
+        }
+        JsonArray bodyArray = new JsonArray();
+        bodyArray.add(levelJson);
+        RequestBody body = RequestBody.create(gson.toJson(bodyArray), JSON_MEDIA_TYPE);
         var request = new Request.Builder()
                 .url(url)
                 .post(body)
@@ -67,11 +75,11 @@ public class BrAPIObservationLevelDAO {
         return brAPIDAOUtil.makeCall(request);
     }
 
-    public void deleteObservationLevelName(Program program, String levelName) {
+    public void deleteObservationLevelName(Program program, String levelDbId) {
         HttpUrl url = HttpUrl.parse(brAPIDAOUtil.getProgramBrAPIBaseUrl(program.getId()))
                              .newBuilder()
                              .addPathSegment("observationlevelnames")
-                             .addPathSegment(levelName)
+                             .addPathSegment(levelDbId)
                              .build();
         var request = new Request.Builder()
                 .url(url)
@@ -81,10 +89,49 @@ public class BrAPIObservationLevelDAO {
         try {
             HttpResponse<String> response = brAPIDAOUtil.makeCall(request);
             if (response.getStatus() != HttpStatus.OK && response.getStatus() != HttpStatus.NO_CONTENT && response.getStatus() != HttpStatus.ACCEPTED) {
-                log.warn("Observation level delete returned status {} for {}", response.getStatus(), levelName);
+                log.warn("Observation level delete returned status {} for {}", response.getStatus(), levelDbId);
             }
         } catch (Exception e) {
-            log.warn("Failed to delete observation level {} during rollback", levelName, e);
+            log.warn("Failed to delete observation level {}", levelDbId, e);
         }
+    }
+
+    public String extractObservationLevelDbId(HttpResponse<String> response) {
+        try {
+            String body = response.getBody().orElse(null);
+            if (body == null || body.isBlank()) {
+                return null;
+            }
+            JsonElement root = JsonParser.parseString(body);
+            JsonArray dataArray = null;
+            if (root.isJsonArray()) {
+                dataArray = root.getAsJsonArray();
+            } else if (root.isJsonObject()) {
+                JsonObject rootObj = root.getAsJsonObject();
+                if (rootObj.has("result") && rootObj.get("result").isJsonObject()) {
+                    JsonObject resultObj = rootObj.getAsJsonObject("result");
+                    if (resultObj.has("data") && resultObj.get("data").isJsonArray()) {
+                        dataArray = resultObj.getAsJsonArray("data");
+                    }
+                } else if (rootObj.has("data") && rootObj.get("data").isJsonArray()) {
+                    dataArray = rootObj.getAsJsonArray("data");
+                }
+            }
+            if (dataArray == null || dataArray.size() == 0) {
+                return null;
+            }
+            for (JsonElement element : dataArray) {
+                if (!element.isJsonObject()) {
+                    continue;
+                }
+                JsonObject obj = element.getAsJsonObject();
+                if (obj.has("levelNameDbId")) {
+                    return obj.get("levelNameDbId").getAsString();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to parse level name id from response", e);
+        }
+        return null;
     }
 }
