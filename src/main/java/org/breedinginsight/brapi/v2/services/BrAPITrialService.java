@@ -423,7 +423,7 @@ public class BrAPITrialService {
      */
     public Dataset createSubEntityDataset(Program program, UUID experimentId, SubEntityDatasetRequest request)
             throws ApiException, DoesNotExistException, AlreadyExistsException, CreationBusyException {
-        final String datasetName = request.getName().trim();
+        final String datasetName = request.getName().trim().toLowerCase();
         String lockKey = String.format("sub-entity-dataset:%s", experimentId);
         try {
             return lockService.withLock(lockKey, Duration.ofSeconds(30), Duration.ofMinutes(5), () -> {

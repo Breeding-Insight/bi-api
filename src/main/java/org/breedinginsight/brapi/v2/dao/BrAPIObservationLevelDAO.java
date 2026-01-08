@@ -96,42 +96,4 @@ public class BrAPIObservationLevelDAO {
         }
     }
 
-    public String extractObservationLevelDbId(HttpResponse<String> response) {
-        try {
-            String body = response.getBody().orElse(null);
-            if (body == null || body.isBlank()) {
-                return null;
-            }
-            JsonElement root = JsonParser.parseString(body);
-            JsonArray dataArray = null;
-            if (root.isJsonArray()) {
-                dataArray = root.getAsJsonArray();
-            } else if (root.isJsonObject()) {
-                JsonObject rootObj = root.getAsJsonObject();
-                if (rootObj.has("result") && rootObj.get("result").isJsonObject()) {
-                    JsonObject resultObj = rootObj.getAsJsonObject("result");
-                    if (resultObj.has("data") && resultObj.get("data").isJsonArray()) {
-                        dataArray = resultObj.getAsJsonArray("data");
-                    }
-                } else if (rootObj.has("data") && rootObj.get("data").isJsonArray()) {
-                    dataArray = rootObj.getAsJsonArray("data");
-                }
-            }
-            if (dataArray == null || dataArray.size() == 0) {
-                return null;
-            }
-            for (JsonElement element : dataArray) {
-                if (!element.isJsonObject()) {
-                    continue;
-                }
-                JsonObject obj = element.getAsJsonObject();
-                if (obj.has("levelNameDbId")) {
-                    return obj.get("levelNameDbId").getAsString();
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to parse level name id from response", e);
-        }
-        return null;
-    }
 }
