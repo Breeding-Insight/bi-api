@@ -444,32 +444,4 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
             }
         }
     }
-
-    public void deleteObservationUnits(Collection<String> observationUnitDbIds, UUID programId) {
-        if (observationUnitDbIds == null || observationUnitDbIds.isEmpty()) {
-            return;
-        }
-        String baseUrl = brAPIDAOUtil.getProgramBrAPIBaseUrl(programId);
-        for (String ouDbId : observationUnitDbIds) {
-            if (StringUtils.isBlank(ouDbId)) {
-                continue;
-            }
-            HttpUrl url = HttpUrl.parse(baseUrl)
-                    .newBuilder()
-                    .addPathSegment("observationunits")
-                    .addPathSegment(ouDbId)
-                    .build();
-            Request request = new Request.Builder()
-                    .url(url)
-                    .delete()
-                    .addHeader("Content-Type", "application/json")
-                    .build();
-            try {
-                brAPIDAOUtil.makeCall(request);
-            } catch (Exception e) {
-                log.warn("Failed to delete observation unit {} during rollback", ouDbId, e);
-            }
-        }
-        repopulateCache(programId);
-    }
 }

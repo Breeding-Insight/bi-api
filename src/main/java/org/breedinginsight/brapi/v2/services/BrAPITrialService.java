@@ -406,6 +406,21 @@ public class BrAPITrialService {
         return datasets;
     }
 
+    /**
+     * Creates sub-entity dataset
+     * TODO: Handle compensating transactions in event of failure. Currently brapi server does not support
+     * deleting observation units. Will need to add batch delete support for observation units before this
+     * can be done.
+     *
+     * @param program
+     * @param experimentId
+     * @param request
+     * @return
+     * @throws ApiException
+     * @throws DoesNotExistException
+     * @throws AlreadyExistsException
+     * @throws CreationBusyException
+     */
     public Dataset createSubEntityDataset(Program program, UUID experimentId, SubEntityDatasetRequest request)
             throws ApiException, DoesNotExistException, AlreadyExistsException, CreationBusyException {
         final String datasetName = request.getName().trim();
@@ -415,9 +430,6 @@ public class BrAPITrialService {
                 log.debug("creating sub-entity dataset: \"{}\" for experiment: \"{}\" with: \"{}\" repeated measures.", datasetName, experimentId, request.getRepeatedMeasures());
                 UUID subEntityDatasetId = UUID.randomUUID();
                 List<BrAPIObservationUnit> subObsUnits = new ArrayList<>();
-                List<BrAPIObservationUnit> createdObservationUnits = new ArrayList<>();
-                boolean createdObservationLevel = false;
-                String createdObservationLevelDbId = null;
                 BrAPITrial experiment = getExperiment(program, experimentId);
                 DatasetMetadata topLevelDataset = DatasetUtil.getTopLevelDataset(experiment);
                 if (topLevelDataset == null) {
@@ -437,55 +449,48 @@ public class BrAPITrialService {
                 } else if (levelResponse.getStatus().getCode() < 200 || levelResponse.getStatus().getCode() >= 300) {
                     throw new ApiException(levelResponse.getStatus().getCode(), "Unable to create observation level: " + levelResponse.getStatus().getReason());
                 }
-                createdObservationLevel = true;
-                createdObservationLevelDbId = observationLevelDAO.extractObservationLevelDbId(levelResponse);
 
-                try {
-                    List<BrAPIObservationUnit> expOUs = ouDAO.getObservationUnitsForDataset(topLevelDataset.getId().toString(), program);
-                    for (BrAPIObservationUnit expUnit : expOUs) {
+                List<BrAPIObservationUnit> expOUs = ouDAO.getObservationUnitsForDataset(topLevelDataset.getId().toString(), program);
+                for (BrAPIObservationUnit expUnit : expOUs) {
 
-                        String envSeqValue = studyDAO.getStudyByDbId(expUnit.getStudyDbId(), program).orElseThrow()
-                                .getAdditionalInfo().get(BrAPIAdditionalInfoFields.ENVIRONMENT_NUMBER).getAsString();
+                    String envSeqValue = studyDAO.getStudyByDbId(expUnit.getStudyDbId(), program).orElseThrow()
+                            .getAdditionalInfo().get(BrAPIAdditionalInfoFields.ENVIRONMENT_NUMBER).getAsString();
 
-                        for (int i=1; i<=request.getRepeatedMeasures(); i++) {
-                            subObsUnits.add(
-                                createSubObservationUnit(
-                                    datasetName,
-                                    Integer.toString(i),
-                                    program,
-                                    envSeqValue,
-                                    expUnit,
-                                    this.referenceSource,
-                                    subEntityDatasetId,
-                                    UUID.randomUUID()
-                                )
-                            );
-                        }
+                    for (int i=1; i<=request.getRepeatedMeasures(); i++) {
+                        subObsUnits.add(
+                            createSubObservationUnit(
+                                datasetName,
+                                Integer.toString(i),
+                                program,
+                                envSeqValue,
+                                expUnit,
+                                this.referenceSource,
+                                subEntityDatasetId,
+                                UUID.randomUUID()
+                            )
+                        );
                     }
-
-                    createdObservationUnits = observationUnitDAO.createBrAPIObservationUnits(subObsUnits, program.getId());
-
-                    DatasetMetadata subEntityDatasetMetadata = DatasetMetadata.builder()
-                            .id(subEntityDatasetId)
-                            .name(datasetName)
-                            .level(DatasetLevel.SUB_OBS_UNIT)
-                            .build();
-
-                    // Refresh experiment so we merge with the latest dataset metadata and avoid clobbering concurrent updates.
-                    BrAPITrial latestExperiment = getExperiment(program, experimentId);
-                    List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(latestExperiment.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS));
-                    if (datasets.stream().anyMatch(dataset -> dataset.getName().equalsIgnoreCase(datasetName))) {
-                        throw new AlreadyExistsException("Dataset name already exists in this experiment");
-                    }
-                    datasets.add(subEntityDatasetMetadata);
-                    latestExperiment.getAdditionalInfo().add(BrAPIAdditionalInfoFields.DATASETS, DatasetUtil.jsonArrayFromDatasets(datasets));
-                    trialDAO.updateBrAPITrial(latestExperiment.getTrialDbId(), latestExperiment, program.getId());
-
-                    return getDatasetData(program, experimentId, subEntityDatasetId, false);
-                } catch (Exception e) {
-                    rollbackSubEntityDataset(program, datasetName, createdObservationUnits, createdObservationLevel, createdObservationLevelDbId);
-                    throw e;
                 }
+
+                observationUnitDAO.createBrAPIObservationUnits(subObsUnits, program.getId());
+
+                DatasetMetadata subEntityDatasetMetadata = DatasetMetadata.builder()
+                        .id(subEntityDatasetId)
+                        .name(datasetName)
+                        .level(DatasetLevel.SUB_OBS_UNIT)
+                        .build();
+
+                // Refresh experiment so we merge with the latest dataset metadata and avoid clobbering concurrent updates.
+                BrAPITrial latestExperiment = getExperiment(program, experimentId);
+                List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(latestExperiment.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS));
+                if (datasets.stream().anyMatch(dataset -> dataset.getName().equalsIgnoreCase(datasetName))) {
+                    throw new AlreadyExistsException("Dataset name already exists in this experiment");
+                }
+                datasets.add(subEntityDatasetMetadata);
+                latestExperiment.getAdditionalInfo().add(BrAPIAdditionalInfoFields.DATASETS, DatasetUtil.jsonArrayFromDatasets(datasets));
+                trialDAO.updateBrAPITrial(latestExperiment.getTrialDbId(), latestExperiment, program.getId());
+
+                return getDatasetData(program, experimentId, subEntityDatasetId, false);
             });
         } catch (TimeoutException e) {
             throw new CreationBusyException("Dataset creation is busy, please retry");
@@ -493,31 +498,6 @@ public class BrAPITrialService {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException("Unexpected error creating sub-entity dataset", e);
-        }
-    }
-
-    private void rollbackSubEntityDataset(Program program, String datasetName, List<BrAPIObservationUnit> createdObservationUnits, boolean createdObservationLevel, String createdObservationLevelDbId) {
-        if (createdObservationUnits != null && !createdObservationUnits.isEmpty()) {
-            try {
-                List<String> observationUnitDbIds = createdObservationUnits.stream()
-                        .map(BrAPIObservationUnit::getObservationUnitDbId)
-                        .filter(StringUtils::isNotBlank)
-                        .collect(Collectors.toList());
-                observationUnitDAO.deleteObservationUnits(observationUnitDbIds, program.getId());
-            } catch (Exception err) {
-                log.warn("Failed to delete observation units for dataset {} during rollback", datasetName, err);
-            }
-        }
-        if (createdObservationLevel) {
-            try {
-                if (StringUtils.isNotBlank(createdObservationLevelDbId)) {
-                    observationLevelDAO.deleteObservationLevelName(program, createdObservationLevelDbId);
-                } else {
-                    log.warn("Observation level id missing for dataset {} rollback; skipping level delete", datasetName);
-                }
-            } catch (Exception err) {
-                log.warn("Failed to delete observation level {} during rollback", createdObservationLevelDbId, err);
-            }
         }
     }
 
