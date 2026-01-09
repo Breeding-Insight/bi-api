@@ -587,6 +587,9 @@ public class BrAPITrialService {
             observationUnit.setTreatments(treatmentFactors);
         }
 
+        // Put level in additional info: keep this in case we decide to rename levels in future.
+        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, subEntityDatasetName);
+
         // Put RTK in additional info.
         JsonElement rtk = expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.RTK);
         if (rtk != null) {
@@ -638,7 +641,7 @@ public class BrAPITrialService {
         }
         // ObservationLevelRelationships for top-level Exp Unit linking.
         BrAPIObservationUnitLevelRelationship expUnitLevel = new BrAPIObservationUnitLevelRelationship();
-        expUnitLevel.setLevelName(requireObservationLevelName(expUnit));
+        expUnitLevel.setLevelName(expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
         String expUnitUUID = Utilities.getExternalReference(expUnit.getExternalReferences(), referenceSource, ExternalReferenceSource.OBSERVATION_UNITS).orElseThrow().getReferenceId();
         expUnitLevel.setLevelCode(Utilities.appendProgramKey(expUnitUUID, program.getKey(), seqVal));
         expUnitLevel.setLevelOrder(DatasetLevel.EXP_UNIT.getValue());
