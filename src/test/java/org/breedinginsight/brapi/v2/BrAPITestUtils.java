@@ -308,7 +308,7 @@ public class BrAPITestUtils {
         row.put(ExperimentObservation.Columns.GERMPLASM_GID, "1");
         row.put(ExperimentObservation.Columns.TEST_CHECK, "T");
         row.put(ExperimentObservation.Columns.EXP_TITLE, expTitle);
-        row.put(ExperimentObservation.Columns.EXP_UNIT, "Plot");
+        row.put(ExperimentObservation.Columns.EXP_UNIT, "plot");
         row.put(ExperimentObservation.Columns.EXP_TYPE, "Phenotyping");
         row.put(ExperimentObservation.Columns.ENV, environment);
         row.put(ExperimentObservation.Columns.ENV_LOCATION, "Location A");

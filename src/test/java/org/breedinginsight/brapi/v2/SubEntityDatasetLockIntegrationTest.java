@@ -1,10 +1,6 @@
 package org.breedinginsight.brapi.v2;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -26,8 +22,7 @@ import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -67,13 +62,17 @@ public class SubEntityDatasetLockIntegrationTest extends BrAPITest {
 
         Callable<HttpStatus> call = () -> {
             start.await(1, TimeUnit.SECONDS);
-            Flowable<HttpResponse<String>> response = client.exchange(
-                    HttpRequest.POST(String.format("/programs/%s/experiments/%s/dataset", program.getId(), experimentId), request.toString())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .bearerAuth("test-registered-user"),
-                    String.class
-            );
-            return response.blockingFirst().getStatus();
+            try {
+                Flowable<HttpResponse<String>> response = client.exchange(
+                        HttpRequest.POST(String.format("/programs/%s/experiments/%s/dataset", program.getId(), experimentId), request.toString())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bearerAuth("test-registered-user"),
+                        String.class
+                );
+                return response.blockingFirst().getStatus();
+            } catch (io.micronaut.http.client.exceptions.HttpClientResponseException e) {
+                return e.getStatus();
+            }
         };
 
         Future<HttpStatus> first = executor.submit(call);
@@ -96,12 +95,14 @@ public class SubEntityDatasetLockIntegrationTest extends BrAPITest {
         );
         HttpResponse<String> datasetsResponse = datasetsCall.blockingFirst();
         assertEquals(HttpStatus.OK, datasetsResponse.getStatus());
-        var datasetsJson = JsonParser.parseString(Objects.requireNonNull(datasetsResponse.body())).getAsJsonObject()
-                .getAsJsonObject("result")
-                .getAsJsonArray("data");
+        JsonObject parsed = JsonParser.parseString(Objects.requireNonNull(datasetsResponse.body())).getAsJsonObject();
+        JsonArray resultArray = parsed.has("result") && parsed.get("result").isJsonArray()
+                ? parsed.getAsJsonArray("result")
+                : null;
         long matching = 0;
-        for (int i = 0; i < datasetsJson.size(); i++) {
-            String name = datasetsJson.get(i).getAsJsonObject().get("name").getAsString();
+        assertNotEquals(null, resultArray);
+        for (int i = 0; i < resultArray.size(); i++) {
+            String name = resultArray.get(i).getAsJsonObject().get("name").getAsString();
             if (name.equalsIgnoreCase(datasetName)) {
                 matching++;
             }
