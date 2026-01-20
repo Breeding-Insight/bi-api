@@ -17,11 +17,9 @@
 
 package org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow;
 
-import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
@@ -35,7 +33,6 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistic
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
 import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
-import org.breedinginsight.brapps.importer.model.workflow.Workflow;
 import org.breedinginsight.brapps.importer.services.ImportStatusService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
@@ -49,7 +46,6 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.servic
 import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import java.util.*;
 
 import lombok.Getter;
@@ -106,8 +102,7 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
         statusService.updateMessage(upload, "Checking existing experiment objects in brapi service and mapping data");
 
         ProcessedPhenotypeData phenotypeData = experimentPhenotypeService.extractPhenotypes(context);
-        // TODO: eliminate or modify unnecessary populateExistingPIO step as it relies on the user supplying existing observation unit ids
-        ProcessContext processContext = populateExistingPendingImportObjectsStep.process(context, phenotypeData);
+        ProcessContext processContext = populateExistingPendingImportObjectsStep.process(context);
         populateNewPendingImportObjectsStep.process(processContext, phenotypeData);
         ValidationErrors validationErrors = validatePendingImportObjectsStep.process(context, processContext.getPendingData(), phenotypeData, processedData);
 
