@@ -1,4 +1,4 @@
-/*
+    /*
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership.
  *
@@ -517,7 +517,7 @@ public class PopulateNewPendingImportObjectsStep {
         String key = ExperimentUtilities.createObservationUnitKey(importRow);
         // NOTE: removed other workflow
 
-        if (observationUnitByNameNoScope.containsKey(key)) {
+        if (observationUnitByNameNoScope!=null && observationUnitByNameNoScope.containsKey(key)) {
             pio = observationUnitByNameNoScope.get(key);
         } else {
             String germplasmName = "";
@@ -551,6 +551,9 @@ public class PopulateNewPendingImportObjectsStep {
                 }
             } else {
                 pio = new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit, id);
+            }
+            if(observationUnitByNameNoScope==null){
+                observationUnitByNameNoScope = new HashMap<>();
             }
             observationUnitByNameNoScope.put(key, pio);
         }
