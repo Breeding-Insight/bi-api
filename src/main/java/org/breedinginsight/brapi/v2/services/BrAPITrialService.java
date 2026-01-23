@@ -656,29 +656,6 @@ public class BrAPITrialService {
         return observationUnit;
     }
 
-    private String getObservationLevelName(BrAPIObservationUnit observationUnit) {
-        if (observationUnit.getObservationUnitPosition() != null
-                && observationUnit.getObservationUnitPosition().getObservationLevel() != null
-                && StringUtils.isNotBlank(observationUnit.getObservationUnitPosition().getObservationLevel().getLevelName())) {
-            return observationUnit.getObservationUnitPosition().getObservationLevel().getLevelName();
-        }
-        JsonObject additionalInfo = observationUnit.getAdditionalInfo();
-        if (additionalInfo != null
-                && additionalInfo.has(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL)
-                && !additionalInfo.get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).isJsonNull()) {
-            return additionalInfo.get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
-        }
-        return null;
-    }
-
-    private String requireObservationLevelName(BrAPIObservationUnit observationUnit) {
-        String levelName = getObservationLevelName(observationUnit);
-        if (StringUtils.isBlank(levelName)) {
-            throw new RuntimeException("Observation level not found for observation unit " + observationUnit.getObservationUnitDbId());
-        }
-        return levelName;
-    }
-
     private void addBrAPIObsToRecords(
             List<BrAPIObservation> dataset,
             BrAPITrial experiment,
@@ -906,7 +883,7 @@ public class BrAPITrialService {
         }
 
         //Append observation level to obsUnitID
-        String observationLvl = requireObservationLevelName(ou);
+        String observationLvl = ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
         row.put(observationLvl + " " + OBSERVATION_UNIT_ID_SUFFIX, ouId);
 
         if (isSubEntity) {
