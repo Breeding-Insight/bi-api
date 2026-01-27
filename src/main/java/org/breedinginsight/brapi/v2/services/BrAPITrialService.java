@@ -433,14 +433,14 @@ public class BrAPITrialService {
      * deleting observation units. Will need to add batch delete support for observation units before this
      * can be done.
      *
-     * @param program
-     * @param experimentId
-     * @param request
-     * @return
-     * @throws ApiException
-     * @throws DoesNotExistException
-     * @throws AlreadyExistsException
-     * @throws CreationBusyException
+     * @param program program object representing the program that the datasets belong to
+     * @param experimentId id of the experiment that the datasets are associated with
+     * @param request request body containing dataset name and repeated-measure count
+     * @return dataset metadata and data for the newly created sub-entity dataset
+     * @throws ApiException if the BrAPI server rejects a create request
+     * @throws DoesNotExistException if the experiment or required BrAPI entities are missing
+     * @throws AlreadyExistsException if a dataset with the requested name already exists in the experiment
+     * @throws CreationBusyException if the dataset creation lock cannot be acquired in time
      */
     public Dataset createSubEntityDataset(Program program, UUID experimentId, SubEntityDatasetRequest request)
             throws ApiException, DoesNotExistException, AlreadyExistsException, CreationBusyException {
