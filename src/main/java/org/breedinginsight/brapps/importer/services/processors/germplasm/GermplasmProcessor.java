@@ -91,7 +91,7 @@ public class GermplasmProcessor implements Processor {
 
     public static String missingGIDsMsg = "The following GIDs were not found in the database: %s";
     public static String missingParentalGIDsMsg = "The following parental GIDs were not found in the database: %s";
-    public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the database: %s";
+    public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the file: %s";
     public static String badBreedMethodsMsg = "Invalid breeding method";
     public static String badGermplasmNameMsg = "Germplasm name cannot contain /";
     public static String missingEntryNumbersMsg = "Either all or none of the germplasm must have entry numbers";
@@ -137,14 +137,17 @@ public class GermplasmProcessor implements Processor {
             BrAPIImport germplasmImport = importRows.get(i);
             Germplasm germplasm = germplasmImport.getGermplasm();
             if (germplasm != null) {
-
+                //Ignore this if germplasm already has a pedigree in the database
                 // Retrieve parent accession numbers to assess if already in db
-                if (germplasm.getFemaleParentAccessionNumber() != null) {
-                    germplasmAccessionNumbers.put(germplasm.getFemaleParentAccessionNumber(), true);
+                if (!databaseGermplasmHasPedigree(germplasm)) {
+                    if (germplasm.getFemaleParentAccessionNumber() != null) {
+                        germplasmAccessionNumbers.put(germplasm.getFemaleParentAccessionNumber(), true);
+                    }
+                    if (germplasm.getMaleParentAccessionNumber() != null) {
+                        germplasmAccessionNumbers.put(germplasm.getMaleParentAccessionNumber(), true);
+                    }
                 }
-                if (germplasm.getMaleParentAccessionNumber() != null) {
-                    germplasmAccessionNumbers.put(germplasm.getMaleParentAccessionNumber(), true);
-                }
+
                 if (germplasm.getAccessionNumber() != null) {
                     germplasmAccessionNumbers.put(germplasm.getAccessionNumber(), false);
                 }
@@ -223,27 +226,31 @@ public class GermplasmProcessor implements Processor {
                                                         arrayOfStringFormatter.apply(missingAccessionNumbers)));
         }
 
-        List<String> missingEntryNumbers = new ArrayList<>();
-        for (BrAPIImport importRow: importRows) {
-            Germplasm germplasm = importRow.getGermplasm();
-            // Check Female Parent
-            if (germplasm.getFemaleParentEntryNo() != null) {
-                if ((!germplasmIndexByEntryNo.containsKey(germplasm.getFemaleParentEntryNo())) && !(germplasm.getFemaleParentEntryNo().equals("0"))) {
-                    missingEntryNumbers.add(germplasm.getFemaleParentEntryNo());
+            List<String> missingEntryNumbers = new ArrayList<>();
+            for (BrAPIImport importRow : importRows) {
+                Germplasm germplasm = importRow.getGermplasm();
+
+                //If germplasm already has a pedigree, pedigree cannot be overwritten and file values for pedigree will be ignored
+                boolean pedigreeExists = databaseGermplasmHasPedigree(germplasm);
+
+                // Check Female Parent
+                if (germplasm.getFemaleParentEntryNo() != null && !pedigreeExists) {
+                    if ((!germplasmIndexByEntryNo.containsKey(germplasm.getFemaleParentEntryNo())) && !(germplasm.getFemaleParentEntryNo().equals("0"))) {
+                        missingEntryNumbers.add(germplasm.getFemaleParentEntryNo());
+                    }
+                }
+                // Check Male Parent
+                if (germplasm.getMaleParentEntryNo() != null && !pedigreeExists) {
+                    if ((!germplasmIndexByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) && !(germplasm.getMaleParentEntryNo().equals("0"))) {
+                        missingEntryNumbers.add(germplasm.getMaleParentEntryNo());
+                    }
                 }
             }
-            // Check Male Parent
-            if (germplasm.getMaleParentEntryNo() != null) {
-                if ((!germplasmIndexByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) && !(germplasm.getMaleParentEntryNo().equals("0"))) {
-                    missingEntryNumbers.add(germplasm.getMaleParentEntryNo());
-                }
+            if (missingEntryNumbers.size() > 0) {
+                throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        String.format(missingParentalEntryNoMsg,
+                                arrayOfStringFormatter.apply(missingEntryNumbers)));
             }
-        }
-        if (missingEntryNumbers.size() > 0) {
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                                          String.format(missingParentalEntryNoMsg,
-                                                        arrayOfStringFormatter.apply(missingEntryNumbers)));
-        }
 
         if (listNameDup) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, listNameAlreadyExists);
@@ -405,21 +412,8 @@ public class GermplasmProcessor implements Processor {
             return false;
         }
 
-        // Error conditions:
-        // has existing pedigree and file pedigree is different and not empty
-        // Valid conditions:
-        // no existing pedigree and file different pedigree
-        // existing pedigree and file pedigree same
-        // existing pedigree and file pedigree empty
-        if(hasPedigree(existingGermplasm) && germplasm.pedigreeExists()) {
-            if(!arePedigreesEqual(existingGermplasm, germplasm, importRows)) {
-                ValidationError ve = new ValidationError("Pedigree", pedigreeAlreadyExists, HttpStatus.UNPROCESSABLE_ENTITY);
-                validationErrors.addError(rowIndex + 2, ve);  // +2 instead of +1 to account for the column header row.
-                return false;
-            }
-        }
-
         // if no existing pedigree and file has pedigree then validate and update
+        // if pedigree exists, file pedigree information should be ignored
         if(germplasm.pedigreeExists() && !hasPedigree(existingGermplasm)) {
             validatePedigree(germplasm, rowIndex + 2, validationErrors);
             updatePedigree = true;
@@ -458,6 +452,16 @@ public class GermplasmProcessor implements Processor {
                     germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN).getAsBoolean())
                 || (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN) &&
                     germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN).getAsBoolean());
+    }
+
+    //Used to check if germplasm already has a pedigree in the database, if so, pedigree information in file should be ignored
+    private boolean databaseGermplasmHasPedigree(Germplasm germplasm) {
+        if (germplasm.getAccessionNumber() == null || dbGermplasmByAccessionNo.get(germplasm.getAccessionNumber()) == null) {
+            return false;
+        } else {
+            BrAPIGermplasm dbGermplasm = dbGermplasmByAccessionNo.get(germplasm.getAccessionNumber());
+            return hasPedigree(dbGermplasm);
+        }
     }
 
     /**
@@ -793,6 +797,8 @@ public class GermplasmProcessor implements Processor {
                 if (commit) {
                     if (femaleParentFound) {
                         brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, femaleParent.getAccessionNumber());
+                        //entry number no longer needed for figuring out parentage, can remove (since same germplasm can have different entry numbers across multiple lists)
+                        brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO, null);
                         // Add femaleParentUUID to additionalInfo.
                         Optional<BrAPIExternalReference> femaleParentUUID = Utilities.getExternalReference(femaleParent.getExternalReferences(), BRAPI_REFERENCE_SOURCE);
                         if (femaleParentUUID.isPresent()) {
@@ -802,6 +808,8 @@ public class GermplasmProcessor implements Processor {
 
                     if (maleParent != null) {
                         brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, maleParent.getAccessionNumber());
+                        //entry number no longer needed for figuring out parentage, can remove (since same germplasm can have different entry numbers across multiple lists)
+                        brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_ENTRY_NO, null);
                         // Add maleParentUUID to additionalInfo.
                         Optional<BrAPIExternalReference> maleParentUUID = Utilities.getExternalReference(maleParent.getExternalReferences(), BRAPI_REFERENCE_SOURCE);
                         if (maleParentUUID.isPresent()) {
