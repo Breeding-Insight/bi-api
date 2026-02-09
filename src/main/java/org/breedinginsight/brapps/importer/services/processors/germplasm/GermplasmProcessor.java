@@ -137,17 +137,6 @@ public class GermplasmProcessor implements Processor {
             BrAPIImport germplasmImport = importRows.get(i);
             Germplasm germplasm = germplasmImport.getGermplasm();
             if (germplasm != null) {
-                //Ignore this if germplasm already has a pedigree in the database
-                // Retrieve parent accession numbers to assess if already in db
-                if (!databaseGermplasmHasPedigree(germplasm)) {
-                    if (germplasm.getFemaleParentAccessionNumber() != null) {
-                        germplasmAccessionNumbers.put(germplasm.getFemaleParentAccessionNumber(), true);
-                    }
-                    if (germplasm.getMaleParentAccessionNumber() != null) {
-                        germplasmAccessionNumbers.put(germplasm.getMaleParentAccessionNumber(), true);
-                    }
-                }
-
                 if (germplasm.getAccessionNumber() != null) {
                     germplasmAccessionNumbers.put(germplasm.getAccessionNumber(), false);
                 }
@@ -159,6 +148,31 @@ public class GermplasmProcessor implements Processor {
 
                 Integer count = fileGermplasmByName.getOrDefault(germplasm.getGermplasmName(), 0);
                 fileGermplasmByName.put(germplasm.getGermplasmName(), count+1);
+            }
+        }
+
+        // Get existing germplasm names
+        List<BrAPIGermplasm> dbGermplasm = brAPIGermplasmService.getGermplasmByDisplayName(new ArrayList<>(fileGermplasmByName.keySet()), program.getId());
+        dbGermplasm.forEach(germplasm -> {
+            dbGermplasmByName.put(germplasm.getDefaultDisplayName(), germplasm);
+            dbGermplasmByAccessionNo.put(germplasm.getAccessionNumber(), germplasm);
+        });
+
+        // Get parental accession nos in file
+        for (int i = 0; i < importRows.size(); i++) {
+            BrAPIImport germplasmImport = importRows.get(i);
+            Germplasm germplasm = germplasmImport.getGermplasm();
+            if (germplasm != null) {
+                //Ignore this if germplasm already has a pedigree in the database
+                // Retrieve parent accession numbers to assess if already in db
+                if (!databaseGermplasmHasPedigree(germplasm)) {
+                    if (germplasm.getFemaleParentAccessionNumber() != null) {
+                        germplasmAccessionNumbers.put(germplasm.getFemaleParentAccessionNumber(), true);
+                    }
+                    if (germplasm.getMaleParentAccessionNumber() != null) {
+                        germplasmAccessionNumbers.put(germplasm.getMaleParentAccessionNumber(), true);
+                    }
+                }
             }
         }
 
@@ -183,13 +197,6 @@ public class GermplasmProcessor implements Processor {
                 throw new InternalServerException(e.toString(), e);
             }
         }
-
-        // Get existing germplasm names
-        List<BrAPIGermplasm> dbGermplasm = brAPIGermplasmService.getGermplasmByDisplayName(new ArrayList<>(fileGermplasmByName.keySet()), program.getId());
-        dbGermplasm.forEach(germplasm -> {
-            dbGermplasmByName.put(germplasm.getDefaultDisplayName(), germplasm);
-            dbGermplasmByAccessionNo.put(germplasm.getAccessionNumber(), germplasm);
-        });
 
         // Check for existing germplasm lists
         Boolean listNameDup = false;
