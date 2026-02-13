@@ -176,7 +176,6 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         try {
             if (!brAPIObservationUnitList.isEmpty()) {
                 Callable<Map<String, BrAPIObservationUnit>> postFunction = () -> {
-                    preprocessObservationUnits(brAPIObservationUnitList);
                     List<BrAPIObservationUnit> ous = brAPIDAOUtil.post(brAPIObservationUnitList, upload, api::observationunitsPost, importDAO::update);
                     return processObservationUnitsForCache(ous, program, false);
                 };
@@ -198,7 +197,6 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         try {
             if (!brAPIObservationUnitList.isEmpty()) {
                 Callable<Map<String, BrAPIObservationUnit>> postFunction = () -> {
-                    preprocessObservationUnits(brAPIObservationUnitList);
                     List<BrAPIObservationUnit> ous = brAPIDAOUtil.post(brAPIObservationUnitList, api::observationunitsPost);
                     return processObservationUnitsForCache(ous, program, false);
                 };
@@ -429,16 +427,6 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
                         .setLevelCode(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitPosition()
                                 .getObservationLevel()
                                 .getLevelCode(), program.getKey()));
-            }
-        }
-    }
-
-    private void preprocessObservationUnits(List<BrAPIObservationUnit> brapiObservationUnits) {
-        // add treatments to additional info
-        for (BrAPIObservationUnit obsUnit : brapiObservationUnits) {
-            List<BrAPIObservationTreatment> treatments = obsUnit.getTreatments();
-            if (treatments != null) {
-                obsUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.TREATMENTS, treatments);
             }
         }
     }
