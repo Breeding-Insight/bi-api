@@ -385,15 +385,9 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
             this.germplasmService.getGermplasm(program.getId()).forEach((germplasm -> germplasmByDbId.put(germplasm.getGermplasmDbId(), germplasm)));
         }
 
-        // if has treatments in additionalInfo, copy to treatments property
         for (BrAPIObservationUnit ou : brapiObservationUnits) {
             JsonObject additionalInfo = ou.getAdditionalInfo();
             if (additionalInfo != null) {
-                JsonElement treatmentsElement = additionalInfo.get(BrAPIAdditionalInfoFields.TREATMENTS);
-                if (treatmentsElement != null) {
-                    List<BrAPIObservationTreatment> treatments = gson.fromJson(treatmentsElement, treatmentlistType);
-                    ou.setTreatments(treatments);
-                }
                 if( withGID ){
 					BrAPIGermplasm germplasm = germplasmByDbId.get(ou.getGermplasmDbId());
                 	ou.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GID, germplasm.getAccessionNumber());
