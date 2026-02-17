@@ -176,7 +176,6 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         try {
             if (!brAPIObservationUnitList.isEmpty()) {
                 Callable<Map<String, BrAPIObservationUnit>> postFunction = () -> {
-                    preprocessObservationUnits(brAPIObservationUnitList);
                     List<BrAPIObservationUnit> ous = brAPIDAOUtil.post(brAPIObservationUnitList, upload, api::observationunitsPost, importDAO::update);
                     return processObservationUnitsForCache(ous, program, false);
                 };
@@ -198,7 +197,6 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         try {
             if (!brAPIObservationUnitList.isEmpty()) {
                 Callable<Map<String, BrAPIObservationUnit>> postFunction = () -> {
-                    preprocessObservationUnits(brAPIObservationUnitList);
                     List<BrAPIObservationUnit> ous = brAPIDAOUtil.post(brAPIObservationUnitList, api::observationunitsPost);
                     return processObservationUnitsForCache(ous, program, false);
                 };
@@ -387,15 +385,9 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
             this.germplasmService.getGermplasm(program.getId()).forEach((germplasm -> germplasmByDbId.put(germplasm.getGermplasmDbId(), germplasm)));
         }
 
-        // if has treatments in additionalInfo, copy to treatments property
         for (BrAPIObservationUnit ou : brapiObservationUnits) {
             JsonObject additionalInfo = ou.getAdditionalInfo();
             if (additionalInfo != null) {
-                JsonElement treatmentsElement = additionalInfo.get(BrAPIAdditionalInfoFields.TREATMENTS);
-                if (treatmentsElement != null) {
-                    List<BrAPIObservationTreatment> treatments = gson.fromJson(treatmentsElement, treatmentlistType);
-                    ou.setTreatments(treatments);
-                }
                 if( withGID ){
 					BrAPIGermplasm germplasm = germplasmByDbId.get(ou.getGermplasmDbId());
                 	ou.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GID, germplasm.getAccessionNumber());
@@ -429,16 +421,6 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
                         .setLevelCode(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitPosition()
                                 .getObservationLevel()
                                 .getLevelCode(), program.getKey()));
-            }
-        }
-    }
-
-    private void preprocessObservationUnits(List<BrAPIObservationUnit> brapiObservationUnits) {
-        // add treatments to additional info
-        for (BrAPIObservationUnit obsUnit : brapiObservationUnits) {
-            List<BrAPIObservationTreatment> treatments = obsUnit.getTreatments();
-            if (treatments != null) {
-                obsUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.TREATMENTS, treatments);
             }
         }
     }
