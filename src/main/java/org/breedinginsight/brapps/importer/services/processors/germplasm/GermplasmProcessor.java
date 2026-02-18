@@ -163,16 +163,13 @@ public class GermplasmProcessor implements Processor {
             BrAPIImport germplasmImport = importRows.get(i);
             Germplasm germplasm = germplasmImport.getGermplasm();
             if (germplasm != null) {
-                //Ignore this if germplasm already has a pedigree in the database
                 // Retrieve parent accession numbers to assess if already in db
-                if (!databaseGermplasmHasPedigree(germplasm)) {
                     if (germplasm.getFemaleParentAccessionNumber() != null) {
                         germplasmAccessionNumbers.put(germplasm.getFemaleParentAccessionNumber(), true);
                     }
                     if (germplasm.getMaleParentAccessionNumber() != null) {
                         germplasmAccessionNumbers.put(germplasm.getMaleParentAccessionNumber(), true);
                     }
-                }
             }
         }
 
@@ -237,17 +234,14 @@ public class GermplasmProcessor implements Processor {
             for (BrAPIImport importRow : importRows) {
                 Germplasm germplasm = importRow.getGermplasm();
 
-                //If germplasm already has a pedigree, pedigree cannot be overwritten and file values for pedigree will be ignored
-                boolean pedigreeExists = databaseGermplasmHasPedigree(germplasm);
-
                 // Check Female Parent
-                if (germplasm.getFemaleParentEntryNo() != null && !pedigreeExists) {
+                if (germplasm.getFemaleParentEntryNo() != null) {
                     if ((!germplasmIndexByEntryNo.containsKey(germplasm.getFemaleParentEntryNo())) && !(germplasm.getFemaleParentEntryNo().equals("0"))) {
                         missingEntryNumbers.add(germplasm.getFemaleParentEntryNo());
                     }
                 }
                 // Check Male Parent
-                if (germplasm.getMaleParentEntryNo() != null && !pedigreeExists) {
+                if (germplasm.getMaleParentEntryNo() != null) {
                     if ((!germplasmIndexByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) && !(germplasm.getMaleParentEntryNo().equals("0"))) {
                         missingEntryNumbers.add(germplasm.getMaleParentEntryNo());
                     }
@@ -474,7 +468,7 @@ public class GermplasmProcessor implements Processor {
                     germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN).getAsBoolean());
     }
 
-    //Used to check if germplasm already has a pedigree in the database, if so, pedigree information in file should be ignored
+    //Used to check if germplasm already has a pedigree in the database
     private boolean databaseGermplasmHasPedigree(Germplasm germplasm) {
         if (germplasm.getAccessionNumber() == null || dbGermplasmByAccessionNo.get(germplasm.getAccessionNumber()) == null) {
             return false;
