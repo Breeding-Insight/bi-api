@@ -419,8 +419,21 @@ public class GermplasmProcessor implements Processor {
             return false;
         }
 
+        // Error conditions:
+        // has existing pedigree and file pedigree is different and not empty
+        // Valid conditions:
+        // no existing pedigree and file different pedigree
+        // existing pedigree and file pedigree same
+        // existing pedigree and file pedigree empty
+        if(hasPedigree(existingGermplasm) && germplasm.pedigreeExists()) {
+            if(!arePedigreesEqual(existingGermplasm, germplasm, importRows)) {
+                ValidationError ve = new ValidationError("Pedigree", pedigreeAlreadyExists, HttpStatus.UNPROCESSABLE_ENTITY);
+                validationErrors.addError(rowIndex + 2, ve);  // +2 instead of +1 to account for the column header row.
+                return false;
+            }
+        }
+
         // if no existing pedigree and file has pedigree then validate and update
-        // if pedigree exists, file pedigree information should be ignored
         if(germplasm.pedigreeExists() && !hasPedigree(existingGermplasm)) {
             validatePedigree(germplasm, rowIndex + 2, validationErrors);
             updatePedigree = true;
