@@ -31,7 +31,7 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
-import junit.framework.AssertionFailedError;
+import org.opentest4j.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.TestUtils;
@@ -45,7 +45,7 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.utilities.email.EmailUtil;
 import org.jooq.DSLContext;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.*;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -335,7 +335,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
             assertEquals(validSystemRole.getId().toString(), adminRole.get("id").getAsString(), "Inserted role id doesn't match what was passed.");
 
         } catch (IllegalStateException e) {
-            Assert.fail(e.getMessage());
+            Assertions.fail(e.getMessage());
         }
     }
 
@@ -371,7 +371,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
             testUserUUID = result.get("id").getAsString();
 
         } catch (IllegalStateException e) {
-            Assert.fail(e.getMessage());
+            Assertions.fail(e.getMessage());
         }
     }
 
@@ -450,7 +450,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
 
 
         } catch (IllegalStateException e) {
-            Assert.fail(e.getMessage());
+            Assertions.fail(e.getMessage());
         }
     }
 
