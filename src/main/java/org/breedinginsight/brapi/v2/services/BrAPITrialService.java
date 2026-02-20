@@ -465,9 +465,11 @@ public class BrAPITrialService {
 
                 String programDbId = program.getBrapiProgram() != null ? program.getBrapiProgram().getProgramDbId() : null;
                 HttpResponse<String> levelResponse = observationLevelDAO.createObservationLevelName(program, datasetName, DatasetLevel.SUB_OBS_UNIT, programDbId);
-                if (levelResponse.getStatus() == HttpStatus.CONFLICT) {
-                    throw new AlreadyExistsException("Dataset name already exists in this experiment");
-                } else if (levelResponse.getStatus().getCode() < 200 || levelResponse.getStatus().getCode() >= 300) {
+
+                // 409 and 200 are expected response codes, anything else error out
+                // 409 means level already exists so we just use the name in OUs
+                // 200 means level was created successfully and can use the name in OUs
+                if (levelResponse.getStatus() != HttpStatus.CONFLICT && levelResponse.getStatus() != HttpStatus.OK) {
                     throw new ApiException(levelResponse.getStatus().getCode(), "Unable to create observation level: " + levelResponse.getStatus().getReason());
                 }
 
