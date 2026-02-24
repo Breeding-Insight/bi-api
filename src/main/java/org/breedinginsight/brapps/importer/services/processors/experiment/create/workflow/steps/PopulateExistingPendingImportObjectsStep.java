@@ -103,6 +103,7 @@ public class PopulateExistingPendingImportObjectsStep {
         Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = initializeObsVarDatasetByName(program, experimentImportRows);
         Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = initializeExistingGermplasmByGID(program, experimentImportRows);
         Map<String, BrAPIObservation> existingObsByObsHash = new HashMap<>();
+        Map<String, String> expUnitByTrialName = new HashMap<>();
 
         PendingData existing = PendingData.builder()
                 .observationUnitByNameNoScope(observationUnitByNameNoScope)
@@ -113,6 +114,7 @@ public class PopulateExistingPendingImportObjectsStep {
                 .existingGermplasmByGID(existingGermplasmByGID)
                 .existingObsByObsHash(existingObsByObsHash)
                 .observationByHash(new HashMap<>())
+                .expUnitByTrialName(expUnitByTrialName)
                 .build();
 
         return ProcessContext.builder()

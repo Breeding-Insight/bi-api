@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps;
 
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
@@ -42,6 +43,7 @@ import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
+import org.breedinginsight.model.DatasetLevel;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.Trait;
@@ -72,6 +74,7 @@ public class CommitPendingImportObjectsStep {
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final ProgramLocationService locationService;
     private final OntologyService ontologyService;
+    private final BrAPIObservationLevelDAO brAPIObservationLevelDAO;
 
     @Inject
     public CommitPendingImportObjectsStep(BrAPIListDAO brAPIListDAO,
@@ -80,7 +83,8 @@ public class CommitPendingImportObjectsStep {
                                           BrAPIObservationDAO brAPIObservationDAO,
                                           BrAPIObservationUnitDAO brAPIObservationUnitDAO,
                                           ProgramLocationService locationService,
-                                          OntologyService ontologyService) {
+                                          OntologyService ontologyService,
+                                          BrAPIObservationLevelDAO brAPIObservationLevelDAO) {
         this.brAPIListDAO = brAPIListDAO;
         this.brapiTrialDAO = brapiTrialDAO;
         this.brAPIStudyDAO = brAPIStudyDAO;
@@ -88,6 +92,7 @@ public class CommitPendingImportObjectsStep {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.locationService = locationService;
         this.ontologyService = ontologyService;
+        this.brAPIObservationLevelDAO = brAPIObservationLevelDAO;
     }
 
     // TODO: some common code between workflows here that could be broken out, removed append/update specific code
@@ -106,6 +111,7 @@ public class CommitPendingImportObjectsStep {
         Map<String, PendingImportObject<ProgramLocation>> locationByName = pendingData.getLocationByName();
         Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = pendingData.getObservationUnitByNameNoScope();
         Map<String, PendingImportObject<BrAPIObservation>> observationByHash = pendingData.getObservationByHash();
+        Map<String, String> expUnitbyTrialName = pendingData.getExpUnitByTrialName();
 
         List<BrAPITrial> newTrials = ProcessorData.getNewObjects(pendingData.getTrialByNameNoScope());
 
@@ -170,6 +176,8 @@ public class CommitPendingImportObjectsStep {
                 trialByNameNoScope.get(createdTrialName)
                         .getBrAPIObject()
                         .setTrialDbId(createdTrial.getTrialDbId());
+
+                createObservationLevel(createdTrialName, expUnitbyTrialName, program);
             }
 
             List<ProgramLocation> createdLocations = new ArrayList<>(locationService.create(actingUser, program.getId(), newLocations));
@@ -241,6 +249,22 @@ public class CommitPendingImportObjectsStep {
 
         // NOTE: removed mutated observations code
 
+    }
+
+    //Check if the experimental unit associated with the trial does not exist in the system and if so create a new observation level
+    private void createObservationLevel(String trialName, Map<String, String> expUnitByTrialName, Program program) throws ApiException, InternalServerException {
+        String expUnit = expUnitByTrialName.get(trialName).toLowerCase();
+        String programDbId = program.getBrapiProgram() != null ? program.getBrapiProgram().getProgramDbId() : null;
+        HttpResponse<String> levelResponse = brAPIObservationLevelDAO.createObservationLevelName(program, expUnit, DatasetLevel.EXP_UNIT, programDbId);
+
+        if (levelResponse.getStatus().getCode() == 409) {
+            log.info(String.format("Level %s already exists in database", expUnit));
+        } else if (levelResponse.getStatus().getCode() == 200) {
+            log.info(String.format("Level %s created in database", expUnit));
+        } else {
+            log.error("Error saving experiment import: " + levelResponse.getStatus().getReason());
+            throw new InternalServerException("Unable to create observation level: " + levelResponse.getStatus().getReason());
+        }
     }
 
     private void updateStudyDependencyValues(PendingData pendingData, Map<Integer, PendingImport> mappedBrAPIImport, String programKey) {
