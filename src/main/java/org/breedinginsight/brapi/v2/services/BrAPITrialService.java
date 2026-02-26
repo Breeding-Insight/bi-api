@@ -304,7 +304,7 @@ public class BrAPITrialService {
                 log.debug(logHash + ": zipping files for export");
                 // Zip, as there are multiple files.
                 StreamedFile zipFile = zipFiles(files);
-                downloadFile = new DownloadFile(makeZipFileName(experiment, program), zipFile);
+                downloadFile = new DownloadFile(makeZipFileName(experiment, program, StringUtils.capitalize(observationLvl.toLowerCase())), zipFile);
             }
         } else {
             List<Map<String, Object>> exportRows = new ArrayList<>(rowByOUId.values());
@@ -964,12 +964,13 @@ public class BrAPITrialService {
         return Utilities.makePortableFilename(unsafeName);
     }
 
-    private String makeZipFileName(BrAPITrial experiment, Program program) {
+    private String makeZipFileName(BrAPITrial experiment, Program program, String datasetName) {
         // <exp-title_<export-timestamp>.zip
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_hh-mm-ssZ");
         String timestamp = formatter.format(OffsetDateTime.now());
-        String unsafeName = String.format("%s_%s.zip",
+        String unsafeName = String.format("%s_%s_%s.zip",
                 Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()),
+                datasetName,
                 timestamp);
         // Make file name safe for all platforms.
         return Utilities.makePortableFilename(unsafeName);
