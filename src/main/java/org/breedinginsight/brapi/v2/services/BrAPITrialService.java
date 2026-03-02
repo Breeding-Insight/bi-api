@@ -292,8 +292,7 @@ public class BrAPITrialService {
                 List<Map<String, Object>> rows = entry.getValue();
                 sortDefaultForExportRows(rows);
                 StreamedFile streamedFile = FileUtil.writeToStreamedFile(columns, rows, fileType, SHEET_NAME);
-                // TODO: [BI-2183] remove hardcoded datasetName, use observation level.
-                String name = makeFileName(experiment, program, studyByDbId.get(entry.getKey()).getStudyName(), "Observation Dataset") + fileType.getExtension();
+                String name = makeFileName(experiment, program, studyByDbId.get(entry.getKey()).getStudyName(), StringUtils.capitalize(observationLvl.toLowerCase())) + fileType.getExtension();
                 // Add to file list.
                 files.add(new DownloadFile(name, streamedFile));
             }
@@ -305,7 +304,7 @@ public class BrAPITrialService {
                 log.debug(logHash + ": zipping files for export");
                 // Zip, as there are multiple files.
                 StreamedFile zipFile = zipFiles(files);
-                downloadFile = new DownloadFile(makeZipFileName(experiment, program), zipFile);
+                downloadFile = new DownloadFile(makeZipFileName(experiment, program, StringUtils.capitalize(observationLvl.toLowerCase())), zipFile);
             }
         } else {
             List<Map<String, Object>> exportRows = new ArrayList<>(rowByOUId.values());
@@ -313,9 +312,8 @@ public class BrAPITrialService {
             // write export data to requested file format
             StreamedFile streamedFile = FileUtil.writeToStreamedFile(columns, exportRows, fileType, SHEET_NAME);
             // Set filename.
-            String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
-            // TODO: [BI-2183] remove hardcoded datasetName, use observation level.
-            String fileName = makeFileName(experiment, program, envFilenameFragment, "Observation Dataset") + fileType.getExtension();
+            String envFilenameFragment = params.getEnvironments() == null ? "All Env" : params.getEnvironments();
+            String fileName = makeFileName(experiment, program, envFilenameFragment, StringUtils.capitalize(observationLvl.toLowerCase())) + fileType.getExtension();
             downloadFile = new DownloadFile(fileName, streamedFile);
         }
 
@@ -966,12 +964,13 @@ public class BrAPITrialService {
         return Utilities.makePortableFilename(unsafeName);
     }
 
-    private String makeZipFileName(BrAPITrial experiment, Program program) {
+    private String makeZipFileName(BrAPITrial experiment, Program program, String datasetName) {
         // <exp-title_<export-timestamp>.zip
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_hh-mm-ssZ");
         String timestamp = formatter.format(OffsetDateTime.now());
-        String unsafeName = String.format("%s_%s.zip",
+        String unsafeName = String.format("%s_%s_%s.zip",
                 Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()),
+                datasetName,
                 timestamp);
         // Make file name safe for all platforms.
         return Utilities.makePortableFilename(unsafeName);
