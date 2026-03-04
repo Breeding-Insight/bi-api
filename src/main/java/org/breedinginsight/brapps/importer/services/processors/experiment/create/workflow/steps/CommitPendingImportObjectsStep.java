@@ -260,7 +260,7 @@ public class CommitPendingImportObjectsStep {
         if (levelResponse.getStatus().getCode() == 409) {
             log.info(String.format("Level with name=%s, order=%s, programDbId=%s already exists in database", expUnit, DatasetLevel.EXP_UNIT, programDbId));
         } else if (levelResponse.getStatus().getCode() == 200) {
-            log.info(String.format("Level %s created in database", expUnit));
+            log.info(String.format("Level with name=%s, order=%s, programDbId=%s created in database", expUnit, DatasetLevel.EXP_UNIT, programDbId));
         } else {
             log.error("Error saving experiment import: " + levelResponse.getStatus().getReason());
             throw new InternalServerException("Unable to create observation level: " + levelResponse.getStatus().getReason());
