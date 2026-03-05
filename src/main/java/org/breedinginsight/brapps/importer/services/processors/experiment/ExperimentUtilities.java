@@ -71,6 +71,7 @@ public class ExperimentUtilities {
     public static final String TIMESTAMP_REGEX = "^"+TIMESTAMP_PREFIX+"\\s*";
     public static final String MIDNIGHT = "T00:00:00-00:00";
     public static final String MULTIPLE_EXP_TITLES = "File contains more than one Experiment Title";
+    public static final String MULTIPLE_EXP_UNITS = "File contains more than one Exp Unit";
     public static final String PREEXISTING_EXPERIMENT_TITLE = "Experiment Title already exists";
     public static final String MISSING_OBS_UNIT_ID_ERROR = "Experimental entities are missing ObsUnitIDs";
     public static final String UNMATCHED_COLUMN = "Ontology term(s) not found: ";

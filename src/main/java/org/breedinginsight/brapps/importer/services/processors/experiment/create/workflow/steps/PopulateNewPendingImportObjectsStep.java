@@ -302,7 +302,9 @@ public class PopulateNewPendingImportObjectsStep {
         boolean commit = importContext.isCommit();
         Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = pendingData.getTrialByNameNoScope();
         Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = pendingData.getStudyByNameNoScope();
+        Map<String, String> expUnitByTrialName = pendingData.getExpUnitByTrialName();
 
+        //Experiment titles and environment checks
         if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
             PendingImportObject<BrAPIStudy> envPio;
             trialPio = trialByNameNoScope.get(importRow.getExpTitle());
@@ -325,6 +327,13 @@ public class PopulateNewPendingImportObjectsStep {
             trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
             // NOTE: moved up a level
             //trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
+        }
+
+        //Experiment unit duplicate check
+        if (expUnitByTrialName.get(importRow.getExpTitle()) == null) {
+            expUnitByTrialName.put(importRow.getExpTitle(), importRow.getExpUnit());
+        } else if (!expUnitByTrialName.get(importRow.getExpTitle()).equalsIgnoreCase(importRow.getExpUnit())) {
+            throw new UnprocessableEntityException(MULTIPLE_EXP_UNITS);
         }
 
         return trialPio;
