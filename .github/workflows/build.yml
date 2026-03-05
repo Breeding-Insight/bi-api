@@ -19,7 +19,7 @@ name: maven build
 
 on:
   pull_request:
-    types: [opened, edited]
+    types: [opened, synchronize, edited]
   workflow_dispatch:
     inputs:
       brapi_server_image:
