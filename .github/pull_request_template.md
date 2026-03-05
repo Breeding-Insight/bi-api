@@ -16,8 +16,6 @@ _Please include any details needed for reviewers to test this code_
 
 - [ ] I have performed a self-review of my own code
 - [ ] I have tested my code and ensured it meets the acceptance criteria of the story
-- [ ] I have tested that my code works with both the brapi-java-server and BreedBase
-- [ ] I have create/modified unit tests to cover this change
+- [ ] I have create/modified unit and/or integration tests to cover this change or tests are not applicable
 - [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to documentation
-- [ ] I have run TAF: _\<please include a link to TAF run>_
+- [ ] I have either updated the source of truth or arranged for update with product owner if needed https://breedinginsight.atlassian.net/wiki/spaces/BI/pages/1559953409/Source+of+Truth
