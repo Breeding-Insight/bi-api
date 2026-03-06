@@ -576,7 +576,7 @@ public class BrAPITrialService {
         }
 
         // Set treatment factors.
-        if (!expUnit.getTreatments().isEmpty()) {
+        if (!(expUnit.getTreatments() == null || expUnit.getTreatments().isEmpty())) {
             List<BrAPIObservationTreatment> treatmentFactors = new ArrayList<>();
             for (BrAPIObservationTreatment t : expUnit.getTreatments()) {
                 BrAPIObservationTreatment treatment = new BrAPIObservationTreatment();
