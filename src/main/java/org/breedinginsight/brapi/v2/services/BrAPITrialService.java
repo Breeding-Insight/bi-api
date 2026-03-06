@@ -878,7 +878,7 @@ public class BrAPITrialService {
         }
 
         //Append observation level to obsUnitID
-        String observationLvl = ou.getObservationUnitPosition().getObservationLevel().getLevelName();
+        String observationLvl = StringUtils.capitalize(ou.getObservationUnitPosition().getObservationLevel().getLevelName());
         row.put(observationLvl + " " + OBSERVATION_UNIT_ID_SUFFIX, ouId);
 
         if (isSubEntity) {
