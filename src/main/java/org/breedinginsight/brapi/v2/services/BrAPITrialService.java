@@ -891,13 +891,13 @@ public class BrAPITrialService {
                 String topLvlOuId = Utilities.removeProgramKeyAndUnknownAdditionalData(topLevel.getLevelCode(), program.getKey());
                 row.put(topLvlName + " " + OBSERVATION_UNIT_ID_SUFFIX, topLvlOuId);
             }
-            row.put(ExperimentObservation.Columns.EXP_UNIT_ID, getTopLevel(ou).getLevelName());
+            row.put(ExperimentObservation.Columns.EXP_UNIT_ID, StringUtils.capitalize(getTopLevel(ou).getLevelName()));
 
-            row.put(ExperimentObservation.Columns.SUB_OBS_UNIT, ou.getObservationUnitPosition().getObservationLevel().getLevelName());
+            row.put(ExperimentObservation.Columns.SUB_OBS_UNIT, StringUtils.capitalize(ou.getObservationUnitPosition().getObservationLevel().getLevelName()));
             row.put(ExperimentObservation.Columns.SUB_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
 
         } else {
-            row.put(ExperimentObservation.Columns.EXP_UNIT, ou.getObservationUnitPosition().getObservationLevel().getLevelName());
+            row.put(ExperimentObservation.Columns.EXP_UNIT, StringUtils.capitalize(ou.getObservationUnitPosition().getObservationLevel().getLevelName()));
             row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
         }
 
