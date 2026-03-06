@@ -1700,6 +1700,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertEquals(expected.get(Columns.EXP_TITLE), Utilities.removeProgramKey(trial.getTrialName(), program.getKey()));
         assertEquals(expected.get(Columns.EXP_TITLE), Utilities.removeProgramKey(study.getTrialName(), program.getKey()));
         assertEquals(expected.get(Columns.EXP_DESCRIPTION), trial.getTrialDescription());
+        assertEquals(expected.get(Columns.EXP_UNIT), trial.getAdditionalInfo().get(BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL).getAsString());
         assertEquals(expected.get(Columns.EXP_UNIT).toString().toLowerCase(), ou.getObservationUnitPosition().getObservationLevel().getLevelName().toLowerCase());
         assertEquals(expected.get(Columns.EXP_TYPE), trial.getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE).getAsString());
         assertEquals(expected.get(Columns.EXP_TYPE), study.getStudyType());
@@ -1806,6 +1807,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertEquals(expected.get(Columns.EXP_TITLE), Utilities.removeProgramKey(trial.getTrialName(), program.getKey()));
         assertEquals(expected.get(Columns.EXP_TITLE), Utilities.removeProgramKey(study.getTrialName(), program.getKey()));
         assertEquals(expected.get(Columns.EXP_DESCRIPTION), trial.getTrialDescription());
+        assertEquals(expected.get(Columns.EXP_UNIT), trial.getAdditionalInfo().get(BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL).getAsString());
         assertEquals(expected.get(Columns.EXP_UNIT).toString().toLowerCase(), ou.getObservationUnitPosition().getObservationLevel().getLevelName().toLowerCase());
         assertEquals(expected.get(Columns.EXP_TYPE), trial.getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE).getAsString());
         assertEquals(expected.get(Columns.EXP_TYPE), study.getStudyType());

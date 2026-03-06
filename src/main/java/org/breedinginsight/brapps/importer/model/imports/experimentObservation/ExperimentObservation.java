@@ -164,6 +164,7 @@ public class ExperimentObservation implements BrAPIImport {
                           .toString());
         createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME, user.getName());
         trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_BY, createdBy);
+        trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL, getExpUnit());
         trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE, getExpType());
         trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER, expSeqValue);
 
