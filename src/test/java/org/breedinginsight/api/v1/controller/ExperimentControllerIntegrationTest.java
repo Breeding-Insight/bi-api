@@ -850,7 +850,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         row.put(ExperimentObservation.Columns.GERMPLASM_GID, "1");
         row.put(ExperimentObservation.Columns.TEST_CHECK, "T");
         row.put(ExperimentObservation.Columns.EXP_TITLE, title);
-        row.put(ExperimentObservation.Columns.EXP_UNIT, "PlotA");
+        row.put(ExperimentObservation.Columns.EXP_UNIT, "Plot");
         //row.put(ExperimentObservation.Columns.SUB_OBS_UNIT, "");
         row.put(ExperimentObservation.Columns.EXP_TYPE, "Phenotyping");
         row.put(ExperimentObservation.Columns.ENV, environment);
@@ -989,9 +989,9 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         //Observation level for tests should be "Plot"
         // Observation units populated.
-        assertEquals(0, table.column("Plota ObsUnitID").countMissing());
+        assertEquals(0, table.column("Plot ObsUnitID").countMissing());
         // Observation Unit IDs are assigned.
-        assertEquals(requestedImportRows.size(), table.column("Plota ObsUnitID").countUnique());
+        assertEquals(requestedImportRows.size(), table.column("Plot ObsUnitID").countUnique());
     }
 
     private boolean isMatchedRow(Map<String, Object> importRow, Row downloadRow) {
