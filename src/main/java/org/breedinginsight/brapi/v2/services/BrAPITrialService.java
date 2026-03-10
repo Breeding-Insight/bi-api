@@ -891,8 +891,8 @@ public class BrAPITrialService {
                 String topLvlOuId = Utilities.removeProgramKeyAndUnknownAdditionalData(topLevel.getLevelCode(), program.getKey());
                 row.put(topLvlName + " " + OBSERVATION_UNIT_ID_SUFFIX, topLvlOuId);
             }
-            row.put(ExperimentObservation.Columns.EXP_UNIT_ID, StringUtils.capitalize(getTopLevel(ou).getLevelName()));
-
+            row.put(ExperimentObservation.Columns.EXP_UNIT_ID, ou.getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXP_UNIT_ID).getAsString());
+            
             row.put(ExperimentObservation.Columns.SUB_OBS_UNIT, StringUtils.capitalize(ou.getObservationUnitPosition().getObservationLevel().getLevelName()));
             row.put(ExperimentObservation.Columns.SUB_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
 
@@ -989,7 +989,7 @@ public class BrAPITrialService {
 
         if (isSubEntityDataset(ous)) {
             Comparator<BrAPIObservationUnit> subUnitComparator = Comparator.comparing(BrAPIObservationUnit::getObservationUnitName, new IntOrderComparator());
-            Comparator<BrAPIObservationUnit> ouNameComparator = Comparator.comparing(row -> (getTopLevel(row).getLevelName()), new IntOrderComparator());
+            Comparator<BrAPIObservationUnit> ouNameComparator = Comparator.comparing(row -> (row.getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXP_UNIT_ID).toString()), new IntOrderComparator());
             ous.sort((studyNameComparator).thenComparing(ouNameComparator).thenComparing(subUnitComparator));
         }
         else {
