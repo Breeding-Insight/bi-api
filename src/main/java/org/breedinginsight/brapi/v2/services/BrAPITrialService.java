@@ -16,6 +16,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
+import org.brapi.v2.model.core.request.BrAPIListNewRequest;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 
@@ -27,6 +29,8 @@ import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation.Columns;
+import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
+import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.FileMappingUtil;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -511,6 +515,17 @@ public class BrAPITrialService {
                 latestExperiment.getAdditionalInfo().add(BrAPIAdditionalInfoFields.DATASETS, DatasetUtil.jsonArrayFromDatasets(datasets));
                 trialDAO.updateBrAPITrial(latestExperiment.getTrialDbId(), latestExperiment, program.getId());
 
+                BrAPIListDetails subEntityObsVarsList = createSubEntityObsVarList(programDbId, latestExperiment, subEntityDatasetMetadata);
+
+                BrAPIListNewRequest listRq = new BrAPIListNewRequest();
+                listRq.setListName(subEntityObsVarsList.getListName());
+                listRq.setListType(subEntityObsVarsList.getListType());
+                listRq.setExternalReferences(subEntityObsVarsList.getExternalReferences());
+                listRq.setAdditionalInfo(subEntityObsVarsList.getAdditionalInfo());
+                listRq.data(subEntityObsVarsList.getData());
+
+                var newList = listDAO.createBrAPILists(List.of(listRq), program.getId(), null);
+
                 return getDatasetData(program, experimentId, subEntityDatasetId, false);
             });
         } catch (TimeoutException e) {
@@ -520,6 +535,45 @@ public class BrAPITrialService {
         } catch (Exception e) {
             throw new RuntimeException("Unexpected error creating sub-entity dataset", e);
         }
+    }
+
+    public BrAPIListDetails createSubEntityObsVarList(String programDbId,
+                                                      BrAPITrial trial,
+                                                      DatasetMetadata subEntityDatasetMetadata)  {
+
+        // TODO: this is common to both workflows
+        String name = String.format("Observation Dataset [%s-%s-%s]",
+                programDbId,
+                trial.getAdditionalInfo()
+                        .get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER)
+                        .getAsString(),
+                subEntityDatasetMetadata.getName());
+
+        return constructDatasetDetails(
+                name,
+                subEntityDatasetMetadata.getId(),
+                referenceSource,
+                programDbId,
+                trial.getTrialDbId());
+
+    }
+
+    public BrAPIListDetails constructDatasetDetails(
+            String name,
+            UUID datasetId,
+            String referenceSourceBase,
+            String programDbId, String trialId) {
+        BrAPIListDetails dataSetDetails = new BrAPIListDetails();
+        dataSetDetails.setListName(name);
+        dataSetDetails.setListType(BrAPIListTypes.OBSERVATIONVARIABLES);
+        dataSetDetails.setData(new ArrayList<>());
+        dataSetDetails.putAdditionalInfoItem("datasetType", "observationDataset");
+        List<BrAPIExternalReference> refs = new ArrayList<>();
+        Utilities.addReference(refs, UUID.fromString(programDbId), referenceSourceBase, ExternalReferenceSource.PROGRAMS);
+        Utilities.addReference(refs, UUID.fromString(trialId), referenceSourceBase, ExternalReferenceSource.TRIALS);
+        Utilities.addReference(refs, datasetId, referenceSourceBase, ExternalReferenceSource.DATASET);
+        dataSetDetails.setExternalReferences(refs);
+        return dataSetDetails;
     }
 
     public BrAPIObservationUnit createSubObservationUnit(

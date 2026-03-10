@@ -22,27 +22,23 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
-import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationDAO;
-import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.data.ProcessedDataFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.data.VisitedObservationData;
@@ -60,15 +56,12 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.Utilities;
-import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.*;
-import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.DATASET_NOT_FOUND;
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.MULTIPLE_EXP_TITLES;
 
 @Slf4j
@@ -161,12 +154,19 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
 
             // Read any observation data stored for these traits
             log.debug("fetching observation data stored for traits");
-            Set<String> ouDbIds = context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().values().stream().map(u -> u.getBrAPIObject().getObservationUnitDbId()).collect(Collectors.toSet());
-            Set<String> varDbIds = sortedTraits.stream().map(t->t.getObservationVariableDbId()).collect(Collectors.toSet());
-            List<BrAPIObservation> observations = brAPIObservationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, varDbIds, program);
+            Set<String> ouBrapiDbIds = context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().values().stream().map(u -> u.getBrAPIObject().getObservationUnitDbId()).collect(Collectors.toSet());
+            Set<String> varBrapiDbIds = sortedTraits.stream().map(t->t.getObservationVariableDbId()).collect(Collectors.toSet());
+            List<BrAPIObservation> observations = brAPIObservationDAO.getObservationsByObservationUnitsAndVariables(ouBrapiDbIds, varBrapiDbIds, program);
+
+            // OU Exref Ids are what are displayed to users in the Obs Unit Id columns in experiments in DeltaBreed.
+            Map<String, String> OuExRefIdByObsBrAPIDbId = new HashMap<>();
+
+            for (BrAPIObservation observation : observations) {
+                Optional<BrAPIExternalReference> ouExref = Utilities.getExternalReference(observation.getExternalReferences(), brapiReferenceSource, ExternalReferenceSource.OBSERVATION_UNITS);
+                ouExref.ifPresent(exRef -> OuExRefIdByObsBrAPIDbId.put(observation.getObservationDbId(), exRef.getReferenceId().toString()));
+            }
 
             // Construct helper lookup tables to use for hashing stored observation data
-            Map<String, String> unitNameByDbId = context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().values().stream().map(PendingImportObject::getBrAPIObject).collect(Collectors.toMap(BrAPIObservationUnit::getObservationUnitDbId, BrAPIObservationUnit::getObservationUnitName));
             Map<String, String> variableNameByDbId = sortedTraits.stream().collect(Collectors.toMap(Trait::getObservationVariableDbId, Trait::getObservationVariableName));
             Map<String, String> studyNameByDbId = context.getAppendOverwriteWorkflowContext().getStudyByNameNoScope().values().stream()
                     .filter(pio -> StringUtils.isNotBlank(pio.getBrAPIObject().getStudyDbId()))
@@ -175,7 +175,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
 
             // Hash stored observation data using a signature of unit, variable, and study names
             Map<String, BrAPIObservation> observationByObsHash = observations.stream().collect(Collectors.toMap(o->{
-                return observationService.getObservationHash(unitNameByDbId.get(o.getObservationUnitDbId()),
+                return observationService.getObservationHash(OuExRefIdByObsBrAPIDbId.get(o.getObservationDbId()),
                         variableNameByDbId.get(o.getObservationVariableDbId()),
                         studyNameByDbId.get(o.getStudyDbId()));
             }, o->o));
@@ -226,9 +226,8 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                     String cellData = column.getString(rowNum);
 
                     // Generate hash for looking up prior observation data
-                    String unitName = context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().get(unitId).getBrAPIObject().getObservationUnitName();
                     String phenoColumnName = column.name();
-                    String observationHash = observationService.getObservationHash(unitName, phenoColumnName, studyName);
+                    String observationHash = observationService.getObservationHash(unitId, phenoColumnName, studyName);
 
                     // Get timestamp if associated column
                     var cell = new Object() {   // mutable reference object to make timestamp accessible in anonymous methods
