@@ -16,8 +16,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
-import org.brapi.v2.model.core.request.BrAPIListNewRequest;
-import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 
@@ -29,10 +27,9 @@ import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation.Columns;
-import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
-import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.FileMappingUtil;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Column;
@@ -83,6 +80,7 @@ public class BrAPITrialService {
     private final FileMappingUtil fileMappingUtil;
     private final DistributedLockService lockService;
     private static final String SHEET_NAME = "Data";
+    private final DatasetService datasetService;
 
     @Inject
     public BrAPITrialService(@Property(name = "brapi.server.reference-source") String referenceSource,
@@ -97,7 +95,8 @@ public class BrAPITrialService {
                              BrAPIObservationLevelDAO observationLevelDAO,
                              BrAPIGermplasmDAO germplasmDAO,
                              FileMappingUtil fileMappingUtil,
-                             DistributedLockService lockService) {
+                             DistributedLockService lockService,
+                             DatasetService datasetService) {
 
         this.referenceSource = referenceSource;
         this.trialDAO = trialDAO;
@@ -112,6 +111,7 @@ public class BrAPITrialService {
         this.germplasmDAO = germplasmDAO;
         this.fileMappingUtil = fileMappingUtil;
         this.lockService = lockService;
+        this.datasetService = datasetService;
     }
 
     public List<BrAPITrial> getExperiments(UUID programId) throws ApiException, DoesNotExistException {
@@ -465,8 +465,8 @@ public class BrAPITrialService {
                     throw new AlreadyExistsException("Dataset name already exists in this experiment");
                 }
 
-                String programDbId = program.getBrapiProgram() != null ? program.getBrapiProgram().getProgramDbId() : null;
-                HttpResponse<String> levelResponse = observationLevelDAO.createObservationLevelName(program, datasetName, DatasetLevel.SUB_OBS_UNIT, programDbId);
+                String programBrapiDbId = program.getBrapiProgram() != null ? program.getBrapiProgram().getProgramDbId() : null;
+                HttpResponse<String> levelResponse = observationLevelDAO.createObservationLevelName(program, datasetName, DatasetLevel.SUB_OBS_UNIT, programBrapiDbId);
 
                 // 409 and 200 are expected response codes, anything else error out
                 // 409 means level already exists so we just use the name in OUs
@@ -515,16 +515,7 @@ public class BrAPITrialService {
                 latestExperiment.getAdditionalInfo().add(BrAPIAdditionalInfoFields.DATASETS, DatasetUtil.jsonArrayFromDatasets(datasets));
                 trialDAO.updateBrAPITrial(latestExperiment.getTrialDbId(), latestExperiment, program.getId());
 
-                BrAPIListDetails subEntityObsVarsList = createSubEntityObsVarList(programDbId, latestExperiment, subEntityDatasetMetadata);
-
-                BrAPIListNewRequest listRq = new BrAPIListNewRequest();
-                listRq.setListName(subEntityObsVarsList.getListName());
-                listRq.setListType(subEntityObsVarsList.getListType());
-                listRq.setExternalReferences(subEntityObsVarsList.getExternalReferences());
-                listRq.setAdditionalInfo(subEntityObsVarsList.getAdditionalInfo());
-                listRq.data(subEntityObsVarsList.getData());
-
-                var newList = listDAO.createBrAPILists(List.of(listRq), program.getId(), null);
+                datasetService.createBrAPIObsVarListForDataset(program, latestExperiment, subEntityDatasetMetadata);
 
                 return getDatasetData(program, experimentId, subEntityDatasetId, false);
             });
@@ -535,45 +526,6 @@ public class BrAPITrialService {
         } catch (Exception e) {
             throw new RuntimeException("Unexpected error creating sub-entity dataset", e);
         }
-    }
-
-    public BrAPIListDetails createSubEntityObsVarList(String programDbId,
-                                                      BrAPITrial trial,
-                                                      DatasetMetadata subEntityDatasetMetadata)  {
-
-        // TODO: this is common to both workflows
-        String name = String.format("Observation Dataset [%s-%s-%s]",
-                programDbId,
-                trial.getAdditionalInfo()
-                        .get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER)
-                        .getAsString(),
-                subEntityDatasetMetadata.getName());
-
-        return constructDatasetDetails(
-                name,
-                subEntityDatasetMetadata.getId(),
-                referenceSource,
-                programDbId,
-                trial.getTrialDbId());
-
-    }
-
-    public BrAPIListDetails constructDatasetDetails(
-            String name,
-            UUID datasetId,
-            String referenceSourceBase,
-            String programDbId, String trialId) {
-        BrAPIListDetails dataSetDetails = new BrAPIListDetails();
-        dataSetDetails.setListName(name);
-        dataSetDetails.setListType(BrAPIListTypes.OBSERVATIONVARIABLES);
-        dataSetDetails.setData(new ArrayList<>());
-        dataSetDetails.putAdditionalInfoItem("datasetType", "observationDataset");
-        List<BrAPIExternalReference> refs = new ArrayList<>();
-        Utilities.addReference(refs, UUID.fromString(programDbId), referenceSourceBase, ExternalReferenceSource.PROGRAMS);
-        Utilities.addReference(refs, UUID.fromString(trialId), referenceSourceBase, ExternalReferenceSource.TRIALS);
-        Utilities.addReference(refs, datasetId, referenceSourceBase, ExternalReferenceSource.DATASET);
-        dataSetDetails.setExternalReferences(refs);
-        return dataSetDetails;
     }
 
     public BrAPIObservationUnit createSubObservationUnit(

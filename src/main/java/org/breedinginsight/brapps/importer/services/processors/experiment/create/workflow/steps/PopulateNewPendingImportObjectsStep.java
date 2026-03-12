@@ -43,6 +43,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.create
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingImportObjectData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentSeasonService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
@@ -76,6 +77,7 @@ public class PopulateNewPendingImportObjectsStep {
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final DSLContext dsl;
     private final Gson gson;
+    private final DatasetService datasetService;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -83,11 +85,12 @@ public class PopulateNewPendingImportObjectsStep {
     @Inject
     public PopulateNewPendingImportObjectsStep(ExperimentSeasonService experimentSeasonService,
                                                BrAPIObservationUnitDAO brAPIObservationUnitDAO,
-                                               DSLContext dsl) {
+                                               DSLContext dsl, DatasetService datasetService) {
         this.experimentSeasonService = experimentSeasonService;
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.dsl = dsl;
         this.gson = new JSON().getGson();
+        this.datasetService = datasetService;
     }
 
     /**
@@ -370,7 +373,7 @@ public class PopulateNewPendingImportObjectsStep {
             pio = obsVarDatasetByName.get(name);
         } else {
             UUID id = UUID.randomUUID();
-            BrAPIListDetails newDataset = importRow.constructDatasetDetails(
+            BrAPIListDetails newDataset = datasetService.constructDatasetDetails(
                     name,
                     id,
                     BRAPI_REFERENCE_SOURCE,
