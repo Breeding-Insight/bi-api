@@ -99,8 +99,8 @@ public class ObservationService {
         }
         return true;
     }
-    public String getObservationHash(String observationUnitName, String variableName, String studyName) {
-        String concat = DigestUtils.sha256Hex(observationUnitName) +
+    public String getObservationHash(String observationUnitId, String variableName, String studyName) {
+        String concat = DigestUtils.sha256Hex(observationUnitId) +
                 DigestUtils.sha256Hex(variableName) +
                 DigestUtils.sha256Hex(StringUtils.defaultString(studyName));
         return DigestUtils.sha256Hex(concat);

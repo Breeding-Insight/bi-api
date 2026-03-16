@@ -18,16 +18,19 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
 import io.micronaut.context.annotation.Property;
-import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
+import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.model.DatasetMetadata;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
@@ -113,5 +116,50 @@ public class DatasetService {
 
         // Create a PendingImportObject for the dataset with the existing list and reference ID
         return new PendingImportObject<BrAPIListDetails>(ImportObjectState.EXISTING, dataset, UUID.fromString(xref.getReferenceId()));
+    }
+
+    public void createBrAPIObsVarListForDataset(Program program,
+                                                BrAPITrial trial,
+                                                DatasetMetadata subEntityDatasetMetadata) throws ApiException {
+
+        String name = String.format("Observation Dataset [%s-%s-%s]",
+                program.getKey(),
+                trial.getAdditionalInfo()
+                        .get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER)
+                        .getAsString(),
+                subEntityDatasetMetadata.getName());
+
+        BrAPIListDetails subEntityObsVarsList = constructDatasetDetails(name,
+                subEntityDatasetMetadata.getId(),
+                BRAPI_REFERENCE_SOURCE,
+                program,
+                trial.getTrialDbId());
+
+        BrAPIListNewRequest listRq = new BrAPIListNewRequest();
+        listRq.setListName(subEntityObsVarsList.getListName());
+        listRq.setListType(subEntityObsVarsList.getListType());
+        listRq.setExternalReferences(subEntityObsVarsList.getExternalReferences());
+        listRq.setAdditionalInfo(subEntityObsVarsList.getAdditionalInfo());
+        listRq.data(subEntityObsVarsList.getData());
+
+        brAPIListDAO.createBrAPILists(List.of(listRq), program.getId(), null);
+    }
+
+    public BrAPIListDetails constructDatasetDetails(
+            String name,
+            UUID datasetId,
+            String referenceSourceBase,
+            Program program, String trialId) {
+        BrAPIListDetails dataSetDetails = new BrAPIListDetails();
+        dataSetDetails.setListName(name);
+        dataSetDetails.setListType(BrAPIListTypes.OBSERVATIONVARIABLES);
+        dataSetDetails.setData(new ArrayList<>());
+        dataSetDetails.putAdditionalInfoItem("datasetType", "observationDataset");
+        List<BrAPIExternalReference> refs = new ArrayList<>();
+        Utilities.addReference(refs, program.getId(), referenceSourceBase, ExternalReferenceSource.PROGRAMS);
+        Utilities.addReference(refs, UUID.fromString(trialId), referenceSourceBase, ExternalReferenceSource.TRIALS);
+        Utilities.addReference(refs, datasetId, referenceSourceBase, ExternalReferenceSource.DATASET);
+        dataSetDetails.setExternalReferences(refs);
+        return dataSetDetails;
     }
 }
