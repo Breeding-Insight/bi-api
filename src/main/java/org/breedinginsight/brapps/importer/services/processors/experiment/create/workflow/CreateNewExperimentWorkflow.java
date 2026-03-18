@@ -258,6 +258,15 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
                         .count()
         );
 
+        // Assume observationVariableName is set when pending observations are created.
+        int obsVarCount = Math.toIntExact(
+                observationByHash.values()
+                        .stream()
+                        .map(o -> o.getBrAPIObject().getObservationVariableName())
+                        .distinct()
+                        .count()
+        );
+
         ImportPreviewStatistics environmentStats = ImportPreviewStatistics.builder()
                 .newObjectCount(environmentNameCounter.size())
                 .build();
@@ -276,6 +285,9 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
         ImportPreviewStatistics mutatedObservationStats = ImportPreviewStatistics.builder()
                 .newObjectCount(numMutatedObservations)
                 .build();
+        ImportPreviewStatistics obsVarStats = ImportPreviewStatistics.builder()
+                .newObjectCount(obsVarCount)
+                .build();
 
         return Map.of(
                 "Environments", environmentStats,
@@ -283,7 +295,8 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
                 "GIDs", gidStats,
                 "Observations", observationStats,
                 "Existing_Observations", existingObservationStats,
-                "Mutated_Observations", mutatedObservationStats
+                "Mutated_Observations", mutatedObservationStats,
+                "Observation_Variables", obsVarStats
         );
     }
 
