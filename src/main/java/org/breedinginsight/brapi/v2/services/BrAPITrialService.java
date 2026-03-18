@@ -29,6 +29,7 @@ import org.breedinginsight.brapps.importer.model.imports.experimentObservation.E
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation.Columns;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.FileMappingUtil;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Column;
@@ -79,6 +80,7 @@ public class BrAPITrialService {
     private final FileMappingUtil fileMappingUtil;
     private final DistributedLockService lockService;
     private static final String SHEET_NAME = "Data";
+    private final DatasetService datasetService;
 
     @Inject
     public BrAPITrialService(@Property(name = "brapi.server.reference-source") String referenceSource,
@@ -93,7 +95,8 @@ public class BrAPITrialService {
                              BrAPIObservationLevelDAO observationLevelDAO,
                              BrAPIGermplasmDAO germplasmDAO,
                              FileMappingUtil fileMappingUtil,
-                             DistributedLockService lockService) {
+                             DistributedLockService lockService,
+                             DatasetService datasetService) {
 
         this.referenceSource = referenceSource;
         this.trialDAO = trialDAO;
@@ -108,6 +111,7 @@ public class BrAPITrialService {
         this.germplasmDAO = germplasmDAO;
         this.fileMappingUtil = fileMappingUtil;
         this.lockService = lockService;
+        this.datasetService = datasetService;
     }
 
     public List<BrAPITrial> getExperiments(UUID programId) throws ApiException, DoesNotExistException {
@@ -461,8 +465,8 @@ public class BrAPITrialService {
                     throw new AlreadyExistsException("Dataset name already exists in this experiment");
                 }
 
-                String programDbId = program.getBrapiProgram() != null ? program.getBrapiProgram().getProgramDbId() : null;
-                HttpResponse<String> levelResponse = observationLevelDAO.createObservationLevelName(program, datasetName, DatasetLevel.SUB_OBS_UNIT, programDbId);
+                String programBrapiDbId = program.getBrapiProgram() != null ? program.getBrapiProgram().getProgramDbId() : null;
+                HttpResponse<String> levelResponse = observationLevelDAO.createObservationLevelName(program, datasetName, DatasetLevel.SUB_OBS_UNIT, programBrapiDbId);
 
                 // 409 and 200 are expected response codes, anything else error out
                 // 409 means level already exists so we just use the name in OUs
@@ -510,6 +514,8 @@ public class BrAPITrialService {
                 datasets.add(subEntityDatasetMetadata);
                 latestExperiment.getAdditionalInfo().add(BrAPIAdditionalInfoFields.DATASETS, DatasetUtil.jsonArrayFromDatasets(datasets));
                 trialDAO.updateBrAPITrial(latestExperiment.getTrialDbId(), latestExperiment, program.getId());
+
+                datasetService.createBrAPIObsVarListForDataset(program, latestExperiment, subEntityDatasetMetadata);
 
                 return getDatasetData(program, experimentId, subEntityDatasetId, false);
             });

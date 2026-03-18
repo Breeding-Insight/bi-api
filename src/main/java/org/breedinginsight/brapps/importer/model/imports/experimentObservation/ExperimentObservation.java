@@ -228,23 +228,6 @@ public class ExperimentObservation implements BrAPIImport {
         return study;
     }
 
-    public BrAPIListDetails constructDatasetDetails(
-            String name,
-            UUID datasetId,
-            String referenceSourceBase,
-            Program program, String trialId) {
-        BrAPIListDetails dataSetDetails = new BrAPIListDetails();
-        dataSetDetails.setListName(name);
-        dataSetDetails.setListType(BrAPIListTypes.OBSERVATIONVARIABLES);
-        dataSetDetails.setData(new ArrayList<>());
-        dataSetDetails.putAdditionalInfoItem("datasetType", "observationDataset");
-        List<BrAPIExternalReference> refs = new ArrayList<>();
-        Utilities.addReference(refs, program.getId(), referenceSourceBase, ExternalReferenceSource.PROGRAMS);
-        Utilities.addReference(refs, UUID.fromString(trialId), referenceSourceBase, ExternalReferenceSource.TRIALS);
-        Utilities.addReference(refs, datasetId, referenceSourceBase, ExternalReferenceSource.DATASET);
-        dataSetDetails.setExternalReferences(refs);
-        return dataSetDetails;
-    }
     public BrAPIObservationUnit constructBrAPIObservationUnit(
             Program program,
             String seqVal,
