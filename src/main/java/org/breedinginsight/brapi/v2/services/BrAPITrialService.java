@@ -226,7 +226,7 @@ public class BrAPITrialService {
                 columns = dynamicUpdateObsUnitIDLabel(columns, topObservationLvl);
             }
         }
-        String observationLvl = ous.get(0).getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
+        String observationLvl = StringUtils.capitalize(ous.get(0).getObservationUnitPosition().getObservationLevel().getLevelName());
         columns = dynamicUpdateObsUnitIDLabel(columns, observationLvl);
 
         if (params.getDatasetId() != null) {
@@ -582,7 +582,7 @@ public class BrAPITrialService {
         }
 
         // Set treatment factors.
-        if (!expUnit.getTreatments().isEmpty()) {
+        if (!(expUnit.getTreatments() == null || expUnit.getTreatments().isEmpty())) {
             List<BrAPIObservationTreatment> treatmentFactors = new ArrayList<>();
             for (BrAPIObservationTreatment t : expUnit.getTreatments()) {
                 BrAPIObservationTreatment treatment = new BrAPIObservationTreatment();
@@ -592,9 +592,6 @@ public class BrAPITrialService {
             }
             observationUnit.setTreatments(treatmentFactors);
         }
-
-        // Put level in additional info: keep this in case we decide to rename levels in future.
-        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, subEntityDatasetName);
 
         // Put RTK in additional info.
         JsonElement rtk = expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.RTK);
@@ -647,8 +644,7 @@ public class BrAPITrialService {
         }
         // ObservationLevelRelationships for top-level Exp Unit linking.
         BrAPIObservationUnitLevelRelationship expUnitLevel = new BrAPIObservationUnitLevelRelationship();
-        // TODO: switch to using level name in main obs unit properties once dynamic obs unit support is complete
-        expUnitLevel.setLevelName(expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString().toLowerCase());
+        expUnitLevel.setLevelName(expUnit.getObservationUnitPosition().getObservationLevel().getLevelName().toLowerCase());
         String expUnitUUID = Utilities.getExternalReference(expUnit.getExternalReferences(), referenceSource, ExternalReferenceSource.OBSERVATION_UNITS).orElseThrow().getReferenceId();
         expUnitLevel.setLevelCode(Utilities.appendProgramKey(expUnitUUID, program.getKey(), seqVal));
         expUnitLevel.setLevelOrder(DatasetLevel.EXP_UNIT.getValue());
@@ -890,7 +886,7 @@ public class BrAPITrialService {
         }
 
         //Append observation level to obsUnitID
-        String observationLvl = ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString();
+        String observationLvl = StringUtils.capitalize(ou.getObservationUnitPosition().getObservationLevel().getLevelName());
         row.put(observationLvl + " " + OBSERVATION_UNIT_ID_SUFFIX, ouId);
 
         if (isSubEntity) {
@@ -904,12 +900,12 @@ public class BrAPITrialService {
                 row.put(topLvlName + " " + OBSERVATION_UNIT_ID_SUFFIX, topLvlOuId);
             }
             row.put(ExperimentObservation.Columns.EXP_UNIT_ID, ou.getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXP_UNIT_ID).getAsString());
-
-            row.put(ExperimentObservation.Columns.SUB_OBS_UNIT, ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
+            
+            row.put(ExperimentObservation.Columns.SUB_OBS_UNIT, StringUtils.capitalize(ou.getObservationUnitPosition().getObservationLevel().getLevelName()));
             row.put(ExperimentObservation.Columns.SUB_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
 
         } else {
-            row.put(ExperimentObservation.Columns.EXP_UNIT, ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
+            row.put(ExperimentObservation.Columns.EXP_UNIT, StringUtils.capitalize(ou.getObservationUnitPosition().getObservationLevel().getLevelName()));
             row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
         }
 
