@@ -218,7 +218,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                  */
                 if (phenotypeCols.isEmpty()) {
                     processedData = processedDataFactory.undefinedDatasetBean();
-                    updatePreviewStatistics(processedData, context, studyName, unitId);
+                    updatePreviewStatistics(processedData, context, studyName, unitId, phenotypeCols.size());
                 }
 
                 // Assemble the pending observation data for all phenotypes
@@ -332,7 +332,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                     processedData.getValidationErrors().ifPresent(errList -> errList.forEach(e -> validationErrors.addError(rowNum + 2, e)));  // +2 to account for header row and excel file 1-based row index
 
                     // Update import preview statistics and set in the context
-                    updatePreviewStatistics(processedData, context, studyName, unitId);
+                    updatePreviewStatistics(processedData, context, studyName, unitId, varNames.size());
 
                     // Construct a pending observation
                     Optional<PendingImportObject<BrAPIObservation>> pendingProcessedData = Optional.ofNullable(processedData.constructPendingObservation());
@@ -395,12 +395,14 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
     private void updatePreviewStatistics(VisitedObservationData processedData,
                                          AppendOverwriteMiddlewareContext context,
                                          String studyName,
-                                         String unitId) {
+                                         String unitId,
+                                         int obsVarCount) {
         // Update import preview statistics and set in the context
         processedData.updateTally(statistic);
         statistic.addEnvironmentName(studyName);
         statistic.addObservationUnitId(unitId);
         statistic.addGid(context.getAppendOverwriteWorkflowContext().getPendingGermplasmByOUId().get(unitId).getBrAPIObject().getAccessionNumber());
+        statistic.setObsVarCount(obsVarCount);
         context.getAppendOverwriteWorkflowContext().setStatistic(statistic);
     }
 }
