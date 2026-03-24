@@ -213,12 +213,17 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
     // Create an experiment with no observations.
     private String uploadExperimentWithoutObs() throws Exception {
+        return uploadExperimentWithoutObs("Without Obs", "Plot");
+    }
+
+    private String uploadExperimentWithoutObs(String title, String expUnit) throws Exception {
         ImportTestUtils importTestUtils = new ImportTestUtils();
         List<Map<String, Object>> expRows = new ArrayList<>();
 
         // Make test experiment import.
-        Map<String, Object> row1 = makeExpImportRow("Without Obs", "NewEnv1");
-        Map<String, Object> row2 = makeExpImportRow("Without Obs", "NewEnv2");
+        String envBase = title.replaceAll("\\s+", "");
+        Map<String, Object> row1 = makeExpImportRow(title, envBase + "1", expUnit);
+        Map<String, Object> row2 = makeExpImportRow(title, envBase + "2", expUnit);
 
         expRows.add(row1);
         expRows.add(row2);
@@ -394,6 +399,75 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         // Check file contents.
         ByteArrayInputStream plantBodyStream = new ByteArrayInputStream(Objects.requireNonNull(plantResponse.body()));
         parseAndCheck(plantBodyStream, extension, false, plantRows, false, 23);
+    }
+
+    @Test
+    @Order(1)
+    public void createSubEntityDatasetRejectsExpUnitNameAlreadyUsedInSameExperiment() throws Exception {
+        String plantExperimentId = uploadExperimentWithoutObs("Plant Same Experiment", "Plant");
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/dataset", program.getId(), plantExperimentId),
+                        "{\"name\":\"Plant\",\"repeatedMeasures\":2}")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                String.class
+        );
+
+        HttpClientResponseException e = assertThrows(HttpClientResponseException.class, call::blockingFirst);
+        assertEquals(HttpStatus.CONFLICT, e.getStatus());
+    }
+
+    @Test
+    @Order(2)
+    public void createSubEntityDatasetAllowsExpUnitNameUsedInOtherExperiment() throws Exception {
+        uploadExperimentWithoutObs("Plant Source Experiment", "Plant");
+        String recipientExperimentId = uploadExperimentWithoutObs("Plot Recipient Experiment", "Plot");
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/dataset", program.getId(), recipientExperimentId),
+                        "{\"name\":\"Plant\",\"repeatedMeasures\":2}")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+    }
+
+    @Test
+    @Order(3)
+    public void recommendedSubEntityDatasetNamesIncludeExpUnitNamesFromOtherExperiments() throws Exception {
+        uploadExperimentWithoutObs("Plant Autocomplete Source", "Plant");
+        String recipientExperimentId = uploadExperimentWithoutObs("Autocomplete Recipient", "Plot");
+
+        List<String> recommendedNames = getRecommendedSubEntityDatasetNames(recipientExperimentId);
+
+        assertTrue(recommendedNames.stream().anyMatch(name -> name.equalsIgnoreCase("plant")));
+        assertFalse(recommendedNames.stream().anyMatch(name -> name.equalsIgnoreCase("plot")));
+    }
+
+    @Test
+    @Order(4)
+    public void recommendedSubEntityDatasetNamesDeDuplicateExpUnitAndSubUnitNamesAcrossExperiments() throws Exception {
+        uploadExperimentWithoutObs("Plant Exp Unit Source", "Plant");
+        String subEntitySourceExperimentId = uploadExperimentWithoutObs("Plant Sub Unit Source", "Plot");
+        String recipientExperimentId = uploadExperimentWithoutObs("Plant Unique Recipient", "Plot");
+
+        Flowable<HttpResponse<String>> postCall = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/dataset", program.getId(), subEntitySourceExperimentId),
+                        "{\"name\":\"Plant\",\"repeatedMeasures\":2}")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                String.class
+        );
+        HttpResponse<String> postResponse = postCall.blockingFirst();
+        assertEquals(HttpStatus.OK, postResponse.getStatus());
+
+        List<String> recommendedNames = getRecommendedSubEntityDatasetNames(recipientExperimentId);
+
+        assertEquals(1L, recommendedNames.stream().filter(name -> name.equalsIgnoreCase("plant")).count());
     }
 
     /**
@@ -845,12 +919,36 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         return file;
     }
 
+    private List<String> getRecommendedSubEntityDatasetNames(String targetExperimentId) {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/recommended-sub-entity-dataset-names",
+                        program.getId(), targetExperimentId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonArray result = JsonParser.parseString(Objects.requireNonNull(response.body()))
+                .getAsJsonObject()
+                .getAsJsonArray("result");
+
+        List<String> recommendedNames = new ArrayList<>();
+        result.forEach(name -> recommendedNames.add(name.getAsString()));
+        return recommendedNames;
+    }
+
     private Map<String, Object> makeExpImportRow(String title, String environment) {
+        return makeExpImportRow(title, environment, "Plot");
+    }
+
+    private Map<String, Object> makeExpImportRow(String title, String environment, String expUnit) {
         Map<String, Object> row = new HashMap<>();
         row.put(ExperimentObservation.Columns.GERMPLASM_GID, "1");
         row.put(ExperimentObservation.Columns.TEST_CHECK, "T");
         row.put(ExperimentObservation.Columns.EXP_TITLE, title);
-        row.put(ExperimentObservation.Columns.EXP_UNIT, "Plot");
+        row.put(ExperimentObservation.Columns.EXP_UNIT, expUnit);
         //row.put(ExperimentObservation.Columns.SUB_OBS_UNIT, "");
         row.put(ExperimentObservation.Columns.EXP_TYPE, "Phenotyping");
         row.put(ExperimentObservation.Columns.ENV, environment);

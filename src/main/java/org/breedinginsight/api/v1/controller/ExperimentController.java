@@ -175,6 +175,29 @@ public class ExperimentController {
 
     }
 
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/recommended-sub-entity-dataset-names")
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @Produces(MediaType.APPLICATION_JSON)
+    public HttpResponse<Response<List<String>>> getRecommendedSubEntityDatasetNames(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("experimentId") UUID experimentId) {
+        try {
+            Optional<Program> programOptional = programService.getById(programId);
+            if (programOptional.isEmpty()) {
+                return HttpResponse.status(HttpStatus.NOT_FOUND, "Program does not exist");
+            }
+
+            Response<List<String>> response = new Response<>(experimentService.getRecommendedSubEntityDatasetNames(programOptional.get(), experimentId));
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error finding recommended sub-entity dataset names", e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error finding recommended sub-entity dataset names");
+        }
+    }
+
     /**
      * Adds a record to the experiment_program_user_role table
      * @param programId The UUID of the program

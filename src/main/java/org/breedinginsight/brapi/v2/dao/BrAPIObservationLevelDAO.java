@@ -18,6 +18,10 @@
 package org.breedinginsight.brapi.v2.dao;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -25,18 +29,17 @@ import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.model.DatasetLevel;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Singleton
@@ -94,6 +97,62 @@ public class BrAPIObservationLevelDAO {
         } catch (Exception e) {
             log.warn("Failed to delete observation level {}", levelDbId, e);
         }
+    }
+
+    public List<String> getObservationLevelNames(Program program, String programDbId) throws ApiException {
+        List<String> levelNames = new ArrayList<>();
+        int currentPage = 0;
+        int totalPages = 1;
+
+        do {
+            HttpUrl.Builder urlBuilder = HttpUrl.parse(brAPIDAOUtil.getProgramBrAPIBaseUrl(program.getId()))
+                    .newBuilder()
+                    .addPathSegment("observationlevelnames")
+                    .addQueryParameter("page", Integer.toString(currentPage))
+                    .addQueryParameter("pageSize", "1000");
+            if (StringUtils.isNotBlank(programDbId)) {
+                urlBuilder.addQueryParameter("programDbId", programDbId);
+            }
+
+            Request request = new Request.Builder()
+                    .url(urlBuilder.build())
+                    .get()
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+
+            HttpResponse<String> response = brAPIDAOUtil.makeCall(request);
+            if (response.getStatus() != HttpStatus.OK) {
+                throw new ApiException(response.getStatus().getCode(), "Unable to fetch observation level names");
+            }
+
+            String responseBody = response.body();
+            if (StringUtils.isBlank(responseBody)) {
+                return levelNames;
+            }
+
+            JsonObject responseJson = JsonParser.parseString(responseBody).getAsJsonObject();
+            JsonObject resultJson = responseJson.getAsJsonObject("result");
+            if (resultJson != null) {
+                JsonArray data = resultJson.getAsJsonArray("data");
+                if (data != null) {
+                    for (JsonElement level : data) {
+                        if (level.isJsonObject()) {
+                            JsonElement levelName = level.getAsJsonObject().get("levelName");
+                            if (levelName != null && !levelName.isJsonNull()) {
+                                levelNames.add(levelName.getAsString());
+                            }
+                        }
+                    }
+                }
+            }
+
+            JsonObject metadata = responseJson.getAsJsonObject("metadata");
+            JsonObject pagination = metadata != null ? metadata.getAsJsonObject("pagination") : null;
+            totalPages = pagination != null && pagination.has("totalPages") ? pagination.get("totalPages").getAsInt() : currentPage + 1;
+            currentPage++;
+        } while (currentPage < totalPages);
+
+        return levelNames;
     }
 
 }

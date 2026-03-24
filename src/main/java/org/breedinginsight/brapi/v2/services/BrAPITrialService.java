@@ -36,6 +36,8 @@ import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.*;
+import org.breedinginsight.model.delta.DeltaEntityFactory;
+import org.breedinginsight.model.delta.Experiment;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -81,6 +83,7 @@ public class BrAPITrialService {
     private final DistributedLockService lockService;
     private static final String SHEET_NAME = "Data";
     private final DatasetService datasetService;
+    private final DeltaEntityFactory deltaEntityFactory;
 
     @Inject
     public BrAPITrialService(@Property(name = "brapi.server.reference-source") String referenceSource,
@@ -96,7 +99,8 @@ public class BrAPITrialService {
                              BrAPIGermplasmDAO germplasmDAO,
                              FileMappingUtil fileMappingUtil,
                              DistributedLockService lockService,
-                             DatasetService datasetService) {
+                             DatasetService datasetService,
+                             DeltaEntityFactory deltaEntityFactory) {
 
         this.referenceSource = referenceSource;
         this.trialDAO = trialDAO;
@@ -112,6 +116,7 @@ public class BrAPITrialService {
         this.fileMappingUtil = fileMappingUtil;
         this.lockService = lockService;
         this.datasetService = datasetService;
+        this.deltaEntityFactory = deltaEntityFactory;
     }
 
     public List<BrAPITrial> getExperiments(UUID programId) throws ApiException, DoesNotExistException {
@@ -427,6 +432,34 @@ public class BrAPITrialService {
         JsonArray datasetsJson = trial.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
         List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(datasetsJson);
         return datasets;
+    }
+
+    /**
+     * Assumptions:
+     * @param program
+     * @param experimentId
+     * @return
+     * @throws DoesNotExistException
+     * @throws ApiException
+     */
+    public List<String> getRecommendedSubEntityDatasetNames(Program program, UUID experimentId) throws DoesNotExistException, ApiException {
+        BrAPITrial experiment = trialDAO.getTrialById(program.getId(), experimentId).orElseThrow(() -> new DoesNotExistException("Trial does not exist"));
+        Experiment deltaExperiment = deltaEntityFactory.makeExperimentBean(experiment);
+        // set to eliminate possible duplicates like plant for exp unit and sub unit
+        Set<String> currentExperimentDatasetNames = deltaExperiment.getDatasetsMetadata()
+                .stream()
+                .map(DatasetMetadata::getName)
+                //.filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
+
+        return getProgramObservationLevelNames(program).stream()
+                //.filter(StringUtils::isNotBlank)
+                //.filter(name -> !BrAPIConstants.REPLICATE.getValue().equalsIgnoreCase(name))
+                //.filter(name -> !BrAPIConstants.BLOCK.getValue().equalsIgnoreCase(name))
+                .filter(name -> !currentExperimentDatasetNames.contains(name))
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
     }
 
     /**
@@ -799,6 +832,11 @@ public class BrAPITrialService {
 
         // Successful or not, return the number of observations in this experiment.
         return existingObservations.size();
+    }
+
+    private List<String> getProgramObservationLevelNames(Program program) throws ApiException {
+        String programDbId = program.getBrapiProgram() != null ? program.getBrapiProgram().getProgramDbId() : null;
+        return observationLevelDAO.getObservationLevelNames(program, programDbId);
     }
 
     private Map<String, Object> createExportRow(
