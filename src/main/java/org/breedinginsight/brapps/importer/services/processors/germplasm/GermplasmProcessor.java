@@ -17,7 +17,6 @@
 package org.breedinginsight.brapps.importer.services.processors.germplasm;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
@@ -68,7 +67,7 @@ public class GermplasmProcessor implements Processor {
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
 
-    private BrAPIGermplasmService brAPIGermplasmService;
+    private final BrAPIGermplasmService brAPIGermplasmService;
     private final BreedingMethodDAO breedingMethodDAO;
     private final BrAPIListDAO brAPIListDAO;
     private final DSLContext dsl;
@@ -111,7 +110,6 @@ public class GermplasmProcessor implements Processor {
 
     @Inject
     public GermplasmProcessor(BrAPIGermplasmService brAPIGermplasmService, DSLContext dsl, BreedingMethodDAO breedingMethodDAO, BrAPIListDAO brAPIListDAO, BrAPIGermplasmDAO brAPIGermplasmDAO) {
-        this.brAPIGermplasmService = brAPIGermplasmService;
         this.dsl = dsl;
         this.breedingMethodDAO = breedingMethodDAO;
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
@@ -160,17 +158,16 @@ public class GermplasmProcessor implements Processor {
         });
 
         // Get parental accession nos in file
-        for (int i = 0; i < importRows.size(); i++) {
-            BrAPIImport germplasmImport = importRows.get(i);
+        for (BrAPIImport germplasmImport : importRows) {
             Germplasm germplasm = germplasmImport.getGermplasm();
             if (germplasm != null) {
                 // Retrieve parent accession numbers to assess if already in db
-                    if (germplasm.getFemaleParentAccessionNumber() != null) {
-                        germplasmAccessionNumbers.put(germplasm.getFemaleParentAccessionNumber(), true);
-                    }
-                    if (germplasm.getMaleParentAccessionNumber() != null) {
-                        germplasmAccessionNumbers.put(germplasm.getMaleParentAccessionNumber(), true);
-                    }
+                if (germplasm.getFemaleParentAccessionNumber() != null) {
+                    germplasmAccessionNumbers.put(germplasm.getFemaleParentAccessionNumber(), true);
+                }
+                if (germplasm.getMaleParentAccessionNumber() != null) {
+                    germplasmAccessionNumbers.put(germplasm.getMaleParentAccessionNumber(), true);
+                }
             }
         }
 
@@ -178,18 +175,16 @@ public class GermplasmProcessor implements Processor {
         existingGermplasm = new ArrayList<>();
         List<String> missingParentalAccessionNumbers = germplasmAccessionNumbers.entrySet().stream().filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(Collectors.toList());
         List<String> missingAccessionNumbers = germplasmAccessionNumbers.entrySet().stream().filter(entry -> !entry.getValue()).map(Map.Entry::getKey).collect(Collectors.toList());
-        if (germplasmAccessionNumbers.size() > 0) {
+        if (!germplasmAccessionNumbers.isEmpty()) {
             try {
                 existingGermplasm = brAPIGermplasmService.getRawGermplasmByAccessionNumber(new ArrayList<>(germplasmAccessionNumbers.keySet()), program.getId());
                 List<String> existingAccessionNumbers = existingGermplasm.stream()
-                                                                     .map(germplasm -> germplasm.getAccessionNumber())
+                                                                     .map(BrAPIGermplasm::getAccessionNumber)
                                                                      .collect(Collectors.toList());
                 missingParentalAccessionNumbers.removeAll(existingAccessionNumbers);
                 missingAccessionNumbers.removeAll(existingAccessionNumbers);
 
-                existingGermplasm.forEach(existingGermplasm -> {
-                    germplasmByAccessionNumber.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
-                });
+                existingGermplasm.forEach(existingGermplasm -> germplasmByAccessionNumber.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm)));
             } catch (ApiException e) {
                 // We shouldn't get an error back from our services. If we do, nothing the user can do about it
                 throw new InternalServerException(e.toString(), e);
@@ -197,8 +192,8 @@ public class GermplasmProcessor implements Processor {
         }
 
         // Check for existing germplasm lists
-        Boolean listNameDup = false;
-        if (importRows.size() > 0 && importRows.get(0).getGermplasm().getListName() != null) {
+        boolean listNameDup = false;
+        if (!importRows.isEmpty() && importRows.get(0).getGermplasm().getListName() != null) {
             try {
                 Germplasm row = importRows.get(0).getGermplasm();
                 String listName = Germplasm.constructGermplasmListName(row.getListName(), program);
@@ -206,6 +201,7 @@ public class GermplasmProcessor implements Processor {
                 for (BrAPIListSummary existingList: existingLists) {
                     if (existingList.getListName().equals(listName)) {
                         listNameDup = true;
+                        break;
                     }
                 }
             } catch (ApiException e) {
@@ -218,14 +214,14 @@ public class GermplasmProcessor implements Processor {
         missingAccessionNumbers.remove("0");
 
         // Parent reference checks
-        if (missingParentalAccessionNumbers.size() > 0) {
+        if (!missingParentalAccessionNumbers.isEmpty()) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                                           String.format(missingParentalGIDsMsg,
                                                         arrayOfStringFormatter.apply(missingParentalAccessionNumbers)));
         }
 
         //GID existence check
-        if (missingAccessionNumbers.size() > 0) {
+        if (!missingAccessionNumbers.isEmpty()) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                                           String.format(missingGIDsMsg,
                                                         arrayOfStringFormatter.apply(missingAccessionNumbers)));
@@ -248,7 +244,7 @@ public class GermplasmProcessor implements Processor {
                     }
                 }
             }
-            if (missingEntryNumbers.size() > 0) {
+            if (!missingEntryNumbers.isEmpty()) {
                 throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                         String.format(missingParentalEntryNoMsg,
                                 arrayOfStringFormatter.apply(missingEntryNumbers)));
@@ -285,7 +281,6 @@ public class GermplasmProcessor implements Processor {
         newGermplasmList = new ArrayList<>();
         updatedGermplasmList = new ArrayList<>();
         Map<String, ProgramBreedingMethodEntity> breedingMethods = new HashMap<>();
-        Boolean nullEntryNotFound = false;
         List<String> badBreedingMethods = new ArrayList<>();
         Map<String, Integer> entryNumberCounts = new HashMap<>();
         List<String> userProvidedEntryNumbers = new ArrayList<>();
@@ -326,7 +321,7 @@ public class GermplasmProcessor implements Processor {
         }
 
         // Check for missing entry numbers
-        if (userProvidedEntryNumbers.size() > 0 && userProvidedEntryNumbers.size() < importRows.size()) {
+        if (!userProvidedEntryNumbers.isEmpty() && userProvidedEntryNumbers.size() < importRows.size()) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, missingEntryNumbersMsg);
         }
 
@@ -358,7 +353,7 @@ public class GermplasmProcessor implements Processor {
                 breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
             } else {
                 List<ProgramBreedingMethodEntity> breedingMethodResults = breedingMethodDAO.findByNameOrAbbreviation(germplasm.getBreedingMethod(), program.getId());
-                if (breedingMethodResults.size() > 0) {
+                if (!breedingMethodResults.isEmpty()) {
                     breedingMethods.put(germplasm.getBreedingMethod(), breedingMethodResults.get(0));
                     breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
                 } else {
@@ -469,16 +464,6 @@ public class GermplasmProcessor implements Processor {
                     germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN).getAsBoolean());
     }
 
-    //Used to check if germplasm already has a pedigree in the database
-    private boolean databaseGermplasmHasPedigree(Germplasm germplasm) {
-        if (germplasm.getAccessionNumber() == null || dbGermplasmByAccessionNo.get(germplasm.getAccessionNumber()) == null) {
-            return false;
-        } else {
-            BrAPIGermplasm dbGermplasm = dbGermplasmByAccessionNo.get(germplasm.getAccessionNumber());
-            return hasPedigree(dbGermplasm);
-        }
-    }
-
     /**
      * Compare an existing germplasm's pedigree to the incoming germplasm's pedigree to ensure they are the same.<br><br>
      * Assumes that an empty value for a given parent in the incoming germplasm is equal to the existing germplasm.<br><br>
@@ -528,7 +513,7 @@ public class GermplasmProcessor implements Processor {
                 germplasmPedigreeGIDString.append(existingMalePedigree);
             }
 
-            return existingPedigreeGIDString.toString().equals(germplasmPedigreeGIDString.toString());
+            return existingPedigreeGIDString.toString().contentEquals(germplasmPedigreeGIDString);
         } else {
             return true;
         }
@@ -657,7 +642,7 @@ public class GermplasmProcessor implements Processor {
             }
 
             totalRecorded += createList.size();
-            if (createList.size() > 0) {
+            if (!createList.isEmpty()) {
                 created.addAll(createList.stream().map(GermplasmImportIdUtils::getImportId).collect(Collectors.toList()));
                 postOrder.add(createList);
             } else if (totalRecorded < newGermplasmList.size()) {
@@ -668,7 +653,7 @@ public class GermplasmProcessor implements Processor {
     }
 
     @Override
-    public void validateDependencies(Map<Integer, PendingImport> mappedBrAPIImport) throws ValidatorException {
+    public void validateDependencies(Map<Integer, PendingImport> mappedBrAPIImport) {
         // TODO
     }
 
@@ -707,9 +692,7 @@ public class GermplasmProcessor implements Processor {
 
         // Update our records with what is returned
         Map<String, BrAPIGermplasm> createdGermplasmMap = new HashMap<>();
-        createdGermplasm.forEach(germplasm -> {
-            createdGermplasmMap.put(germplasm.getGermplasmName(), germplasm);
-        });
+        createdGermplasm.forEach(germplasm -> createdGermplasmMap.put(germplasm.getGermplasmName(), germplasm));
         for (Map.Entry<Integer,PendingImport> entry : mappedBrAPIImport.entrySet()) {
             String germplasmName = entry.getValue().getGermplasm().getBrAPIObject().getGermplasmName();
             if (createdGermplasmMap.containsKey(germplasmName)) {
