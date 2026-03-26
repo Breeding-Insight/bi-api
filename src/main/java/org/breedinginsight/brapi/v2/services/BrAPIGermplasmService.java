@@ -350,16 +350,16 @@ public class BrAPIGermplasmService {
         }
         return resultGermplasm;
       }
-    
-    public List<BrAPIGermplasm> getGermplasmByDisplayName(List<String> germplasmDisplayNames, UUID programId) throws ApiException {
-        List<BrAPIGermplasm> allGermplasm = getGermplasm(programId);
-        HashSet<String> requestedNames = new HashSet<>(germplasmDisplayNames);
-        List<BrAPIGermplasm> matchingGermplasm = new ArrayList<>();
-        for (BrAPIGermplasm germplasm: allGermplasm) {
-            if (requestedNames.contains(germplasm.getDefaultDisplayName())) {
-                matchingGermplasm.add(germplasm);
-            }
+
+public List<BrAPIGermplasm> getGermplasmByGID(List<String> germplasmGIDs, UUID programId) throws ApiException {
+    List<BrAPIGermplasm> allGermplasm = getGermplasm(programId);
+    HashSet<String> requestedGIDs = new HashSet<>(germplasmGIDs);
+    List<BrAPIGermplasm> matchingGermplasm = new ArrayList<>();
+    for (BrAPIGermplasm germplasm: allGermplasm) {
+        if (requestedGIDs.contains(germplasm.getAccessionNumber())) {
+            matchingGermplasm.add(germplasm);
         }
-        return matchingGermplasm;
     }
+    return matchingGermplasm;
+}
 }

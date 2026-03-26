@@ -76,7 +76,8 @@ public class GermplasmProcessor implements Processor {
     private final Gson gson = new Gson();
 
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByAccessionNumber = new HashMap<>();
-    Map<String, Integer> fileGermplasmByName = new HashMap<>();
+    Map<String, Integer> fileGermplasmByGID = new HashMap<>();
+
     Map<String, BrAPIGermplasm> dbGermplasmByName = new HashMap<>();
     Map<String, BrAPIGermplasm> dbGermplasmByAccessionNo = new HashMap<>();
     Map<String, Integer> germplasmIndexByEntryNo = new HashMap<>();
@@ -146,13 +147,13 @@ public class GermplasmProcessor implements Processor {
                     germplasmIndexByEntryNo.put(germplasm.getEntryNo(), i);
                 }
 
-                Integer count = fileGermplasmByName.getOrDefault(germplasm.getGermplasmName(), 0);
-                fileGermplasmByName.put(germplasm.getGermplasmName(), count+1);
+                Integer count = fileGermplasmByGID.getOrDefault(germplasm.getAccessionNumber(), 0);
+                fileGermplasmByGID.put(germplasm.getAccessionNumber(), count+1);
             }
         }
 
         // Get existing germplasm names
-        List<BrAPIGermplasm> dbGermplasm = brAPIGermplasmService.getGermplasmByDisplayName(new ArrayList<>(fileGermplasmByName.keySet()), program.getId());
+        List<BrAPIGermplasm> dbGermplasm = brAPIGermplasmService.getGermplasmByGID(new ArrayList<>(fileGermplasmByGID.keySet()), program.getId());
         dbGermplasm.forEach(germplasm -> {
             dbGermplasmByName.put(germplasm.getDefaultDisplayName(), germplasm);
             dbGermplasmByAccessionNo.put(germplasm.getAccessionNumber(), germplasm);
@@ -379,7 +380,7 @@ public class GermplasmProcessor implements Processor {
 
         newGermplasmList.add(newGermplasm);
         // Assign status of the germplasm
-        if (fileGermplasmByName.get(newGermplasm.getDefaultDisplayName()) > 1 || dbGermplasmByName.containsKey(newGermplasm.getDefaultDisplayName())) {
+        if (fileGermplasmByGID.get(newGermplasm.getAccessionNumber()) > 1 || dbGermplasmByAccessionNo.containsKey(newGermplasm.getAccessionNumber())) {
             mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.EXISTING, newGermplasm));
         } else {
             mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
