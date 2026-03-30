@@ -120,12 +120,7 @@ public class BrAPIObservationLevelDAO {
                     .addHeader("Content-Type", "application/json")
                     .build();
 
-            HttpResponse<String> response = brAPIDAOUtil.makeCall(request);
-            if (response.getStatus() != HttpStatus.OK) {
-                throw new ApiException(response.getStatus().getCode(), "Unable to fetch observation level names");
-            }
-
-            String responseBody = response.body();
+            String responseBody = brAPIDAOUtil.makeCallWithResponse(request);
             if (StringUtils.isBlank(responseBody)) {
                 return levelNames;
             }
