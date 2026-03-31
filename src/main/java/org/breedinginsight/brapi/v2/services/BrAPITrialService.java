@@ -6,8 +6,6 @@ import com.github.filosganga.geogson.model.Coordinates;
 import com.github.filosganga.geogson.model.positions.SinglePosition;
 import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.http.server.types.files.StreamedFile;
@@ -81,6 +79,7 @@ public class BrAPITrialService {
     private final DistributedLockService lockService;
     private static final String SHEET_NAME = "Data";
     private final DatasetService datasetService;
+    private final BrAPIObservationLevelService observationLevelService;
 
     @Inject
     public BrAPITrialService(@Property(name = "brapi.server.reference-source") String referenceSource,
@@ -96,7 +95,8 @@ public class BrAPITrialService {
                              BrAPIGermplasmDAO germplasmDAO,
                              FileMappingUtil fileMappingUtil,
                              DistributedLockService lockService,
-                             DatasetService datasetService) {
+                             DatasetService datasetService,
+                             BrAPIObservationLevelService observationLevelService) {
 
         this.referenceSource = referenceSource;
         this.trialDAO = trialDAO;
@@ -112,6 +112,7 @@ public class BrAPITrialService {
         this.fileMappingUtil = fileMappingUtil;
         this.lockService = lockService;
         this.datasetService = datasetService;
+        this.observationLevelService = observationLevelService;
     }
 
     public List<BrAPITrial> getExperiments(UUID programId) throws ApiException, DoesNotExistException {
@@ -466,14 +467,13 @@ public class BrAPITrialService {
                 }
 
                 String programBrapiDbId = program.getBrapiProgram() != null ? program.getBrapiProgram().getProgramDbId() : null;
-                HttpResponse<String> levelResponse = observationLevelDAO.createObservationLevelName(program, datasetName, DatasetLevel.SUB_OBS_UNIT, programBrapiDbId);
 
-                // 409 and 200 are expected response codes, anything else error out
-                // 409 means level already exists so we just use the name in OUs
-                // 200 means level was created successfully and can use the name in OUs
-                if (levelResponse.getStatus() != HttpStatus.CONFLICT && levelResponse.getStatus() != HttpStatus.OK) {
-                    throw new ApiException(levelResponse.getStatus().getCode(), "Unable to create observation level: " + levelResponse.getStatus().getReason());
-                }
+                String subEntityLevelNameDbId = datasetService.getOrCreateLevelNameForDataset(program,
+                        programBrapiDbId,
+                        datasetName,
+                        DatasetLevel.SUB_OBS_UNIT
+                );
+
 
                 List<BrAPIObservationUnit> expOUs = ouDAO.getObservationUnitsForDataset(topLevelDataset.getId().toString(), program);
                 for (BrAPIObservationUnit expUnit : expOUs) {
@@ -484,14 +484,14 @@ public class BrAPITrialService {
                     for (int i=1; i<=request.getRepeatedMeasures(); i++) {
                         subObsUnits.add(
                             createSubObservationUnit(
-                                datasetName,
                                 Integer.toString(i),
                                 program,
                                 envSeqValue,
                                 expUnit,
                                 this.referenceSource,
                                 subEntityDatasetId,
-                                UUID.randomUUID()
+                                UUID.randomUUID(),
+                                subEntityLevelNameDbId
                             )
                         );
                     }
@@ -529,14 +529,14 @@ public class BrAPITrialService {
     }
 
     public BrAPIObservationUnit createSubObservationUnit(
-            String subEntityDatasetName,
             String subUnitId,
             Program program,
             String seqVal,
             BrAPIObservationUnit expUnit,
             String referenceSource,
             UUID datasetId,
-            UUID id
+            UUID id,
+            String subEntityLevelNameDbId
     ) {
 
         BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
@@ -612,42 +612,39 @@ public class BrAPITrialService {
 
         // ObservationLevel entry for Sub-Obs Unit.
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
-        level.setLevelName(subEntityDatasetName);
+        level.setLevelNameDbId(subEntityLevelNameDbId);
         level.setLevelCode(Utilities.appendProgramKey(subUnitId, program.getKey(), seqVal));
-        level.setLevelOrder(DatasetLevel.SUB_OBS_UNIT.getValue());
         position.setObservationLevel(level);
 
         // ObservationLevelRelationships.
         List<BrAPIObservationUnitLevelRelationship> levelRelationships = new ArrayList<>();
+        // TODO: Figure out if we actually need to add the sub entity level to the level relationships BI-2823
         levelRelationships.add(level);
-        // ObservationLevelRelationships for block.
-        BrAPIObservationUnitLevelRelationship expBlockLevel = expUnit.getObservationUnitPosition()
-                .getObservationLevelRelationships().stream()
-                .filter(x -> x.getLevelName().equals(BrAPIConstants.REPLICATE.getValue())).findFirst().orElse(null);
-        if (expBlockLevel != null) {
-            BrAPIObservationUnitLevelRelationship blockLevel = new BrAPIObservationUnitLevelRelationship();
-            blockLevel.setLevelName(expBlockLevel.getLevelName());
-            blockLevel.setLevelCode(expBlockLevel.getLevelCode());
-            blockLevel.setLevelOrder(expBlockLevel.getLevelOrder());
-            levelRelationships.add(blockLevel);
-        }
         // ObservationLevelRelationships for rep.
         BrAPIObservationUnitLevelRelationship expRepLevel = expUnit.getObservationUnitPosition()
                 .getObservationLevelRelationships().stream()
-                .filter(x -> x.getLevelName().equals(BrAPIConstants.BLOCK.getValue())).findFirst().orElse(null);
+                .filter(x -> x.getLevelName().equals(BrAPIConstants.REPLICATE.getValue())).findFirst().orElse(null);
         if (expRepLevel != null) {
             BrAPIObservationUnitLevelRelationship repLevel = new BrAPIObservationUnitLevelRelationship();
-            repLevel.setLevelName(expRepLevel.getLevelName());
+            repLevel.setLevelNameDbId(expRepLevel.getLevelNameDbId());
             repLevel.setLevelCode(expRepLevel.getLevelCode());
-            repLevel.setLevelOrder(expRepLevel.getLevelOrder());
             levelRelationships.add(repLevel);
+        }
+        // ObservationLevelRelationships for block.
+        BrAPIObservationUnitLevelRelationship expBlockLevel = expUnit.getObservationUnitPosition()
+                .getObservationLevelRelationships().stream()
+                .filter(x -> x.getLevelName().equals(BrAPIConstants.BLOCK.getValue())).findFirst().orElse(null);
+        if (expBlockLevel != null) {
+            BrAPIObservationUnitLevelRelationship blockLevel = new BrAPIObservationUnitLevelRelationship();
+            blockLevel.setLevelNameDbId(expBlockLevel.getLevelNameDbId());
+            blockLevel.setLevelCode(expBlockLevel.getLevelCode());
+            levelRelationships.add(blockLevel);
         }
         // ObservationLevelRelationships for top-level Exp Unit linking.
         BrAPIObservationUnitLevelRelationship expUnitLevel = new BrAPIObservationUnitLevelRelationship();
-        expUnitLevel.setLevelName(expUnit.getObservationUnitPosition().getObservationLevel().getLevelName().toLowerCase());
+        expUnitLevel.setLevelNameDbId(expUnit.getObservationUnitPosition().getObservationLevel().getLevelNameDbId());
         String expUnitUUID = Utilities.getExternalReference(expUnit.getExternalReferences(), referenceSource, ExternalReferenceSource.OBSERVATION_UNITS).orElseThrow().getReferenceId();
         expUnitLevel.setLevelCode(Utilities.appendProgramKey(expUnitUUID, program.getKey(), seqVal));
-        expUnitLevel.setLevelOrder(DatasetLevel.EXP_UNIT.getValue());
         levelRelationships.add(expUnitLevel);
         position.setObservationLevelRelationships(levelRelationships);
 
