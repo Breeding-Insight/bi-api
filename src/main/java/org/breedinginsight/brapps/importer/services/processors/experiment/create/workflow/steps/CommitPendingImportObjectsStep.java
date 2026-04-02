@@ -23,6 +23,7 @@ import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
@@ -43,6 +44,7 @@ import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
 import org.breedinginsight.model.DatasetLevel;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
@@ -55,10 +57,7 @@ import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities.PREEXISTING_EXPERIMENT_TITLE;
@@ -74,7 +73,7 @@ public class CommitPendingImportObjectsStep {
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final ProgramLocationService locationService;
     private final OntologyService ontologyService;
-    private final BrAPIObservationLevelDAO brAPIObservationLevelDAO;
+    private final DatasetService datasetService;
 
     @Inject
     public CommitPendingImportObjectsStep(BrAPIListDAO brAPIListDAO,
@@ -84,7 +83,7 @@ public class CommitPendingImportObjectsStep {
                                           BrAPIObservationUnitDAO brAPIObservationUnitDAO,
                                           ProgramLocationService locationService,
                                           OntologyService ontologyService,
-                                          BrAPIObservationLevelDAO brAPIObservationLevelDAO) {
+                                          DatasetService datasetService) {
         this.brAPIListDAO = brAPIListDAO;
         this.brapiTrialDAO = brapiTrialDAO;
         this.brAPIStudyDAO = brAPIStudyDAO;
@@ -92,11 +91,13 @@ public class CommitPendingImportObjectsStep {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.locationService = locationService;
         this.ontologyService = ontologyService;
-        this.brAPIObservationLevelDAO = brAPIObservationLevelDAO;
+        this.datasetService = datasetService;
     }
 
     // TODO: some common code between workflows here that could be broken out, removed append/update specific code
-    public void process(ProcessContext processContext, ProcessedData processedData) throws UnprocessableEntityException {
+    // TODO: For instance, multiple trials don't really exist in the use case which this code is used for: creating an experiment.
+    // TODO: This means having a Map of trials doesn't really make sense anymore, and should be replaced with a singular PendingImportObject<Trial>
+    public void process(ProcessContext processContext, ProcessedData processedData) throws UnprocessableEntityException, ApiException {
 
         PendingData pendingData = processContext.getPendingData();
         ImportContext importContext = processContext.getImportContext();
@@ -112,6 +113,32 @@ public class CommitPendingImportObjectsStep {
         Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = pendingData.getObservationUnitByNameNoScope();
         Map<String, PendingImportObject<BrAPIObservation>> observationByHash = pendingData.getObservationByHash();
         Map<String, String> expUnitbyTrialName = pendingData.getExpUnitByTrialName();
+
+        // Assume that there's only one expUnit per trial in this workflow.
+        // This should be a safe assumption to make considering this workflow is for the creation of a single experiment.
+        // If that changes in the future, this code will break and need to be dealt with.
+
+        if (expUnitbyTrialName.size() > 1) {
+            throw new InternalServerException("Multiple Experiment names exist during commit stage");
+        }
+
+        String expUnitName = expUnitbyTrialName.values()
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        if (expUnitName == null) {
+            throw new InternalServerException("Experiment unit name not found during commit stage");
+        }
+
+        String brapiProgramId = Optional.of(program)
+                .map(Program::getBrapiProgram)
+                .map(BrAPIProgram::getProgramDbId)
+                .orElse(null);
+
+        if (brapiProgramId == null) {
+            throw new InternalServerException("BrAPI program not found during commit stage");
+        }
 
         List<BrAPITrial> newTrials = ProcessorData.getNewObjects(pendingData.getTrialByNameNoScope());
 
@@ -138,6 +165,14 @@ public class CommitPendingImportObjectsStep {
                 .getMutationsByObjectId(pendingData.getObsVarDatasetByName(), BrAPIListSummary::getListDbId);
 
         List<BrAPIObservationUnit> newObservationUnits = ProcessorData.getNewObjects(pendingData.getObservationUnitByNameNoScope());
+
+        // Inject level names here
+        datasetService.updateObservationUnitsWithLevelNameDbIds(newObservationUnits,
+                program,
+                brapiProgramId,
+                expUnitName,
+                DatasetLevel.EXP_UNIT
+                );
 
         // filter out observations with no 'value' so they will not be saved
         List<BrAPIObservation> newObservations = ProcessorData.getNewObjects(observationByHash)
@@ -176,8 +211,6 @@ public class CommitPendingImportObjectsStep {
                 trialByNameNoScope.get(createdTrialName)
                         .getBrAPIObject()
                         .setTrialDbId(createdTrial.getTrialDbId());
-
-                createObservationLevel(createdTrialName, expUnitbyTrialName, program);
             }
 
             List<ProgramLocation> createdLocations = new ArrayList<>(locationService.create(actingUser, program.getId(), newLocations));
@@ -249,22 +282,6 @@ public class CommitPendingImportObjectsStep {
 
         // NOTE: removed mutated observations code
 
-    }
-
-    //Check if the experimental unit associated with the trial does not exist in the system and if so create a new observation level
-    private void createObservationLevel(String trialName, Map<String, String> expUnitByTrialName, Program program) throws ApiException, InternalServerException {
-        String expUnit = expUnitByTrialName.get(trialName).toLowerCase();
-        String programDbId = program.getBrapiProgram() != null ? program.getBrapiProgram().getProgramDbId() : null;
-        HttpResponse<String> levelResponse = brAPIObservationLevelDAO.createObservationLevelName(program, expUnit, DatasetLevel.EXP_UNIT, programDbId);
-
-        if (levelResponse.getStatus().getCode() == 409) {
-            log.info(String.format("Level with name=%s, order=%s, programDbId=%s already exists in database", expUnit, DatasetLevel.EXP_UNIT, programDbId));
-        } else if (levelResponse.getStatus().getCode() == 200) {
-            log.info(String.format("Level with name=%s, order=%s, programDbId=%s created in database", expUnit, DatasetLevel.EXP_UNIT, programDbId));
-        } else {
-            log.error("Error saving experiment import: " + levelResponse.getStatus().getReason());
-            throw new InternalServerException("Unable to create observation level: " + levelResponse.getStatus().getReason());
-        }
     }
 
     private void updateStudyDependencyValues(PendingData pendingData, Map<Integer, PendingImport> mappedBrAPIImport, String programKey) {
