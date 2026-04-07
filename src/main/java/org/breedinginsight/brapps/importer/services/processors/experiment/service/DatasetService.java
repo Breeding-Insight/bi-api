@@ -18,6 +18,7 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
@@ -26,14 +27,16 @@ import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
+import org.brapi.v2.model.pheno.BrAPIObservationUnitLevelRelationship;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
-import org.breedinginsight.brapi.v2.dao.BrAPIObservationLevelDAO;
 import org.breedinginsight.brapi.v2.services.BrAPIObservationLevelService;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.DatasetLevel;
 import org.breedinginsight.model.DatasetMetadata;
 import org.breedinginsight.model.Program;
@@ -215,5 +218,43 @@ public class DatasetService {
         }
 
         return levelNameStreamResult.get(0).getLevelNameDbId();
+    }
+
+    public void updateObservationUnitsWithLevelNameDbIds(List<BrAPIObservationUnit> observationUnits,
+                                                         Program program,
+                                                         String brapiProgramDbId,
+                                                         String expUnitName,
+                                                         DatasetLevel levelOrder) throws ApiException {
+        Map<String, String> levelNameDbIdByName = new HashMap<>();
+
+        String expLevelName = expUnitName.toLowerCase();
+
+        String existingLevelNameDbId = getOrCreateLevelNameForDataset(program, brapiProgramDbId, expLevelName, levelOrder);
+        levelNameDbIdByName.put(expLevelName, existingLevelNameDbId);
+
+        List<BrAPIObservationUnitHierarchyLevel> globalLevelNames = observationLevelService.getGlobalLevelNames(program);
+
+        globalLevelNames.forEach(ouln -> levelNameDbIdByName.put(ouln.getLevelName(), ouln.getLevelNameDbId()));
+
+        for (BrAPIObservationUnit observationUnit : observationUnits) {
+
+            String positionLevelName = observationUnit.getObservationUnitPosition().getObservationLevel().getLevelName().toLowerCase();
+
+            observationUnit.getObservationUnitPosition().getObservationLevel().setLevelNameDbId(levelNameDbIdByName.get(positionLevelName));
+
+            for (BrAPIObservationUnitLevelRelationship lvlRelationship : observationUnit.getObservationUnitPosition().getObservationLevelRelationships()) {
+                if (lvlRelationship.getLevelName().equals(BrAPIConstants.BLOCK.getValue())) {
+                    lvlRelationship.setLevelNameDbId(levelNameDbIdByName.get(lvlRelationship.getLevelName()));
+                } else if (lvlRelationship.getLevelName().equals(BrAPIConstants.REPLICATE.getValue())) {
+                    lvlRelationship.setLevelNameDbId(levelNameDbIdByName.get(lvlRelationship.getLevelName()));
+                } else {
+                    throw new InternalServerException(String.format("Level name [%s] detected in OU Level Relationship " +
+                            "for experiment with Exp Unit name [%s].  This is unexpected and the new level " +
+                            "name must be retrieved properly from BrAPI to insert its DbId into BrAPI request for proper creation and assignment.",
+                            lvlRelationship.getLevelName(), expUnitName));
+                }
+            }
+        }
+
     }
 }
