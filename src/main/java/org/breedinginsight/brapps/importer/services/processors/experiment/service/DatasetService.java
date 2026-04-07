@@ -18,6 +18,7 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
 import io.micronaut.context.annotation.Property;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListSummary;
@@ -25,11 +26,15 @@ import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIObservationLevelDAO;
+import org.breedinginsight.brapi.v2.services.BrAPIObservationLevelService;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.model.DatasetLevel;
 import org.breedinginsight.model.DatasetMetadata;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
@@ -37,16 +42,20 @@ import org.breedinginsight.utilities.Utilities;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Singleton
 public class DatasetService {
     private final BrAPIListDAO brAPIListDAO;
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
+    private final BrAPIObservationLevelService observationLevelService;
 
     @Inject
-    public DatasetService(BrAPIListDAO brapiListDAO) {
+    public DatasetService(BrAPIListDAO brapiListDAO,
+                          BrAPIObservationLevelService brAPIObservationLevelService) {
         this.brAPIListDAO = brapiListDAO;
+        this.observationLevelService = brAPIObservationLevelService;
     }
     /**
      * Module: Dataset Utility
@@ -161,5 +170,50 @@ public class DatasetService {
         Utilities.addReference(refs, datasetId, referenceSourceBase, ExternalReferenceSource.DATASET);
         dataSetDetails.setExternalReferences(refs);
         return dataSetDetails;
+    }
+
+    /**
+     * @return brapiLevelNameDbId of found or created record
+     */
+    public String getOrCreateLevelNameForDataset(Program program,
+                                                 String brapiProgramDbId,
+                                                 String levelName,
+                                                 DatasetLevel levelOrder) throws ApiException {
+
+        String existingLevelNameDbId = findLevelNameByNameAndOrder(program, brapiProgramDbId, levelName, levelOrder);
+
+        if (StringUtils.isNotBlank(existingLevelNameDbId)) {
+            return existingLevelNameDbId;
+        }
+
+        // Level name does not exist and needs to be created.
+        BrAPIObservationUnitHierarchyLevel createdLevelName = observationLevelService.createObservationLevel(program, brapiProgramDbId, levelName, levelOrder);
+
+        return createdLevelName.getLevelNameDbId();
+    }
+
+    /**
+     * This method retrieves the programmatic level names and then matches the level names on the submitted
+     * level name and order.
+     *
+     * @return levelNameDbId of the matched level name
+     */
+    private String findLevelNameByNameAndOrder(Program program,
+                                               String brapiProgramDbId,
+                                               String levelName,
+                                               DatasetLevel levelOrder) {
+        var programmaticLevelNames = observationLevelService.getProgrammaticLevelNames(program, brapiProgramDbId);
+
+        List<BrAPIObservationUnitHierarchyLevel> levelNameStreamResult
+                = programmaticLevelNames.stream()
+                .filter(ouln -> ouln.getLevelName().equals(levelName.toLowerCase()) && ouln.getLevelOrder() == levelOrder.getValue())
+                .limit(1)
+                .collect(Collectors.toList());
+
+        if (levelNameStreamResult.isEmpty()) {
+            return null;
+        }
+
+        return levelNameStreamResult.get(0).getLevelNameDbId();
     }
 }
