@@ -170,6 +170,7 @@ public class BrAPITrialService {
         List<Trait> obsVars = new ArrayList<>();
         Map<String, Map<String, Object>> rowByOUId = new HashMap<>();
         Map<String, BrAPIStudy> studyByDbId = new HashMap<>();
+        Map<String, Integer> yearByStudyDbId = new HashMap<>();
         Map<String, String> studyDbIdByOUId = new HashMap<>();
         List<String> requestedEnvIds = StringUtils.isNotBlank(params.getEnvironments()) ?
                 new ArrayList<>(Arrays.asList(params.getEnvironments().split(","))) : new ArrayList<>();
@@ -205,6 +206,7 @@ public class BrAPITrialService {
             log.error(logHash + ": Error fetching observation units for a study by its DbId" +
                     Utilities.generateApiExceptionLogMessage(err), err);
         }
+        yearByStudyDbId.putAll(getYearByStudyDbId(expStudies, program.getId()));
 
         boolean isSubObs = isSubEntityDataset(ous);
 
@@ -258,6 +260,7 @@ public class BrAPITrialService {
                 obsVars,
                 studyDbIdByOUId,
                 programGermplasmByDbId,
+                yearByStudyDbId,
                 isSubObs
         );
 
@@ -268,7 +271,7 @@ public class BrAPITrialService {
                 // Map Observation Unit to the Study it belongs to.
                 studyDbIdByOUId.put(ouId, ou.getStudyDbId());
                 if (!rowByOUId.containsKey(ouId)) {
-                    rowByOUId.put(ouId, createExportRow(experiment, program, ou, studyByDbId, programGermplasmByDbId, isSubObs));
+                    rowByOUId.put(ouId, createExportRow(experiment, program, ou, studyByDbId, programGermplasmByDbId, yearByStudyDbId, isSubObs));
                 }
             }
         }
@@ -363,30 +366,12 @@ public class BrAPITrialService {
         log.debug("fetching observationUnits for dataset: " + datasetId);
         List<BrAPIObservationUnit> datasetOUs = ouDAO.getObservationUnitsForDataset(datasetId.toString(), program);
 
-        //Add years to the addition_info elements
-        //TODO yearByStudyDbId will no longer be needed, and should be removed, once the seasonDAO uses the redis cache (BI-2261).
-        Map<String, Integer> yearByStudyDbId = new HashMap<>();  // used to prevent the same season from being fetched repeatedly.
-        for ( BrAPIObservationUnit ou: datasetOUs ) {
-            String environmentId = Utilities.getExternalReference(ou.getExternalReferences(), this.referenceSource, ExternalReferenceSource.STUDIES)
-                    .orElseThrow( ()-> new DoesNotExistException("No BI external reference for STUDIES was found"))
-                    .getReferenceId();
-            if( !yearByStudyDbId.containsKey( environmentId ))  {
-                // Get the Study and extract the year from its Season
-                BrAPIStudy study = studyDAO.getStudyByEnvironmentId(UUID.fromString(environmentId), program).orElseThrow( () -> new DoesNotExistException(String.format("Study Id '%s' not found.", environmentId)) );
-                if(study.getSeasons().isEmpty()){
-                    throw new DoesNotExistException(String.format("No Seasons found in Study Id = '%s'.", environmentId));
-                }
-                String seasonId = study.getSeasons().get(0);
-                BrAPISeason season = seasonDAO.getSeasonById(seasonId, program.getId());
-                if(season==null){
-                    throw new DoesNotExistException(String.format("Seasons not found for Id = '%s'.", seasonId));
-                }
-                Integer year = season.getYear();
-                yearByStudyDbId.put(environmentId, year);
-            }
-            
-            ou.putAdditionalInfoItem(BrAPIAdditionalInfoFields.ENV_YEAR, yearByStudyDbId.get(environmentId));
-        }
+        Map<String, Integer> yearByStudyDbId = getYearByStudyDbIds(
+                datasetOUs.stream()
+                        .map(BrAPIObservationUnit::getStudyDbId)
+                        .collect(Collectors.toSet()),
+                program);
+        addEnvYearToObservationUnits(datasetOUs, yearByStudyDbId);
 
         log.debug("fetching dataset variables dataset: " + datasetId);
         List<Trait> datasetObsVars = getDatasetObsVars(datasetId.toString(), program);
@@ -670,6 +655,7 @@ public class BrAPITrialService {
             List<Trait> obsVars,
             Map<String, String> studyDbIdByOUId,
             Map<String, BrAPIGermplasm> programGermplasmByDbId,
+            Map<String, Integer> yearByStudyDbId,
             boolean isSubObs) throws ApiException, DoesNotExistException {
         Map<String, Trait> varByDbId = new HashMap<>();
         obsVars.forEach(var -> varByDbId.put(var.getObservationVariableDbId(), var));
@@ -688,7 +674,7 @@ public class BrAPITrialService {
             } else {
 
                 // otherwise make a new row
-                Map<String, Object> row = createExportRow(experiment, program, ou, studyByDbId, programGermplasmByDbId, isSubObs);
+                Map<String, Object> row = createExportRow(experiment, program, ou, studyByDbId, programGermplasmByDbId, yearByStudyDbId, isSubObs);
                 addObsVarDataToRow(row, obs, includeTimestamp, var, program);
                 rowByOUId.put(ouId, row);
             }
@@ -801,12 +787,19 @@ public class BrAPITrialService {
         return existingObservations.size();
     }
 
+    /**
+     * Builds the static export columns for a single observation unit.
+     *
+     * Env Year is resolved ahead of time and passed in so export generation and
+     * dataset retrieval share the same study/season lookup path
+     */
     private Map<String, Object> createExportRow(
             BrAPITrial experiment,
             Program program,
             BrAPIObservationUnit ou,
             Map<String, BrAPIStudy> studyByDbId,
             Map<String, BrAPIGermplasm> programGermplasmByDbId,
+            Map<String, Integer> yearByStudyDbId,
             boolean isSubEntity) throws ApiException, DoesNotExistException {
         HashMap<String, Object> row = new HashMap<>();
 
@@ -818,7 +811,8 @@ public class BrAPITrialService {
         String ouId = ouXref.getReferenceID();
         BrAPIGermplasm germplasm = Optional.ofNullable(programGermplasmByDbId.get(ou.getGermplasmDbId()))
                 .orElseThrow(() -> new DoesNotExistException("Germplasm not returned from BrAPI service"));
-        BrAPIStudy study = studyByDbId.get(ou.getStudyDbId());
+        BrAPIStudy study = Optional.ofNullable(studyByDbId.get(ou.getStudyDbId()))
+                .orElseThrow(() -> new DoesNotExistException(String.format("Study DbId '%s' not found.", ou.getStudyDbId())));
 
         // make export row from BrAPI objects
         row.put(ExperimentObservation.Columns.GERMPLASM_NAME, Utilities.removeProgramKey(ou.getGermplasmName(), program.getKey(), germplasm.getAccessionNumber()));
@@ -854,8 +848,11 @@ public class BrAPITrialService {
                         :   additionalInfo.get(BrAPIAdditionalInfoFields.RTK).getAsString();
         row.put(ExperimentObservation.Columns.RTK, rtk);
 
-        BrAPISeason season = seasonDAO.getSeasonById(study.getSeasons().get(0), program.getId());
-        row.put(ExperimentObservation.Columns.ENV_YEAR, season.getYear());
+        // Treat a null season year as missing data. Experiment import requires Env Year,
+        // so a missing year here indicates unsupported upstream BrAPI data.
+        Integer year = Optional.ofNullable(yearByStudyDbId.get(study.getStudyDbId()))
+                .orElseThrow(() -> new DoesNotExistException(String.format("Env Year not found for Study DbId = '%s'.", study.getStudyDbId())));
+        row.put(ExperimentObservation.Columns.ENV_YEAR, year);
 
         // get replicate number
         Optional<BrAPIObservationUnitLevelRelationship> repLevel = ou.getObservationUnitPosition()
@@ -910,6 +907,72 @@ public class BrAPITrialService {
         }
 
         return row;
+    }
+
+    /**
+     * Resolves Env Year once per study while caching repeated season lookups by season DbId.
+     *
+     * This keeps export and dataset retrieval on the same code path and avoids refetching
+     * a season for every observation unit in the same study.
+     */
+    private Map<String, Integer> getYearByStudyDbId(Collection<BrAPIStudy> studies, UUID programId) throws ApiException, DoesNotExistException {
+        Map<String, Integer> yearByStudyDbId = new HashMap<>();
+        Map<String, Integer> yearBySeasonDbId = new HashMap<>();
+        for (BrAPIStudy study : studies) {
+            yearByStudyDbId.put(study.getStudyDbId(), getYearForStudy(study, programId, yearBySeasonDbId));
+        }
+
+        return yearByStudyDbId;
+    }
+
+    /**
+     * Bulk-loads studies by studyDbId so dataset retrieval can avoid per-observation-unit
+     * environment lookups and reuse the shared year resolution flow.
+     */
+    private Map<String, Integer> getYearByStudyDbIds(Collection<String> studyDbIds, Program program) throws ApiException, DoesNotExistException {
+        return getYearByStudyDbId(
+                studyDAO.getStudiesByStudyDbId(studyDbIds, program),
+                program.getId());
+    }
+
+    /**
+     * Adds the resolved Env Year to each observation unit for the dataset response.
+     */
+    private void addEnvYearToObservationUnits(Collection<BrAPIObservationUnit> observationUnits, Map<String, Integer> yearByStudyDbId) throws DoesNotExistException {
+        // additionalinfo.envYear is for the frontend dataset view
+        for (BrAPIObservationUnit observationUnit : observationUnits) {
+            Integer year = yearByStudyDbId.get(observationUnit.getStudyDbId());
+            if (year == null) {
+                throw new DoesNotExistException(String.format("Study DbId '%s' not found.", observationUnit.getStudyDbId()));
+            }
+            observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.ENV_YEAR, year);
+        }
+    }
+
+    /**
+     * Resolves the year for the study's first season reference.
+     *
+     * A season that exists but does not expose a numeric year is treated as invalid data.
+     * The experiment import workflow requires Env Year for created experiments/environments,
+     * so the stricter failure here is intentional
+     */
+    private Integer getYearForStudy(BrAPIStudy study, UUID programId, Map<String, Integer> yearBySeasonDbId) throws ApiException, DoesNotExistException {
+        if (study.getSeasons() == null || study.getSeasons().isEmpty()) {
+            throw new DoesNotExistException(String.format("No Seasons found in Study DbId = '%s'.", study.getStudyDbId()));
+        }
+
+        String seasonId = study.getSeasons().get(0);
+        Integer year = yearBySeasonDbId.get(seasonId);
+        if (year == null) {
+            BrAPISeason season = seasonDAO.getSeasonById(seasonId, programId);
+            if (season == null) {
+                throw new DoesNotExistException(String.format("Seasons not found for Id = '%s'.", seasonId));
+            }
+            year = season.getYear();
+            yearBySeasonDbId.put(seasonId, year);
+        }
+
+        return year;
     }
 
     private String doubleToString(double val){
