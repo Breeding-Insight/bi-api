@@ -43,6 +43,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.create
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.PopulateNewPendingImportObjectsStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.ValidatePendingImportObjectsStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentPhenotypeService;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
@@ -57,6 +58,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.Experi
 
 import javax.inject.Singleton;
 
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.MULTIPLE_EXP_TITLES;
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.OBSERVATION_UNIT_ID_SUFFIX;
 
 @Slf4j
@@ -97,6 +99,12 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
         // Make sure the file does not contain obs unit ids before proceeding
         if (containsObsUnitIDs(context)) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "ObsUnitIDs are detected");
+        }
+
+        //Make sure file only contains one exp title, check early cause avoids issues with titles corresponding to existing and new trials
+        List<ExperimentObservation> experimentImportRows = ExperimentUtilities.importRowsToExperimentObservations(importRows);
+        if (experimentImportRows.stream().map(ExperimentObservation::getExpTitle).distinct().count() > 1) {
+            throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES.getValue());
         }
 
         statusService.updateMessage(upload, "Checking existing experiment objects in brapi service and mapping data");
