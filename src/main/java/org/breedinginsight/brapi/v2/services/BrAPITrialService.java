@@ -436,12 +436,13 @@ public class BrAPITrialService {
     }
 
     /**
-     * Assumptions:
-     * @param program
-     * @param experimentId
-     * @return
-     * @throws DoesNotExistException
-     * @throws ApiException
+     * Returns list of recommended sub entity names based on observation levels for the program that exclude
+     * level names already used in the experiment and is deduplicated for same name at multiple levels
+     * @param program Program
+     * @param experimentId Experiment Id
+     * @return list of dataset name recommendations
+     * @throws DoesNotExistException If trial does not exist
+     * @throws ApiException If BrAPI trial retrieval fails
      */
     public List<String> getRecommendedSubEntityDatasetNames(Program program, UUID experimentId) throws DoesNotExistException, ApiException {
         BrAPITrial experiment = trialDAO.getTrialById(program.getId(), experimentId).orElseThrow(() -> new DoesNotExistException("Trial does not exist"));
@@ -450,13 +451,9 @@ public class BrAPITrialService {
         Set<String> currentExperimentDatasetNames = deltaExperiment.getDatasetsMetadata()
                 .stream()
                 .map(DatasetMetadata::getName)
-                //.filter(StringUtils::isNotBlank)
                 .collect(Collectors.toSet());
 
         return getProgramObservationLevelNames(program).stream()
-                //.filter(StringUtils::isNotBlank)
-                //.filter(name -> !BrAPIConstants.REPLICATE.getValue().equalsIgnoreCase(name))
-                //.filter(name -> !BrAPIConstants.BLOCK.getValue().equalsIgnoreCase(name))
                 .filter(name -> !currentExperimentDatasetNames.contains(name))
                 .distinct()
                 .sorted()
