@@ -17,22 +17,12 @@
 
 package org.breedinginsight.brapi.v2.dao;
 
-import com.google.gson.Gson;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.Request;
-import okhttp3.RequestBody;
 import org.brapi.client.v2.ApiResponse;
-import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.phenotype.ObservationLevelNamesApi;
-import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
-import org.brapi.v2.model.pheno.BrAPIObservationUnitLevelRelationship;
 import org.brapi.v2.model.pheno.response.BrAPIObservationLevelListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationLevelListResponseResult;
 import org.brapi.v2.model.pheno.response.BrAPIObservationLevelSingleResponse;
@@ -40,61 +30,24 @@ import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DatasetLevel;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.utilities.BrAPIDAOUtil;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import org.breedinginsight.utilities.Utilities;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
+import org.breedinginsight.utilities.Utilities;
 import java.util.Optional;
 
 @Slf4j
 @Singleton
 public class BrAPIObservationLevelDAO {
 
-    private static final MediaType JSON_MEDIA_TYPE = MediaType.get("application/json");
-    private final BrAPIDAOUtil brAPIDAOUtil;
-    private final Gson gson = new JSON().getGson();
-
     private final BrAPIEndpointProvider brAPIEndpointProvider;
     private final ProgramDAO programDAO;
 
     @Inject
-    public BrAPIObservationLevelDAO(BrAPIDAOUtil brAPIDAOUtil,
-                                    BrAPIEndpointProvider brAPIEndpointProvider,
+    public BrAPIObservationLevelDAO(BrAPIEndpointProvider brAPIEndpointProvider,
                                     ProgramDAO programDAO) {
-        this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.programDAO = programDAO;
-    }
-
-    public HttpResponse<String> createObservationLevelName(Program program, String levelName, DatasetLevel levelOrder, String programDbId) {
-        HttpUrl url = HttpUrl.parse(brAPIDAOUtil.getProgramBrAPIBaseUrl(program.getId()))
-                             .newBuilder()
-                             .addPathSegment("observationlevelnames")
-                             .build();
-        JsonObject levelJson = new JsonObject();
-        levelJson.addProperty("levelName", levelName);
-        if (levelOrder != null) {
-            levelJson.addProperty("levelOrder", levelOrder.getValue());
-        }
-        if (programDbId != null) {
-            levelJson.addProperty("programDbId", programDbId);
-        }
-        JsonArray bodyArray = new JsonArray();
-        bodyArray.add(levelJson);
-        RequestBody body = RequestBody.create(gson.toJson(bodyArray), JSON_MEDIA_TYPE);
-        var request = new Request.Builder()
-                .url(url)
-                .post(body)
-                .addHeader("Content-Type", "application/json")
-                .build();
-        return brAPIDAOUtil.makeCall(request);
     }
 
     public BrAPIObservationUnitHierarchyLevel createLevelName(Program program,

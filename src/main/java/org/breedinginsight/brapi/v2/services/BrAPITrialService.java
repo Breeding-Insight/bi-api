@@ -34,6 +34,8 @@ import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.*;
+import org.breedinginsight.model.delta.DeltaEntityFactory;
+import org.breedinginsight.model.delta.Experiment;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -79,6 +81,7 @@ public class BrAPITrialService {
     private final DistributedLockService lockService;
     private static final String SHEET_NAME = "Data";
     private final DatasetService datasetService;
+    private final DeltaEntityFactory deltaEntityFactory;
     private final BrAPIObservationLevelService observationLevelService;
 
     @Inject
@@ -96,6 +99,7 @@ public class BrAPITrialService {
                              FileMappingUtil fileMappingUtil,
                              DistributedLockService lockService,
                              DatasetService datasetService,
+                             DeltaEntityFactory deltaEntityFactory,
                              BrAPIObservationLevelService observationLevelService) {
 
         this.referenceSource = referenceSource;
@@ -112,6 +116,7 @@ public class BrAPITrialService {
         this.fileMappingUtil = fileMappingUtil;
         this.lockService = lockService;
         this.datasetService = datasetService;
+        this.deltaEntityFactory = deltaEntityFactory;
         this.observationLevelService = observationLevelService;
     }
 
@@ -428,6 +433,35 @@ public class BrAPITrialService {
         JsonArray datasetsJson = trial.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
         List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(datasetsJson);
         return datasets;
+    }
+
+    /**
+     * Returns list of recommended sub entity names based on observation levels for the program that exclude
+     * level names already used in the experiment and is deduplicated for same name at multiple levels
+     * @param program Program
+     * @param experimentId Experiment Id
+     * @return list of dataset name recommendations
+     * @throws DoesNotExistException If trial does not exist
+     * @throws ApiException If BrAPI trial retrieval fails
+     */
+    public List<String> getRecommendedSubEntityDatasetNames(Program program, UUID experimentId) throws DoesNotExistException, ApiException {
+        BrAPITrial experiment = trialDAO.getTrialById(program.getId(), experimentId).orElseThrow(() -> new DoesNotExistException("Trial does not exist"));
+        Experiment deltaExperiment = deltaEntityFactory.makeExperimentBean(experiment);
+        // set to eliminate possible duplicates like plant for exp unit and sub unit
+        Set<String> currentExperimentDatasetNames = deltaExperiment.getDatasetsMetadata()
+                .stream()
+                .map(DatasetMetadata::getName)
+                .filter(Objects::nonNull)
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet());
+
+        return getProgramObservationLevelNames(program).stream()
+                .filter(Objects::nonNull)
+                .map(String::toLowerCase)
+                .filter(name -> !currentExperimentDatasetNames.contains(name))
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
     }
 
     /**
@@ -794,6 +828,12 @@ public class BrAPITrialService {
 
         // Successful or not, return the number of observations in this experiment.
         return existingObservations.size();
+    }
+
+    private List<String> getProgramObservationLevelNames(Program program) {
+        String programDbId = program.getBrapiProgram() != null ? program.getBrapiProgram().getProgramDbId() : null;
+        List<BrAPIObservationUnitHierarchyLevel> levelNames = observationLevelService.getProgrammaticLevelNames(program, programDbId);
+        return levelNames.stream().map(BrAPIObservationUnitHierarchyLevel::getLevelName).collect(Collectors.toList());
     }
 
     private Map<String, Object> createExportRow(
