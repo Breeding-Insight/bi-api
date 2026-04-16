@@ -652,8 +652,6 @@ public class BrAPITrialService {
 
         // ObservationLevelRelationships.
         List<BrAPIObservationUnitLevelRelationship> levelRelationships = new ArrayList<>();
-        // TODO: Figure out if we actually need to add the sub entity level to the level relationships BI-2823
-        levelRelationships.add(level);
         // ObservationLevelRelationships for rep.
         BrAPIObservationUnitLevelRelationship expRepLevel = expUnit.getObservationUnitPosition()
                 .getObservationLevelRelationships().stream()

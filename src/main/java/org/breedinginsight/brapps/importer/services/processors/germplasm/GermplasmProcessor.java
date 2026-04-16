@@ -151,7 +151,8 @@ public class GermplasmProcessor implements Processor {
             }
         }
 
-        // Get existing germplasm names
+        // Get existing germplasm names.  This should be used ONLY to identify duplicate germplasm names.
+        // In general you should look up germplasm by GID.
         List<BrAPIGermplasm> dbGermplasm = brAPIGermplasmService.getGermplasmByDisplayName(new ArrayList<>(fileGermplasmByName.keySet()), program.getId());
         dbGermplasm.forEach(germplasm -> {
             dbGermplasmByName.put(germplasm.getDefaultDisplayName(), germplasm);
