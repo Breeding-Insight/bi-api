@@ -451,9 +451,13 @@ public class BrAPITrialService {
         Set<String> currentExperimentDatasetNames = deltaExperiment.getDatasetsMetadata()
                 .stream()
                 .map(DatasetMetadata::getName)
+                .filter(Objects::nonNull)
+                .map(String::toLowerCase)
                 .collect(Collectors.toSet());
 
         return getProgramObservationLevelNames(program).stream()
+                .filter(Objects::nonNull)
+                .map(String::toLowerCase)
                 .filter(name -> !currentExperimentDatasetNames.contains(name))
                 .distinct()
                 .sorted()
