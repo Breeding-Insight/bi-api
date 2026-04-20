@@ -14,6 +14,7 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
@@ -53,6 +54,7 @@ import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 import javax.inject.Inject;
 import java.io.*;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -62,7 +64,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ExperimentControllerIntegrationTest extends BrAPITest {
 
     private Program program;
@@ -213,12 +214,21 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
     // Create an experiment with no observations.
     private String uploadExperimentWithoutObs() throws Exception {
+        return uploadExperimentWithoutObs("Without Obs", "Plot");
+    }
+
+    private String uploadExperimentWithoutObs(String title, String expUnit) throws Exception {
+        return uploadExperimentWithoutObs(program, title, expUnit);
+    }
+
+    private String uploadExperimentWithoutObs(Program targetProgram, String title, String expUnit) throws Exception {
         ImportTestUtils importTestUtils = new ImportTestUtils();
         List<Map<String, Object>> expRows = new ArrayList<>();
 
         // Make test experiment import.
-        Map<String, Object> row1 = makeExpImportRow("Without Obs", "NewEnv1");
-        Map<String, Object> row2 = makeExpImportRow("Without Obs", "NewEnv2");
+        String envBase = title.replaceAll("\\s+", "");
+        Map<String, Object> row1 = makeExpImportRow(title, envBase + "1", expUnit);
+        Map<String, Object> row2 = makeExpImportRow(title, envBase + "2", expUnit);
 
         expRows.add(row1);
         expRows.add(row2);
@@ -229,7 +239,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 null,
                 true,
                 client,
-                program,
+                targetProgram,
                 mappingId,
                 newExperimentWorkflowId);
         String expId = importResult
@@ -313,14 +323,14 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 List<Map<String, Object>> filteredRows = rows.stream()
                         .filter(row -> file.getName().contains(row.get(ExperimentObservation.Columns.ENV).toString()))
                         .collect(Collectors.toList());
-                parseAndCheck(fileStream, extension, true, filteredRows, includeTimestamps, expectedColNumber);
+                parseAndCheck(fileStream, extension, true, filteredRows, includeTimestamps, expectedColNumber, "Plot ObsUnitID", filteredRows.size());
             }
         }
         else {
             assertEquals(mediaTypeByExtension.get(extension), downloadMediaType);
             // All (both) rows when 0 or 2 envs sent, first row when 1 env sent as query param.
             List<Map<String, Object>> filteredRows = numberOfEnvsRequested == 1 ? List.of(rows.get(0)) : rows;
-            parseAndCheck(bodyStream, extension, numberOfEnvsRequested > 0, filteredRows, includeTimestamps, expectedColNumber);
+            parseAndCheck(bodyStream, extension, numberOfEnvsRequested > 0, filteredRows, includeTimestamps, expectedColNumber, "Plot ObsUnitID", filteredRows.size());
         }
         // Remove temp directory after each test run.
         FileUtils.deleteDirectory(new File(tempDir));
@@ -333,14 +343,19 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     @ParameterizedTest
     @CsvSource(value = {"CSV", "XLSX", "XLS"})
     @SneakyThrows
-    @Disabled // disabled for now until we re-enable subentity support
     void downloadSubEntityDataset(String extension) {
+        Program subEntityProgram = createSeededProgram("SubEntity Download");
+        String subEntityExperimentTitle = "SubEntity Download " + extension;
+        List<Map<String, Object>> topLevelRows = buildObservedRows(subEntityExperimentTitle);
+        String subEntityExperimentId = uploadExperimentWithObs(subEntityProgram, subEntityExperimentTitle, topLevelRows);
+        String plantDatasetName = "plant" + extension.toLowerCase(Locale.ROOT);
+        String plantObservationLevel = StringUtils.capitalize(plantDatasetName);
 
         // Create sub-entity dataset.
         Flowable<HttpResponse<byte[]>> postCall = client.exchange(
                 POST(String.format("/programs/%s/experiments/%s/dataset",
-                                program.getId().toString(), experimentId),
-                        "{\"name\":\"Plant\",\"repeatedMeasures\":3}")
+                                subEntityProgram.getId().toString(), subEntityExperimentId),
+                        String.format("{\"name\":\"%s\",\"repeatedMeasures\":3}", plantDatasetName))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")),
                 byte[].class);
         HttpResponse<byte[]> postResponse = postCall.blockingFirst();
@@ -349,11 +364,11 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.OK, postResponse.getStatus());
 
         // Get top-level datasetId to include in export request.
-        BrAPITrial experiment = experimentService.getTrialDataByUUID(program.getId(), UUID.fromString(experimentId), false);
+        BrAPITrial experiment = experimentService.getTrialDataByUUID(subEntityProgram.getId(), UUID.fromString(subEntityExperimentId), false);
         String topLevelDatasetId = DatasetUtil.getTopLevelDataset(experiment).getId().toString();
         Flowable<HttpResponse<byte[]>> topLevelExportCall = client.exchange(
                 GET(String.format("/programs/%s/experiments/%s/export?all=true&includeTimestamps=false&fileExtension=%s&datasetId=%s",
-                        program.getId().toString(), experimentId, extension, topLevelDatasetId))
+                        subEntityProgram.getId().toString(), subEntityExperimentId, extension, topLevelDatasetId))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
         );
         HttpResponse<byte[]> topLevelResponse = topLevelExportCall.blockingFirst();
@@ -371,13 +386,22 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         // Check file contents.
         ByteArrayInputStream bodyStream = new ByteArrayInputStream(Objects.requireNonNull(topLevelResponse.body()));
-        parseAndCheck(bodyStream, extension, false, rows, false, 25);
+        parseAndCheck(
+                bodyStream,
+                extension,
+                false,
+                topLevelRows,
+                false,
+                getExpectedExportColumnCount(false, traits.size(), false),
+                "Plot ObsUnitID",
+                topLevelRows.size()
+        );
 
         // Make sub-entity dataset export request.
-        String plantDatasetId = DatasetUtil.getDatasetIdByNameFromJson(experiment.getAdditionalInfo().getAsJsonArray("datasets"), "Plant");
+        String plantDatasetId = DatasetUtil.getDatasetIdByNameFromJson(experiment.getAdditionalInfo().getAsJsonArray("datasets"), plantDatasetName);
         Flowable<HttpResponse<byte[]>> plantExportCall = client.exchange(
                 GET(String.format("/programs/%s/experiments/%s/export?all=true&includeTimestamps=false&fileExtension=%s&datasetId=%s",
-                        program.getId().toString(), experimentId, extension, plantDatasetId))
+                        subEntityProgram.getId().toString(), subEntityExperimentId, extension, plantDatasetId))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
         );
         HttpResponse<byte[]> plantResponse = plantExportCall.blockingFirst();
@@ -389,11 +413,89 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         assertEquals(mediaTypeByExtension.get(extension), plantResponse.getHeaders().getContentType().orElseThrow(Exception::new));
 
         // The expected contents of the exported Plant dataset (3 sub-obs units for each top-level unit were requested).
-        List<Map<String, Object>> plantRows = buildSubEntityRows(rows, "Plant", 3);
+        List<Map<String, Object>> plantRows = buildSubEntityRows(topLevelRows, plantObservationLevel, 3);
 
         // Check file contents.
         ByteArrayInputStream plantBodyStream = new ByteArrayInputStream(Objects.requireNonNull(plantResponse.body()));
-        parseAndCheck(plantBodyStream, extension, false, plantRows, false, 23);
+        parseAndCheck(
+                plantBodyStream,
+                extension,
+                false,
+                plantRows,
+                false,
+                getExpectedExportColumnCount(true, experimentService.getDatasetObsVars(plantDatasetId, subEntityProgram).size(), false),
+                plantObservationLevel + " ObsUnitID",
+                plantRows.size()
+        );
+    }
+
+    @Test
+    public void createSubEntityDatasetRejectsExpUnitNameAlreadyUsedInSameExperiment() throws Exception {
+        Program testProgram = createSeededProgram("Reject Already Used");
+        String plantExperimentId = uploadExperimentWithoutObs(testProgram, "Plant Same Experiment", "Plant");
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/dataset", testProgram.getId(), plantExperimentId),
+                        "{\"name\":\"Plant\",\"repeatedMeasures\":2}")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                String.class
+        );
+
+        HttpClientResponseException e = assertThrows(HttpClientResponseException.class, call::blockingFirst);
+        assertEquals(HttpStatus.CONFLICT, e.getStatus());
+    }
+
+    @Test
+    public void createSubEntityDatasetAllowsExpUnitNameUsedInOtherExperiment() throws Exception {
+        Program testProgram = createSeededProgram("Allow Other Experiment");
+        uploadExperimentWithoutObs(testProgram, "Plant Source Experiment", "Plant");
+        String recipientExperimentId = uploadExperimentWithoutObs(testProgram, "Plot Recipient Experiment", "Plot");
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/dataset", testProgram.getId(), recipientExperimentId),
+                        "{\"name\":\"Plant\",\"repeatedMeasures\":2}")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+    }
+
+    @Test
+    public void recommendedSubEntityDatasetNamesIncludeExpUnitNamesFromOtherExperiments() throws Exception {
+        Program testProgram = createSeededProgram("Recommended Names");
+        uploadExperimentWithoutObs(testProgram, "Plant Autocomplete Source", "Plant");
+        String recipientExperimentId = uploadExperimentWithoutObs(testProgram, "Autocomplete Recipient", "Plot");
+
+        List<String> recommendedNames = getRecommendedSubEntityDatasetNames(testProgram, recipientExperimentId);
+
+        assertTrue(recommendedNames.stream().anyMatch(name -> name.equalsIgnoreCase("plant")));
+        assertFalse(recommendedNames.stream().anyMatch(name -> name.equalsIgnoreCase("plot")));
+    }
+
+    @Test
+    public void recommendedSubEntityDatasetNamesDeDuplicateExpUnitAndSubUnitNamesAcrossExperiments() throws Exception {
+        Program testProgram = createSeededProgram("Dedup Across Experiments");
+        uploadExperimentWithoutObs(testProgram, "Plant Exp Unit Source", "Plant");
+        String subEntitySourceExperimentId = uploadExperimentWithoutObs(testProgram, "Plant Sub Unit Source", "Plot");
+        String recipientExperimentId = uploadExperimentWithoutObs(testProgram, "Plant Unique Recipient", "Plot");
+
+        Flowable<HttpResponse<String>> postCall = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/dataset", testProgram.getId(), subEntitySourceExperimentId),
+                        "{\"name\":\"Plant\",\"repeatedMeasures\":2}")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                String.class
+        );
+        HttpResponse<String> postResponse = postCall.blockingFirst();
+        assertEquals(HttpStatus.OK, postResponse.getStatus());
+
+        List<String> recommendedNames = getRecommendedSubEntityDatasetNames(testProgram, recipientExperimentId);
+
+        assertEquals(1L, recommendedNames.stream().filter(name -> name.equalsIgnoreCase("plant")).count());
     }
 
     /**
@@ -752,21 +854,20 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     @CsvSource(value = {"true,true", "false,true", "true,false", "false,false"})
     @SneakyThrows
     public void deleteExperimentSuccess(boolean hardDelete, boolean withObservations) {
+        Program deleteProgram = createSeededProgram("Delete Experiment");
+        String deleteExperimentTitle = "Delete Experiment " + UUID.randomUUID();
         // Set up a test trial and get the trialDbId.
         String trialDbId;
         if (withObservations) {
-            JsonArray beforeData = getProgramTrials(program.getId().toString());
-
-            // The trial created by setup has observations.
-            trialDbId = beforeData.get(0).getAsJsonObject().get("trialDbId").getAsString();
+            trialDbId = uploadExperimentWithObs(deleteProgram, deleteExperimentTitle, buildObservedRows(deleteExperimentTitle));
         } else {
             // Create a trial without observations.
-            trialDbId = uploadExperimentWithoutObs();
+            trialDbId = uploadExperimentWithoutObs(deleteProgram, deleteExperimentTitle, "Plot");
         }
 
         // A DELETE request should delete an experiment with observations unless there are observations and hardDelete = true.
         Flowable<HttpResponse<String>> deleteCall = client.exchange(
-                DELETE(String.format("/programs/%s/experiments/%s?hard=%s", program.getId().toString(), trialDbId, hardDelete))
+                DELETE(String.format("/programs/%s/experiments/%s?hard=%s", deleteProgram.getId().toString(), trialDbId, hardDelete))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
@@ -780,15 +881,15 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             assertEquals(HttpStatus.CONFLICT, e.getStatus());
 
             // Check that the trial was not deleted.
-            JsonArray trials = getProgramTrials(program.getId().toString());
+            JsonArray trials = getProgramTrials(deleteProgram.getId().toString());
             assertEquals(1, trials.size());
 
             // Check that the studies were not deleted.
-            JsonArray studies = getProgramStudies(program.getId().toString());
+            JsonArray studies = getProgramStudies(deleteProgram.getId().toString());
             assertEquals(2, studies.size());
 
             // Check that lists were not deleted.
-            JsonArray lists = getProgramObsVarLists(program.getId().toString());
+            JsonArray lists = getProgramObsVarLists(deleteProgram.getId().toString());
             assertEquals(1, lists.size());
         } else {
             HttpResponse<String> deleteResponse = deleteCall.blockingFirst();
@@ -796,18 +897,53 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
 
             // Check that the trial was deleted.
-            JsonArray trials = getProgramTrials(program.getId().toString());
+            JsonArray trials = getProgramTrials(deleteProgram.getId().toString());
             assertEquals(0, trials.size());
 
             // Check that the studies were deleted.
-            JsonArray studies = getProgramStudies(program.getId().toString());
+            JsonArray studies = getProgramStudies(deleteProgram.getId().toString());
             assertEquals(0, studies.size());
 
             // Check that the BrAPI lists were deleted.
-            JsonArray lists = getProgramObsVarLists(program.getId().toString());
+            JsonArray lists = getProgramObsVarLists(deleteProgram.getId().toString());
             assertEquals(0, lists.size());
         }
 
+    }
+
+    private List<Map<String, Object>> buildObservedRows(String title) {
+        List<Map<String, Object>> observedRows = new ArrayList<>();
+        String envBase = title.replaceAll("\\s+", "");
+        Map<String, Object> row1 = makeExpImportRow(title, envBase + "1");
+        Map<String, Object> row2 = makeExpImportRow(title, envBase + "2");
+
+        for (int i = 0; i < traits.size(); i++) {
+            row1.put(traits.get(i).getObservationVariableName(), (float) (i + 1));
+        }
+
+        observedRows.add(row1);
+        observedRows.add(row2);
+        return observedRows;
+    }
+
+    private String uploadExperimentWithObs(Program targetProgram, String title, List<Map<String, Object>> expRows) throws Exception {
+        ImportTestUtils importTestUtils = new ImportTestUtils();
+
+        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
+                importTestUtils.writeExperimentDataToFile(expRows, traits, false, false, null),
+                null,
+                true,
+                client,
+                targetProgram,
+                mappingId,
+                newExperimentWorkflowId);
+
+        return importResult
+                .get("preview").getAsJsonObject()
+                .get("rows").getAsJsonArray()
+                .get(0).getAsJsonObject()
+                .get("trial").getAsJsonObject()
+                .get("id").getAsString();
     }
 
     private List<Map<String, Object>> buildSubEntityRows(List<Map<String, Object>> topLevelRows, String entityName, int repeatedMeasures) {
@@ -817,14 +953,22 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 // Deep copy map entries.
                 Map<String, Object> plantRow = new HashMap<>(row);
 
-                plantRow.put("Exp Unit", entityName);
-                plantRow.put("Exp Unit ID", i.toString());
+                plantRow.put(ExperimentObservation.Columns.SUB_OBS_UNIT, entityName);
+                plantRow.put(ExperimentObservation.Columns.SUB_UNIT_ID, i.toString());
                 plantRow.remove("tt_test_1");
                 plantRow.remove("tt_test_2");
                 plantRows.add(plantRow);
             }
         }
         return plantRows;
+    }
+
+    private int getExpectedExportColumnCount(boolean isSubEntity, int obsVarCount, boolean includeTimestamps) {
+        int baseColumnCount = isSubEntity
+                ? ExperimentFileColumns.getOrderedColumnsSubEntity().size() + 2
+                : ExperimentFileColumns.getOrderedColumns().size() + 1;
+        int timestampColumnCount = includeTimestamps ? obsVarCount : 0;
+        return baseColumnCount + obsVarCount + timestampColumnCount;
     }
 
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
@@ -845,12 +989,76 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         return file;
     }
 
+    private List<String> getRecommendedSubEntityDatasetNames(String targetExperimentId) {
+        return getRecommendedSubEntityDatasetNames(program, targetExperimentId);
+    }
+
+    private List<String> getRecommendedSubEntityDatasetNames(Program targetProgram, String targetExperimentId) {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/recommended-sub-entity-dataset-names",
+                        targetProgram.getId(), targetExperimentId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonArray result = JsonParser.parseString(Objects.requireNonNull(response.body()))
+                .getAsJsonObject()
+                .getAsJsonArray("result");
+
+        List<String> recommendedNames = new ArrayList<>();
+        result.forEach(name -> recommendedNames.add(name.getAsString()));
+        return recommendedNames;
+    }
+
+    private Program createSeededProgram(String prefix) throws Exception {
+        SpeciesEntity validSpecies = speciesDAO.findAll().get(0);
+        String suffix = UUID.randomUUID().toString().replaceAll("[^a-fA-F]", "").toUpperCase(Locale.ROOT);
+        while (suffix.length() < 4) {
+            suffix += UUID.randomUUID().toString().replaceAll("[^a-fA-F]", "").toUpperCase(Locale.ROOT);
+        }
+        suffix = suffix.substring(0, 4);
+        ProgramRequest programRequest = ProgramRequest.builder()
+                .name(prefix + " " + suffix)
+                .abbreviation("OT" + suffix)
+                .documentationUrl("localhost:8080")
+                .objective("To test ordered experiment scenarios")
+                .species(SpeciesRequest.builder()
+                        .commonName(validSpecies.getCommonName())
+                        .id(validSpecies.getId())
+                        .build())
+                .key("OT" + suffix)
+                .build();
+        Program seededProgram = TestUtils.insertAndFetchTestProgram(gson, client, programRequest);
+
+        FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), seededProgram.getId());
+
+        AuthenticatedUser user = new AuthenticatedUser(testUser.getName(), new ArrayList<>(), testUser.getId(), new ArrayList<>());
+        ontologyService.createTraits(seededProgram.getId(), createTraits(2), user, false);
+
+        List<BrAPIGermplasm> germplasm = createGermplasm(1);
+        BrAPIExternalReference newReference = new BrAPIExternalReference();
+        newReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
+        newReference.setReferenceID(seededProgram.getId().toString());
+        germplasm.forEach(germ -> germ.getExternalReferences().add(newReference));
+        germplasmDAO.createBrAPIGermplasm(germplasm, seededProgram.getId(), null);
+
+        return seededProgram;
+    }
+
     private Map<String, Object> makeExpImportRow(String title, String environment) {
+        return makeExpImportRow(title, environment, "Plot");
+    }
+
+    private Map<String, Object> makeExpImportRow(String title, String environment, String expUnit) {
         Map<String, Object> row = new HashMap<>();
         row.put(ExperimentObservation.Columns.GERMPLASM_GID, "1");
         row.put(ExperimentObservation.Columns.TEST_CHECK, "T");
         row.put(ExperimentObservation.Columns.EXP_TITLE, title);
-        row.put(ExperimentObservation.Columns.EXP_UNIT, "Plot");
+        row.put(ExperimentObservation.Columns.EXP_UNIT, expUnit);
         //row.put(ExperimentObservation.Columns.SUB_OBS_UNIT, "");
         row.put(ExperimentObservation.Columns.EXP_TYPE, "Phenotyping");
         row.put(ExperimentObservation.Columns.ENV, environment);
@@ -927,7 +1135,9 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                                boolean requestEnv,
                                List<Map<String, Object>> rows,
                                boolean includeTimestamps,
-                               Integer expectedColNumber) throws ParsingException {
+                               Integer expectedColNumber,
+                               String expectedObsUnitIdColumn,
+                               Integer expectedObsUnitIdUniqueCount) throws ParsingException {
         Table download = Table.create();
         if (extension.equals("CSV")) {
             download = FileUtil.parseTableFromCsv(stream);
@@ -937,7 +1147,16 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         }
 
         // Assert import/export fidelity and presence of observation units in export
-        checkDownloadTable(requestEnv, rows, download, includeTimestamps, extension, expectedColNumber);
+        checkDownloadTable(
+                requestEnv,
+                rows,
+                download,
+                includeTimestamps,
+                extension,
+                expectedColNumber,
+                expectedObsUnitIdColumn,
+                expectedObsUnitIdUniqueCount
+        );
     }
 
     private void checkDownloadTable(
@@ -946,12 +1165,15 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             Table table,
             boolean includeTimestamps,
             String extension,
-            Integer expectedColNumber) {
+            Integer expectedColNumber,
+            String expectedObsUnitIdColumn,
+            Integer expectedObsUnitIdUniqueCount) {
         // Filename is correct: <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
         List<String> expectedEnvNames = requestedImportRows.stream()
                 .map(row -> row.get(ExperimentObservation.Columns.ENV).toString()).collect(Collectors.toList());
 
         assertEquals(expectedColNumber, table.columnCount());
+        assertEquals(requestedImportRows.size(), table.rowCount());
 
         // Check that requested envs are present.
         expectedEnvNames.forEach(envName -> assertTrue(table.stringColumn("Env").contains(envName)));
@@ -968,14 +1190,24 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 String gid = ExperimentObservation.Columns.GERMPLASM_GID;
                 String env = ExperimentObservation.Columns.ENV;
                 String expUnitId = ExperimentObservation.Columns.EXP_UNIT_ID;
+                String subObsUnit = ExperimentObservation.Columns.SUB_OBS_UNIT;
+                String subUnitId = ExperimentObservation.Columns.SUB_UNIT_ID;
+                boolean subObsUnitMatches = !row.containsKey(subObsUnit) ||
+                        row.get(subObsUnit).equals(downloadRow.getString(subObsUnit));
+                boolean subUnitIdMatches = !row.containsKey(subUnitId) ||
+                        row.get(subUnitId).equals(downloadRow.getObject(subUnitId).toString());
                 if (extension.equalsIgnoreCase(FileType.CSV.getName())) {
                     return Integer.parseInt(row.get(gid).toString()) == downloadRow.getInt(gid) &&
                             row.get(env).equals(downloadRow.getString(env)) &&
-                            row.get(expUnitId).equals(downloadRow.getObject(expUnitId).toString());
+                            row.get(expUnitId).equals(downloadRow.getObject(expUnitId).toString()) &&
+                            subObsUnitMatches &&
+                            subUnitIdMatches;
                 } else {
                     return row.get(gid).equals(downloadRow.getString(gid)) &&
                             row.get(env).equals(downloadRow.getString(env)) &&
-                            row.get(expUnitId).equals(downloadRow.getObject(expUnitId).toString());
+                            row.get(expUnitId).equals(downloadRow.getObject(expUnitId).toString()) &&
+                            subObsUnitMatches &&
+                            subUnitIdMatches;
                 }
             }).findAny();
             assertTrue(matchingImportRow.isPresent() && !matchingImportRow.get().isEmpty());
@@ -987,56 +1219,72 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         }
         assertEquals(requestedImportRows.size(),matchingImportRows.size());
 
-        //Observation level for tests should be "Plot"
         // Observation units populated.
-        assertEquals(0, table.column("Plot ObsUnitID").countMissing());
+        assertTrue(table.columnNames().contains(expectedObsUnitIdColumn));
+        assertEquals(0, table.column(expectedObsUnitIdColumn).countMissing());
         // Observation Unit IDs are assigned.
-        assertEquals(requestedImportRows.size(), table.column("Plot ObsUnitID").countUnique());
+        assertEquals(expectedObsUnitIdUniqueCount, table.column(expectedObsUnitIdColumn).countUnique());
     }
 
     private boolean isMatchedRow(Map<String, Object> importRow, Row downloadRow) {
-        System.out.println("Validating row: " + downloadRow.getRowNumber());
-        System.out.println("import columns: " + importRow.size());
         return importRow.entrySet().stream().filter(e -> {
             String header = e.getKey();
-            List<Column> importColumns = columns
-                    .stream()
-                    .filter(col -> header.equals(col.getValue())).collect(Collectors.toList());
-            if (importColumns.size() != 1) {
+            if (!downloadRow.columnNames().contains(header)) {
                 return false;
             }
-            Object expectedVal = null;
-            Object downloadedVal = null;
-            boolean doCompare = false;
 
-            if (downloadRow.getColumnType(e.getKey()).equals(ColumnType.STRING)) {
-                expectedVal = e.getValue().toString();
-                downloadedVal = downloadRow.getString(e.getKey());
-                doCompare = true;
-            }
-            if (downloadRow.getColumnType(e.getKey()).equals(ColumnType.INTEGER)) {
-                expectedVal = Integer.parseInt(e.getValue().toString());
-                downloadedVal = downloadRow.getInt(e.getKey());
-                doCompare = true;
-            }
-            if (downloadRow.getColumnType(e.getKey()).equals(ColumnType.DOUBLE)) {
-                expectedVal = Double.parseDouble(e.getValue().toString());
-                downloadedVal = downloadRow.getDouble(e.getKey());
-                doCompare = true;
-            }
-            if (downloadRow.getColumnType(e.getKey()).equals(ColumnType.FLOAT)) {
-                expectedVal = e.getValue();
-                downloadedVal = downloadRow.getFloat(e.getKey());
-                doCompare = true;
-            }
-            System.out.println("Column: "+e.getKey()+", Expected: '"+ expectedVal +"', Received: '" + downloadedVal+"'");
-            if(doCompare) {
-                assertEquals(expectedVal, downloadedVal);
-                return expectedVal.equals(downloadedVal);
-            } else {
-                return false;
-            }
+            Object expectedVal = e.getValue();
+            Object downloadedVal = getDownloadedValue(downloadRow, header);
+            assertValuesMatch(header, expectedVal, downloadedVal);
+            return true;
         }).count() == importRow.size();
+    }
+
+    private Object getDownloadedValue(Row downloadRow, String header) {
+        ColumnType columnType = downloadRow.getColumnType(header);
+        if (columnType.equals(ColumnType.STRING)) {
+            return downloadRow.getString(header);
+        }
+        if (columnType.equals(ColumnType.INTEGER)) {
+            return downloadRow.getInt(header);
+        }
+        if (columnType.equals(ColumnType.DOUBLE)) {
+            return downloadRow.getDouble(header);
+        }
+        if (columnType.equals(ColumnType.FLOAT)) {
+            return downloadRow.getFloat(header);
+        }
+        return downloadRow.getObject(header);
+    }
+
+    private void assertValuesMatch(String header, Object expectedVal, Object downloadedVal) {
+        if (isNumeric(expectedVal) && isNumeric(downloadedVal)) {
+            assertEquals(
+                    0,
+                    toBigDecimal(expectedVal).compareTo(toBigDecimal(downloadedVal)),
+                    "Column " + header + " mismatch");
+            return;
+        }
+        assertEquals(
+                Objects.toString(expectedVal, null),
+                Objects.toString(downloadedVal, null),
+                "Column " + header + " mismatch");
+    }
+
+    private boolean isNumeric(Object value) {
+        if (value == null) {
+            return false;
+        }
+        try {
+            new BigDecimal(value.toString());
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private BigDecimal toBigDecimal(Object value) {
+        return new BigDecimal(value.toString());
     }
 
     private String getEnvId(JsonObject result, int index) {
