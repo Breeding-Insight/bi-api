@@ -27,13 +27,28 @@
 
 ## Validation
 - Use Maven for validation.
-- Source envs from .env when running mvn commands
+- Source envs from `.env` when running `mvn` commands by using `set -a`, `source .env`, and `set +a`.
 - Preferred targeted test command:
-  `mvn -Dtest=ClassName test --settings settings.xml`
+  ```sh
+  set -a
+  source .env
+  set +a
+  mvn -Dtest=ClassName test --settings settings.xml
+  ```
 - Full test command:
-  `mvn test --settings settings.xml`
+  ```sh
+  set -a
+  source .env
+  set +a
+  mvn test --settings settings.xml
+  ```
 - Full build without tests:
-  `mvn clean validate install -D maven.test.skip=true --settings settings.xml`
+  ```sh
+  set -a
+  source .env
+  set +a
+  mvn clean validate install -D maven.test.skip=true --settings settings.xml
+  ```
 - Tests may require Docker, Testcontainers, and local services. If validation cannot run, say exactly what blocked it.
 
 ## API Change Rules

@@ -30,6 +30,7 @@ import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Dataset;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.delta.DeltaEntityFactory;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.lock.DistributedLockService;
@@ -78,6 +79,8 @@ class BrAPITrialServiceUnitTest {
     private final FileMappingUtil fileMappingUtil = mock(FileMappingUtil.class);
     private final DistributedLockService lockService = mock(DistributedLockService.class);
     private final DatasetService datasetService = mock(DatasetService.class);
+    private final DeltaEntityFactory deltaEntityFactory = mock(DeltaEntityFactory.class);
+    private final BrAPIObservationLevelService observationLevelService = mock(BrAPIObservationLevelService.class);
 
     private BrAPITrialService service;
     private Program program;
@@ -102,7 +105,9 @@ class BrAPITrialServiceUnitTest {
                 germplasmDAO,
                 fileMappingUtil,
                 lockService,
-                datasetService
+                datasetService,
+                deltaEntityFactory,
+                observationLevelService
         );
 
         program = new Program();
