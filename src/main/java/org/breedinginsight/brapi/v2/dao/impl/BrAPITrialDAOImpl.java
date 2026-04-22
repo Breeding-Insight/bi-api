@@ -80,21 +80,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         this.runScheduledTasks = runScheduledTasks;
     }
 
-
-    @Scheduled(initialDelay = "${startup.delay.trial}")
-    public void setup() {
-        if(!runScheduledTasks) {
-            return;
-        }
-
-        // Populate the experiment cache for all programs on startup
-        log.debug("populating experiment cache");
-        List<Program> programs = programDAO.getActive();
-        if (programs != null) {
-            programExperimentCache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
-        }
-    }
-
+    // TODO: Can be removed once cache instance is gone
     private Map<String, BrAPITrial> fetchProgramExperiments(UUID programId) throws ApiException {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
 
@@ -133,6 +119,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         return experimentById;
     }
 
+    // TODO: Fix by calling BrAPI trials get on brapiProgramDbId, then filter on names
     @Override
     public List<BrAPITrial> getTrialsByName(List<String> trialNames, Program program) throws ApiException {
         Map<String, BrAPITrial> cache = programExperimentCache.get(program.getId());
@@ -150,31 +137,9 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         return trials;
     }
 
-    private List<BrAPITrial> getTrialsByExRef(String referenceSource, String referenceId, Program program) throws ApiException {
-        Map<String, BrAPITrial> cache = programExperimentCache.get(program.getId());
-        List<BrAPITrial> trials = new ArrayList<>();
-        if (cache != null) {
-            trials.addAll(cache
-                    .values()
-                    .stream()
-                    .filter(t -> {
-                        BrAPIExternalReference xref = t
-                                .getExternalReferences()
-                                .stream()
-                                .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.TRIALS)
-                                        .equalsIgnoreCase(reference.getReferenceSource()))
-                                .findFirst().orElseThrow(() -> new IllegalStateException("No BI trial external reference found"));
-                        return referenceId.equals(xref.getReferenceID());
-                    })
-                    .collect(Collectors.toList()));
-        }
-
-        return trials;
-    }
-
+    // TODO: Fix by using only code of inner callback and returning result
     @Override
-    public List<BrAPITrial> createBrAPITrials(List<BrAPITrial> brAPITrialList, UUID programId, ImportUpload upload)
-            throws ApiException {
+    public List<BrAPITrial> createBrAPITrials(List<BrAPITrial> brAPITrialList, UUID programId, ImportUpload upload) {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
         List<BrAPITrial> createdTrials = new ArrayList<>();
         try {
@@ -192,8 +157,10 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
         }
     }
+
+    // TODO: Fix by grabbing inner code of callback, removing callback and cache call, and return result from BrAPI call.
     @Override
-    public BrAPITrial updateBrAPITrial(String trialDbId, BrAPITrial trial, UUID programId) throws ApiException {
+    public BrAPITrial updateBrAPITrial(String trialDbId, BrAPITrial trial, UUID programId) {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
         BrAPITrial updatedTrial = null;
         try {
@@ -215,6 +182,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         }
     }
 
+    // TODO: call getTrials endpoint using brapiProgramId
     @Override
     public List<BrAPITrial> getTrials(UUID programId) throws ApiException {
         return new ArrayList<>(programExperimentCache.get(programId).values());
@@ -232,6 +200,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         return displayExperiments;
     }
 
+    // TODO: Grab all trials for program, then filter on brapi trialDbID.  This will likely involve analyzing downstream usages to get brapiTrialId
     @Override
     public Optional<BrAPITrial> getTrialById(UUID programId, UUID trialId) throws ApiException, DoesNotExistException {
         Map<String, BrAPITrial> cache = programExperimentCache.get(programId);
@@ -243,12 +212,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         return Optional.ofNullable(trial);
     }
 
-    @Override
-    public Optional<BrAPITrial> getTrialByDbId(String trialDbId, Program program) throws ApiException {
-        List<BrAPITrial> trials = getTrialsByDbIds(List.of(trialDbId), program);
-        return Utilities.getSingleOptional(trials);
-    }
-
+    // TODO: Grab all trials for program, then filter on brapi trialDbID.  This will likely involve analyzing downstream usages to get brapiTrialId
     @Override
     public List<BrAPITrial> getTrialsByDbIds(Collection<String> trialDbIds, Program program) throws ApiException {
         Map<String, BrAPITrial> cache = programExperimentCache.get(program.getId());
@@ -263,6 +227,8 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
 
         return trials;
     }
+
+    // TODO: Investigate what constitutes an experiment ID, and if it's the cache trialDbId, analyze downstream usages to get brapiTrialDbIds instead and submit them into this method
     @Override
     public List<BrAPITrial> getTrialsByExperimentIds(Collection<UUID> experimentIds, Program program) throws ApiException {
         if(experimentIds.isEmpty()) {
@@ -295,6 +261,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         brAPIDAOUtil.makeCall(brapiRequest);
     }
 
+    // TODO: Remove when trial cache is removed.
     @Override
     public void repopulateCache(UUID programId) {
         this.programExperimentCache.invalidate(programId);
