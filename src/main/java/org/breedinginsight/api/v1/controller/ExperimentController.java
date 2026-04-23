@@ -175,6 +175,37 @@ public class ExperimentController {
 
     }
 
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/recommended-sub-entity-dataset-names")
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @Produces(MediaType.APPLICATION_JSON)
+    public HttpResponse<Response<DataResponse<String>>> getRecommendedSubEntityDatasetNames(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("experimentId") UUID experimentId) {
+        try {
+            Optional<Program> programOptional = programService.getById(programId);
+            if (programOptional.isEmpty()) {
+                return HttpResponse.status(HttpStatus.NOT_FOUND, "Program does not exist");
+            }
+
+            List<String> recommendedNames = experimentService.getRecommendedSubEntityDatasetNames(programOptional.get(), experimentId);
+
+            List<Status> metadataStatus = new ArrayList<>();
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            //TODO: paging if needed, unlikely to get very large
+            Pagination pagination = new Pagination(recommendedNames.size(), recommendedNames.size(), 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+
+            Response<DataResponse<String>> response = new Response<>(metadata, new DataResponse<>(recommendedNames));
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error finding recommended sub-entity dataset names", e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error finding recommended sub-entity dataset names");
+        }
+    }
+
     /**
      * Adds a record to the experiment_program_user_role table
      * @param programId The UUID of the program
