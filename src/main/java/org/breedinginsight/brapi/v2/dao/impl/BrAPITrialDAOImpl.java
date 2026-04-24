@@ -19,15 +19,17 @@ package org.breedinginsight.brapi.v2.dao.impl;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 import okhttp3.Request;
+import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.core.TrialQueryParams;
 import org.brapi.client.v2.modules.core.TrialsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
+import org.brapi.v2.model.core.response.BrAPITrialListResponse;
 import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -106,6 +108,37 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         return experimentById(processExperimentsForDisplay(programExperiments, program.getKey()));
     }
 
+    private List<BrAPITrial> getBrAPITrialsByBrAPIProgramId(Program program) throws ApiException {
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
+
+        ApiResponse<BrAPITrialListResponse> response;
+
+        // TODO: Configurable max amount of trials per program, or paginate.
+        int pageSize = 1000;
+
+        try {
+            TrialQueryParams trialQueryParams =
+                    TrialQueryParams.builder()
+                            .programDbId(program.getBrapiProgram().getProgramDbId())
+                            .pageSize(pageSize)
+                            .page(0)
+                            .build();
+
+            response = api.trialsGet(trialQueryParams);
+        } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            throw new InternalServerException("Error making BrAPI call", e);
+        }
+
+        if (response.getBody().getMetadata().getPagination().getTotalCount() > pageSize) {
+            throw new InternalServerException(String.format("More trials exist than requested [%s]", pageSize));
+        }
+
+        List<BrAPITrial> trialsFromResponse = response.getBody().getResult().getData();
+
+        return processExperimentsForDisplay(trialsFromResponse, program.getKey());
+    }
+
     private Map<String, BrAPITrial> experimentById(List<BrAPITrial> trials) {
         Map<String, BrAPITrial> experimentById = new HashMap<>();
         for (BrAPITrial experiment: trials) {
@@ -119,16 +152,13 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         return experimentById;
     }
 
-    // TODO: Fix by calling BrAPI trials get on brapiProgramDbId, then filter on names
     @Override
     public List<BrAPITrial> getTrialsByName(List<String> trialNames, Program program) throws ApiException {
-        Map<String, BrAPITrial> cache = programExperimentCache.get(program.getId());
-        List<BrAPITrial> trials = new ArrayList<>();
-        if (cache != null) {
+        List<BrAPITrial> allTrialsForProgram = getBrAPITrialsByBrAPIProgramId(program);
 
-            // TODO: replace with more performant cache search, e.g. RediSearch
-            trials.addAll(cache
-                    .values()
+        List<BrAPITrial> trials = new ArrayList<>();
+        if (allTrialsForProgram != null) {
+            trials.addAll(allTrialsForProgram
                     .stream()
                     .filter(t -> trialNames.contains(t.getTrialName()))
                     .collect(Collectors.toList()));
