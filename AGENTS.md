@@ -61,6 +61,12 @@
 
 ## Testing Guidance
 - Prefer targeted tests for the changed area before suggesting a full test run.
+- Prefer high-signal tests over broad or repetitive test coverage.
+- Do not add unit tests by default for straightforward changes.
+- Add unit tests selectively for hard-to-reproduce bugs, complex logic regressions, or behavior that is difficult or expensive to validate through integration tests.
+- Prefer integration or endpoint tests for user-facing and API behavior changes.
+- Avoid tests that mainly lock in implementation details or create disproportionate maintenance burden.
+- When adding regression coverage, prefer the smallest number of tests that gives confidence in the fix.
 - For controller or API changes, look first under `src/test/java/org/breedinginsight/api` and `src/test/java/org/breedinginsight/brapi`.
 - For importer work, check `src/test/java/org/breedinginsight/brapps/importer`.
 
