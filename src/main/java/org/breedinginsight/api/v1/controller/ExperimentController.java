@@ -178,7 +178,7 @@ public class ExperimentController {
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/recommended-sub-entity-dataset-names")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @Produces(MediaType.APPLICATION_JSON)
-    public HttpResponse<Response<List<String>>> getRecommendedSubEntityDatasetNames(
+    public HttpResponse<Response<DataResponse<String>>> getRecommendedSubEntityDatasetNames(
             @PathVariable("programId") UUID programId,
             @PathVariable("experimentId") UUID experimentId) {
         try {
@@ -187,7 +187,15 @@ public class ExperimentController {
                 return HttpResponse.status(HttpStatus.NOT_FOUND, "Program does not exist");
             }
 
-            Response<List<String>> response = new Response<>(experimentService.getRecommendedSubEntityDatasetNames(programOptional.get(), experimentId));
+            List<String> recommendedNames = experimentService.getRecommendedSubEntityDatasetNames(programOptional.get(), experimentId);
+
+            List<Status> metadataStatus = new ArrayList<>();
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            //TODO: paging if needed, unlikely to get very large
+            Pagination pagination = new Pagination(recommendedNames.size(), recommendedNames.size(), 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+
+            Response<DataResponse<String>> response = new Response<>(metadata, new DataResponse<>(recommendedNames));
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
