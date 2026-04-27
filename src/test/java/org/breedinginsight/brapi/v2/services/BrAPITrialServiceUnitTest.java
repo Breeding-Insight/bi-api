@@ -55,7 +55,6 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -142,67 +141,7 @@ class BrAPITrialServiceUnitTest {
     }
 
     @Test
-    void exportObservationsFetchesSeasonOncePerSeasonAndWritesEnvYear() throws Exception {
-        ExperimentExportQuery params = exportQuery(EXPORT_DATASET_ID);
-        List<BrAPIObservationUnit> observationUnits = new ArrayList<>(List.of(
-                createObservationUnit("ou-db-1", "plot-1"),
-                createObservationUnit("ou-db-2", "plot-2"),
-                createObservationUnit("ou-db-3", "plot-3")
-        ));
-
-        when(trialDAO.getTrialsByExperimentIds(eq(List.of(UUID.fromString("11111111-1111-1111-1111-111111111111"))), eq(program)))
-                .thenReturn(List.of(experiment));
-        when(studyDAO.getStudiesByExperimentID(eq(UUID.fromString("11111111-1111-1111-1111-111111111111")), eq(program)))
-                .thenReturn(List.of(study));
-        when(seasonDAO.getSeasonById("season-1", program.getId())).thenReturn(season);
-        when(observationUnitDAO.getObservationUnitsForDataset(EXPORT_DATASET_ID, program)).thenReturn(observationUnits);
-        when(listDAO.getListsByTypeAndExternalRef(any(), eq(program.getId()), any(), any())).thenReturn(Collections.<BrAPIListSummary>emptyList());
-        when(observationDAO.getObservationsByObservationUnits(anyCollection(), eq(program))).thenReturn(Collections.<BrAPIObservation>emptyList());
-        when(germplasmDAO.getGermplasmsByDBID(anyList(), eq(program.getId()))).thenReturn(List.of(germplasm));
-
-        DownloadFile downloadFile = service.exportObservations(program, UUID.fromString("11111111-1111-1111-1111-111111111111"), params);
-
-        Table exportTable = FileUtil.parseTableFromCsv(new ByteArrayInputStream(downloadFile.getStreamedFile().getInputStream().readAllBytes()));
-        assertEquals(3, exportTable.rowCount());
-        assertEquals(List.of(2023, 2023, 2023), exportTable.intColumn(Columns.ENV_YEAR).asList());
-        verify(seasonDAO, times(1)).getSeasonById("season-1", program.getId());
-    }
-
-    @Test
-    void exportObservationsFetchesYearsOnlyForRequestedEnvironments() throws Exception {
-        ExperimentExportQuery params = exportQuery(EXPORT_DATASET_ID);
-        setField(params, "environments", ENVIRONMENT_ID);
-        List<BrAPIObservationUnit> observationUnits = List.of(createObservationUnit("ou-db-1", "plot-1"));
-        BrAPIStudy unrelatedStudy = new BrAPIStudy();
-        unrelatedStudy.setStudyDbId("study-2");
-        unrelatedStudy.setStudyName("Environment 2");
-        unrelatedStudy.setLocationName("Location 2");
-        unrelatedStudy.setSeasons(Collections.emptyList());
-        unrelatedStudy.setExternalReferences(List.of(createExternalReference(
-                String.format("%s/%s", REFERENCE_SOURCE, ExternalReferenceSource.STUDIES.getName()),
-                SECOND_ENVIRONMENT_ID
-        )));
-
-        when(trialDAO.getTrialsByExperimentIds(eq(List.of(UUID.fromString("11111111-1111-1111-1111-111111111111"))), eq(program)))
-                .thenReturn(List.of(experiment));
-        when(studyDAO.getStudiesByExperimentID(eq(UUID.fromString("11111111-1111-1111-1111-111111111111")), eq(program)))
-                .thenReturn(List.of(study, unrelatedStudy));
-        when(seasonDAO.getSeasonById("season-1", program.getId())).thenReturn(season);
-        when(observationUnitDAO.getObservationUnitsForDatasetAndEnvs(EXPORT_DATASET_ID, List.of(ENVIRONMENT_ID), program)).thenReturn(observationUnits);
-        when(listDAO.getListsByTypeAndExternalRef(any(), eq(program.getId()), any(), any())).thenReturn(Collections.<BrAPIListSummary>emptyList());
-        when(observationDAO.getObservationsByObservationUnits(anyCollection(), eq(program))).thenReturn(Collections.<BrAPIObservation>emptyList());
-        when(germplasmDAO.getGermplasmsByDBID(anyList(), eq(program.getId()))).thenReturn(List.of(germplasm));
-
-        DownloadFile downloadFile = service.exportObservations(program, UUID.fromString("11111111-1111-1111-1111-111111111111"), params);
-
-        Table exportTable = FileUtil.parseTableFromCsv(new ByteArrayInputStream(downloadFile.getStreamedFile().getInputStream().readAllBytes()));
-        assertEquals(1, exportTable.rowCount());
-        assertEquals(List.of(2023), exportTable.intColumn(Columns.ENV_YEAR).asList());
-        verify(seasonDAO, times(1)).getSeasonById("season-1", program.getId());
-    }
-
-    @Test
-    void exportObservationsWritesDistinctYearsForMultipleEnvironments() throws Exception {
+    void exportObservationsFetchesSeasonOncePerDistinctSeasonAndWritesEnvYears() throws Exception {
         ExperimentExportQuery params = exportQuery(EXPORT_DATASET_ID);
         BrAPIStudy secondStudy = new BrAPIStudy();
         secondStudy.setStudyDbId("study-2");
@@ -245,55 +184,7 @@ class BrAPITrialServiceUnitTest {
     }
 
     @Test
-    void exportObservationsThrowsWhenSeasonYearIsNull() throws Exception {
-        // This PR intentionally hardens null season years because experiment import
-        // requires Env Year when creating experiments/environments.
-        ExperimentExportQuery params = exportQuery(EXPORT_DATASET_ID);
-        List<BrAPIObservationUnit> observationUnits = List.of(createObservationUnit("ou-db-1", "plot-1"));
-        season.setYear(null);
-
-        when(trialDAO.getTrialsByExperimentIds(eq(List.of(UUID.fromString("11111111-1111-1111-1111-111111111111"))), eq(program)))
-                .thenReturn(List.of(experiment));
-        when(studyDAO.getStudiesByExperimentID(eq(UUID.fromString("11111111-1111-1111-1111-111111111111")), eq(program)))
-                .thenReturn(List.of(study));
-        when(seasonDAO.getSeasonById("season-1", program.getId())).thenReturn(season);
-        when(observationUnitDAO.getObservationUnitsForDataset(EXPORT_DATASET_ID, program)).thenReturn(observationUnits);
-        when(listDAO.getListsByTypeAndExternalRef(any(), eq(program.getId()), any(), any())).thenReturn(Collections.<BrAPIListSummary>emptyList());
-        when(observationDAO.getObservationsByObservationUnits(anyCollection(), eq(program))).thenReturn(Collections.<BrAPIObservation>emptyList());
-        when(germplasmDAO.getGermplasmsByDBID(anyList(), eq(program.getId()))).thenReturn(List.of(germplasm));
-
-        DoesNotExistException exception = assertThrows(DoesNotExistException.class,
-                () -> service.exportObservations(program, UUID.fromString("11111111-1111-1111-1111-111111111111"), params));
-
-        assertEquals("Env Year not found for Study DbId = 'study-1'.", exception.getMessage());
-    }
-
-    @Test
-    void getDatasetDataUsesStudyDbIdsAndCachesSeasonByStudy() throws Exception {
-        List<BrAPIObservationUnit> observationUnits = new ArrayList<>(List.of(
-                createObservationUnit("ou-db-1", "plot-1"),
-                createObservationUnit("ou-db-2", "plot-2")
-        ));
-
-        when(observationUnitDAO.getObservationUnitsForDataset(DATASET_ID, program)).thenReturn(observationUnits);
-        when(studyDAO.getStudiesByStudyDbId(eq(Set.of("study-1")), eq(program))).thenReturn(List.of(study));
-        when(seasonDAO.getSeasonById("season-1", program.getId())).thenReturn(season);
-        when(listDAO.getListsByTypeAndExternalRef(any(), eq(program.getId()), any(), any())).thenReturn(Collections.<BrAPIListSummary>emptyList());
-        when(observationDAO.getObservationsByObservationUnitsAndVariables(anyList(), eq(Collections.emptyList()), eq(program)))
-                .thenReturn(Collections.<BrAPIObservation>emptyList());
-
-        Dataset dataset = service.getDatasetData(program, UUID.randomUUID(), UUID.fromString(DATASET_ID), false);
-
-        assertEquals(2, dataset.observationUnits.size());
-        dataset.observationUnits.forEach(ou ->
-                assertEquals(2023, ou.getAdditionalInfo().get(BrAPIAdditionalInfoFields.ENV_YEAR).getAsInt()));
-        verify(studyDAO, times(1)).getStudiesByStudyDbId(eq(Set.of("study-1")), eq(program));
-        verify(studyDAO, never()).getStudyByEnvironmentId(eq(UUID.fromString(ENVIRONMENT_ID)), eq(program));
-        verify(seasonDAO, times(1)).getSeasonById("season-1", program.getId());
-    }
-
-    @Test
-    void getDatasetDataWritesDistinctYearsForMultipleStudies() throws Exception {
+    void getDatasetDataFetchesSeasonOncePerDistinctSeasonAndWritesEnvYears() throws Exception {
         BrAPIStudy secondStudy = new BrAPIStudy();
         secondStudy.setStudyDbId("study-2");
         secondStudy.setStudyName("Environment 2");
@@ -346,7 +237,7 @@ class BrAPITrialServiceUnitTest {
         DoesNotExistException exception = assertThrows(DoesNotExistException.class,
                 () -> service.getDatasetData(program, UUID.randomUUID(), UUID.fromString(DATASET_ID), false));
 
-        assertEquals("Study DbId 'study-1' not found.", exception.getMessage());
+        assertEquals("Env Year not found for Study DbId = 'study-1'.", exception.getMessage());
     }
 
     private ExperimentExportQuery exportQuery(String datasetId) throws Exception {

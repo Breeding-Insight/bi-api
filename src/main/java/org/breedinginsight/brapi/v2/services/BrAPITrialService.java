@@ -963,11 +963,22 @@ public class BrAPITrialService {
     /**
      * Bulk-loads studies by studyDbId so dataset retrieval can avoid per-observation-unit
      * environment lookups and reuse the shared year resolution flow.
+     *
+     * Missing studies are rejected here so later Env Year writes can reserve their
+     * failures for actual year resolution problems.
      */
     private Map<String, Integer> getYearByStudyDbIds(Collection<String> studyDbIds, Program program) throws ApiException, DoesNotExistException {
-        return getYearByStudyDbId(
-                studyDAO.getStudiesByStudyDbId(studyDbIds, program),
-                program.getId());
+        List<BrAPIStudy> studies = studyDAO.getStudiesByStudyDbId(studyDbIds, program);
+        Set<String> resolvedStudyDbIds = studies.stream()
+                .map(BrAPIStudy::getStudyDbId)
+                .collect(Collectors.toSet());
+        for (String studyDbId : studyDbIds) {
+            if (!resolvedStudyDbIds.contains(studyDbId)) {
+                throw new DoesNotExistException(String.format("Study DbId '%s' not found.", studyDbId));
+            }
+        }
+
+        return getYearByStudyDbId(studies, program.getId());
     }
 
     /**
@@ -978,7 +989,7 @@ public class BrAPITrialService {
         for (BrAPIObservationUnit observationUnit : observationUnits) {
             Integer year = yearByStudyDbId.get(observationUnit.getStudyDbId());
             if (year == null) {
-                throw new DoesNotExistException(String.format("Study DbId '%s' not found.", observationUnit.getStudyDbId()));
+                throw new DoesNotExistException(String.format("Env Year not found for Study DbId = '%s'.", observationUnit.getStudyDbId()));
             }
             observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.ENV_YEAR, year);
         }
@@ -1004,6 +1015,9 @@ public class BrAPITrialService {
                 throw new DoesNotExistException(String.format("Seasons not found for Id = '%s'.", seasonId));
             }
             year = season.getYear();
+            if (year == null) {
+                throw new DoesNotExistException(String.format("Env Year not found for Study DbId = '%s'.", study.getStudyDbId()));
+            }
             yearBySeasonDbId.put(seasonId, year);
         }
 
