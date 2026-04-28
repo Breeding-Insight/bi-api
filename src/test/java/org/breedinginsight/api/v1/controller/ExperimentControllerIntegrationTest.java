@@ -1006,7 +1006,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         JsonArray result = JsonParser.parseString(Objects.requireNonNull(response.body()))
                 .getAsJsonObject()
-                .getAsJsonArray("result");
+                .getAsJsonObject("result")
+                .getAsJsonArray("data");
 
         List<String> recommendedNames = new ArrayList<>();
         result.forEach(name -> recommendedNames.add(name.getAsString()));

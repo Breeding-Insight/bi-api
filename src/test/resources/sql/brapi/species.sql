@@ -36,7 +36,7 @@ FROM (VALUES
           ('Strawberry'), ('Honey Bee'), ('Pecan'), ('Lettuce'),
           ('Cotton'), ('Sorghum'), ('Hemp'), ('Hop'),
           ('Hydrangea'), ('Red Clover'), ('Potato'), ('Blackberry'),
-          ('Raspberry'), ('Sugar Beet'), ('Coffee')
+          ('Raspberry'), ('Sugar Beet'), ('Coffee'), ('Sunflower')
      ) AS src(crop_name)
     ON CONFLICT (id) DO
 UPDATE SET crop_name = EXCLUDED.crop_name
