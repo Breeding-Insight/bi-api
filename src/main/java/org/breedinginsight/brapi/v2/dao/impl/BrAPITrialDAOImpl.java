@@ -27,6 +27,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.core.TrialQueryParams;
 import org.brapi.client.v2.modules.core.TrialsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
 import org.brapi.v2.model.core.response.BrAPITrialListResponse;
@@ -108,7 +109,25 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         return experimentById(processExperimentsForDisplay(programExperiments, program.getKey()));
     }
 
-    private List<BrAPITrial> getBrAPITrialsByBrAPIProgramId(Program program) throws ApiException {
+    /**
+     * This method requires a BI-API program.  If the BrAPIProgram inside this data model is not set,
+     * this method will retrieve it.
+     */
+    private List<BrAPITrial> getBrAPITrialsUsingBrAPIProgram(Program program) throws ApiException {
+
+        if (program == null || program.getId() == null) {
+            throw new InternalServerException("BI-API Program or Program ID is null");
+        }
+
+        String brapiProgramDbId = Optional.of(program)
+                .map(Program::getBrapiProgram)
+                .map(BrAPIProgram::getProgramDbId)
+                .orElse(null);
+
+        if (brapiProgramDbId == null) {
+            brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
+        }
+
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
 
         ApiResponse<BrAPITrialListResponse> response;
@@ -119,7 +138,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         try {
             TrialQueryParams trialQueryParams =
                     TrialQueryParams.builder()
-                            .programDbId(program.getBrapiProgram().getProgramDbId())
+                            .programDbId(brapiProgramDbId)
                             .pageSize(pageSize)
                             .page(0)
                             .build();
@@ -154,7 +173,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
 
     @Override
     public List<BrAPITrial> getTrialsByName(List<String> trialNames, Program program) throws ApiException {
-        List<BrAPITrial> allTrialsForProgram = getBrAPITrialsByBrAPIProgramId(program);
+        List<BrAPITrial> allTrialsForProgram = getBrAPITrialsUsingBrAPIProgram(program);
 
         List<BrAPITrial> trials = new ArrayList<>();
         if (allTrialsForProgram != null) {
@@ -212,10 +231,12 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         }
     }
 
-    // TODO: call getTrials endpoint using brapiProgramId
     @Override
     public List<BrAPITrial> getTrials(UUID programId) throws ApiException {
-        return new ArrayList<>(programExperimentCache.get(programId).values());
+        Program program = programDAO.get(programId).get(0);
+        program.setBrapiProgram(programDAO.getProgramBrAPI(program));
+
+        return getBrAPITrialsUsingBrAPIProgram(program);
     }
 
     //Removes program key from trial name

@@ -121,6 +121,7 @@ public class BrAPITrialService {
     }
 
     public List<BrAPITrial> getExperiments(UUID programId) throws ApiException, DoesNotExistException {
+        // TODO: Edit this to filter/paginate trials
         return trialDAO.getTrials(programId);
     }
 
