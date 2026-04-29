@@ -32,15 +32,15 @@ public class GenotypeDataUploadController {
         this.securityService = securityService;
     }
 
-    @Post("programs/{programId}/experiments/{experimentId}/geno/import")
+    @Post("programs/{programId}/submissions/{submissionId}/geno/import")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
-    public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID experimentId, @Part("file") CompletedFileUpload upload) {
+    public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID submissionId, @Part("file") CompletedFileUpload upload) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
-            ImportResponse result = genoService.submitGenotypeData(actingUser.getId(), programId, experimentId, upload);
+            ImportResponse result = genoService.submitGenotypeData(actingUser.getId(), programId, submissionId, upload);
             Response<ImportResponse> response = new Response<>(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {

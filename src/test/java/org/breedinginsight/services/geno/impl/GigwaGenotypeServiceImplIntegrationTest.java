@@ -13,8 +13,6 @@ import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import io.micronaut.test.annotation.MockBean;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
-import io.reactivex.functions.Function;
-import io.reactivex.functions.Function3;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.mime.MimeTypeException;
@@ -25,50 +23,42 @@ import org.brapi.client.v2.auth.OAuth;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.core.ProgramQueryParams;
 import org.brapi.client.v2.model.queryParams.core.StudyQueryParams;
-import org.brapi.client.v2.model.queryParams.core.TrialQueryParams;
 import org.brapi.client.v2.modules.core.ProgramsApi;
 import org.brapi.client.v2.modules.core.StudiesApi;
-import org.brapi.client.v2.modules.core.TrialsApi;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
-import org.brapi.v2.model.BrAPIExternalReference;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIProgramListResponse;
 import org.brapi.v2.model.core.response.BrAPIStudyListResponse;
-import org.brapi.v2.model.core.response.BrAPITrialListResponse;
-import org.brapi.v2.model.core.response.BrAPITrialListResponseResult;
+import org.brapi.v2.model.geno.BrAPISample;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponseResult;
 import org.breedinginsight.DatabaseTest;
-import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
+import org.breedinginsight.brapps.importer.daos.BrAPISampleDAO;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
-import org.breedinginsight.brapi.v2.dao.impl.BrAPITrialDAOImpl;
 import org.breedinginsight.brapi.v2.dao.impl.ImportMappingDAOImpl;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
-import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.pojos.ImporterImportEntity;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.daos.SampleSubmissionDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.daos.impl.ProgramDAOImpl;
 import org.breedinginsight.daos.impl.UserDAOImpl;
 import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.GermplasmGenotype;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.SampleSubmission;
 import org.breedinginsight.model.User;
-import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.utilities.BrAPIDAOUtil;
-import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
@@ -129,7 +119,10 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     private ImportDAO importDAO;
 
     @Inject
-    private BrAPITrialDAO trialDAO;
+    private SampleSubmissionDAO sampleSubmissionDAO;
+
+    @Inject
+    private BrAPISampleDAO sampleDAO;
 
     @Inject
     private ObjectMapper objectMapper;
@@ -146,9 +139,6 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
     @Inject
     private S3Presigner presigner;
-
-    @Inject
-    private BrAPIDAOUtil brAPIDAOUtil;
 
     @Inject
     private BrAPIEndpointProvider brAPIEndpointProvider;
@@ -188,31 +178,10 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         return mock(ImportDAO.class);
     }
 
-
-    @MockBean(BrAPITrialDAOImpl.class)
-    BrAPITrialDAO trialDAO() {
-        return mock(BrAPITrialDAOImpl.class);
-    }
-
-    @MockBean(ProgramService.class)
-    ProgramService programService() {
-        return mock(ProgramService.class);
-    }
-
-    @MockBean(BrAPIDAOUtil.class)
-    BrAPIDAOUtil brAPIDAOUtil() {
-        return spy(new BrAPIDAOUtil(1000, Duration.of(10, ChronoUnit.MINUTES), 1000, 100, 65000, programService()));
-    }
-
     @MockBean(SimpleStorageService.class)
     @Named("genotype")
     SimpleStorageService simpleStorageService() {
         return spy(new DefaultSimpleStorageService(bucketName, s3Client, presigner));
-    }
-
-    @MockBean(BrAPIEndpointProvider.class)
-    BrAPIEndpointProvider brAPIEndpointProvider() {
-        return spy(new BrAPIEndpointProvider());
     }
 
     private GenericContainer gigwa;
@@ -274,6 +243,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         properties.put("aws.secretKey", localStackContainer.getSecretKey());
         properties.put("aws.s3.buckets.genotype.bucket", "test");
         properties.put("aws.s3.endpoint", String.valueOf(localStackContainer.getEndpointOverride(LocalStackContainer.Service.S3)));
+        properties.put("test.gigwa-genotype-service", "true");
 
         return properties;
     }
@@ -306,11 +276,11 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     public void testUpload() throws ApiException, AuthorizationException {
         UUID programId = UUID.fromString("360766b8-480b-4b0a-862c-7eaa651dda28");
         String programKey = "TEST";
-        UUID expId = UUID.randomUUID();
+        UUID submissionId = UUID.randomUUID();
         UUID importId = UUID.randomUUID();
-        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> uploadGenoData(programId, programKey, expId, importId), "Upload did not complete within the time period");
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> uploadGenoData(programId, programKey, submissionId, importId), "Upload did not complete within the time period");
 
-        assertTrue(storageService.exists(storageService.getDefaultBucketName(), programId + "/" + expId + "/" + importId + ".vcf"), "File was not uploaded to s3");
+        assertTrue(storageService.exists(storageService.getDefaultBucketName(), programId + "/" + submissionId + "/" + importId + ".vcf"), "File was not uploaded to s3");
 
         BrAPIClient brAPIClient = new BrAPIClient(gigwaHost + "gigwa/rest/brapi/v2");
         Authentication authorizationToken = brAPIClient.getAuthentication("AuthorizationToken");
@@ -339,7 +309,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
                                                           .getData()
                                                           .stream()
                                                           .filter(brAPIStudy -> brAPIStudy.getStudyName()
-                                                                                          .equals(expId.toString()))
+                                                                                          .equals(submissionId.toString()))
                                                           .count());
         } catch (ApiException e) {
             System.err.println(e.getMessage());
@@ -352,28 +322,20 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     public void testFetchGermplasmGenotype() throws AuthorizationException, ApiException, DoesNotExistException {
         UUID programId = UUID.fromString("8b667063-480b-4b0a-862c-7eaa651dda28");
         String programKey = "TESTFETCH";
-        UUID expId = UUID.randomUUID();
+        UUID submissionId = UUID.randomUUID();
         UUID importId = UUID.randomUUID();
-        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> uploadGenoData(programId, programKey, expId, importId), "Upload did not complete within the time period");
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> uploadGenoData(programId, programKey, submissionId, importId), "Upload did not complete within the time period");
 
         BrAPIGermplasm germplasm = new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()).germplasmName("Test Germ");
 
-        BrAPITrial trial = new BrAPITrial().externalReferences(List.of(new BrAPIExternalReference().referenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS))
-                                                                                                   .referenceID(UUID.randomUUID()
-                                                                                                                    .toString())));
+        ObservationUnitsApi mockOUsApi = spy(new ObservationUnitsApi());
+        doReturn(new ApiResponse<>(200,
+                                   new HashMap<>(),
+                                   Pair.of(Optional.of(new BrAPIObservationUnitListResponse().result(new BrAPIObservationUnitListResponseResult().data(List.of(new BrAPIObservationUnit().observationUnitName("USDAMSP1_A01"))))),
+                                           Optional.empty())))
+                .when(mockOUsApi).searchObservationunitsPost(any(BrAPIObservationUnitSearchRequest.class));
 
-
-        doReturn(List.of(trial)).when(trialDAO).getTrials(any(UUID.class));
-
-        doAnswer(invocation -> {
-            Object searchObject = invocation.getArgument(2);
-            if(searchObject instanceof BrAPIObservationUnitSearchRequest) {
-                return List.of(new BrAPIObservationUnit().observationUnitName("USDAMSP1_A01"));
-            } else {
-                return invocation.callRealMethod();
-            }
-        }).when(brAPIDAOUtil)
-          .search(any(Function.class), any(Function3.class), any());
+        doReturn(mockOUsApi).when(brAPIEndpointProvider).get(any(BrAPIClient.class), eq(ObservationUnitsApi.class));
 
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getCoreClient(any(UUID.class));
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getPhenoClient(any(UUID.class));
@@ -390,7 +352,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     public void testSubmitValidFile() throws IOException, ApiException {
         UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
         String programKey = "TESTSUBMITVALID";
-        UUID expId = UUID.randomUUID();
+        UUID submissionId = UUID.randomUUID();
 
         Scanner sc = new Scanner(new FileInputStream("src/test/resources/files/geno/sample.vcf"), "UTF-8");
         String[] headerParts = null;
@@ -404,21 +366,14 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         }
         assertTrue(foundHeader, "Could not find sample.vcf header file");
 
-        List<BrAPIObservationUnit> ous = new ArrayList<>();
+        List<BrAPISample> samples = new ArrayList<>();
         for(int i = 9; i < headerParts.length; i++) {
-              ous.add(new BrAPIObservationUnit().observationUnitName(headerParts[i] + " ["+programKey+"-"+(i-7)+"]"));
+              samples.add(new BrAPISample().sampleName(headerParts[i]));
         }
-        setupMocksForSubmitGenoData(expId, ous);
-
-        doAnswer(invocation -> {
-            if(invocation.getArgument(2) instanceof BrAPIObservationUnitSearchRequest) {
-                return invocation.callRealMethod();
-            }
-            return invocation.getMock();
-        }).when(brAPIDAOUtil).search(any(Function.class), any(Function3.class), any());
+        setupMocksForSubmitGenoData(programId, submissionId, samples);
 
         AtomicReference<ImportResponse> importResponse = new AtomicReference<>();
-        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, expId, "sample.vcf")), "Upload did not complete within the time period");
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, submissionId, "sample.vcf")), "Upload did not complete within the time period");
 
         ImportResponse response = importResponse.get();
         assertNotNull(response);
@@ -430,10 +385,10 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     public void testSubmitInvalidHeader() throws ApiException {
         UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
         String programKey = "TESTSUBMITINVALID";
-        UUID expId = UUID.randomUUID();
-        setupMocksForSubmitGenoData(expId, Collections.emptyList());
+        UUID submissionId = UUID.randomUUID();
+        setupMocksForSubmitGenoData(programId, submissionId, Collections.emptyList());
         AtomicReference<ImportResponse> importResponse = new AtomicReference<>();
-        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, expId, "sample_invalid.vcf")), "Upload did not complete within the time period");
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, submissionId, "sample_invalid.vcf")), "Upload did not complete within the time period");
 
         ImportResponse response = importResponse.get();
         assertNotNull(response);
@@ -443,43 +398,35 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     }
 
     @Test
-    public void testSubmitMissingOUs() throws ApiException {
+    public void testSubmitMissingSubmissionSamples() throws ApiException {
         UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
         String programKey = "TESTSUBMITMISSINGOU";
-        UUID expId = UUID.randomUUID();
+        UUID submissionId = UUID.randomUUID();
 
-        setupMocksForSubmitGenoData(expId, Collections.emptyList());
+        setupMocksForSubmitGenoData(programId, submissionId, Collections.emptyList());
 
         AtomicReference<ImportResponse> importResponse = new AtomicReference<>();
-        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, expId, "sample.vcf")), "Upload did not complete within the time period");
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, submissionId, "sample.vcf")), "Upload did not complete within the time period");
 
         ImportResponse response = importResponse.get();
         assertNotNull(response);
         assertNotNull(response.getProgress());
         assertEquals((short)HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
-        assertEquals("There are samples that do not have an existing observation unit", response.getProgress().getMessage());
+        assertEquals("There are samples that are not linked to the selected submission", response.getProgress().getMessage());
     }
 
-    private void setupMocksForSubmitGenoData(UUID expId, List<BrAPIObservationUnit> ous) throws ApiException {
-        TrialsApi mockTrialsApi = spy(new TrialsApi());
-        doReturn(new ApiResponse<BrAPITrialListResponse>(200,
-                                                         new HashMap<>(),
-                                                         new BrAPITrialListResponse().result(new BrAPITrialListResponseResult().addDataItem(new BrAPITrial().trialDbId(expId.toString())))))
-                .when(mockTrialsApi).trialsGet(any(TrialQueryParams.class));
+    private void setupMocksForSubmitGenoData(UUID programId, UUID submissionId, List<BrAPISample> samples) throws ApiException {
+        SampleSubmission submission = new SampleSubmission();
+        submission.setId(submissionId);
+        submission.setProgramId(programId);
 
-        doReturn(mockTrialsApi).when(brAPIEndpointProvider).get(any(BrAPIClient.class), eq(TrialsApi.class));
-
-        ObservationUnitsApi mockOUsApi = spy(new ObservationUnitsApi());
-        doReturn(new ApiResponse<>(200,
-                                   new HashMap<>(),
-                                   Pair.of(Optional.of(new BrAPIObservationUnitListResponse().result(new BrAPIObservationUnitListResponseResult().data(ous))),
-                                           Optional.empty())))
-                .when(mockOUsApi).searchObservationunitsPost(any(BrAPIObservationUnitSearchRequest.class));
-
-        doReturn(mockOUsApi).when(brAPIEndpointProvider).get(any(BrAPIClient.class), eq(ObservationUnitsApi.class));
+        doReturn(List.of(submission)).when(sampleSubmissionDAO)
+                                     .getBySubmissionId(any(Program.class), eq(submissionId));
+        doReturn(samples).when(sampleDAO)
+                         .readSamplesBySubmissionIds(any(Program.class), eq(List.of(submissionId.toString())));
     }
 
-    private void uploadGenoData(UUID programId, String programKey, UUID expId, UUID importId) throws AuthorizationException, MimeTypeException, IOException, ApiException {
+    private void uploadGenoData(UUID programId, String programKey, UUID submissionId, UUID importId) throws AuthorizationException, MimeTypeException, IOException, ApiException {
         Program program = Program.builder()
                                  .id(programId)
                                  .key(programKey)
@@ -526,11 +473,11 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
                                                 .build();
 
         System.out.println("======================   program ID: " + program.getId() + " ===============");
-        System.out.println("===================   experiment ID: " + expId + " ===============");
-        gigwaGenoStorageService.processSubmission(gigwaGenoStorageService.getAuthToken(), program, expId, new TestFileUpload("src/test/resources/files/geno/sample.vcf", MediaType.of("application/vcard")).getBytes(), "sample.vcf", importUpload, progress);
+        System.out.println("===================   submission ID: " + submissionId + " ===============");
+        gigwaGenoStorageService.processSubmission(gigwaGenoStorageService.getAuthToken(), program, submissionId, new TestFileUpload("src/test/resources/files/geno/sample.vcf", MediaType.of("application/vcard")).getBytes(), "sample.vcf", importUpload, progress);
     }
 
-    private ImportResponse submitGenoData(UUID programId, String programKey, UUID expId, String file) throws AuthorizationException, IOException, ApiException, DoesNotExistException {
+    private ImportResponse submitGenoData(UUID programId, String programKey, UUID submissionId, String file) throws AuthorizationException, IOException, ApiException, DoesNotExistException {
         Program program = Program.builder()
                                  .id(programId)
                                  .key(programKey)
@@ -562,8 +509,8 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getPhenoClient(any(UUID.class));
 
         System.out.println("======================   program ID: " + program.getId() + " ===============");
-        System.out.println("===================   experiment ID: " + expId + " ===============");
-        return gigwaGenoStorageService.submitGenotypeData(user.getId(), programId, expId, new TestFileUpload("src/test/resources/files/geno/"+file, MediaType.of("application/vcard")));
+        System.out.println("===================   submission ID: " + submissionId + " ===============");
+        return gigwaGenoStorageService.submitGenotypeData(user.getId(), programId, submissionId, new TestFileUpload("src/test/resources/files/geno/"+file, MediaType.of("application/vcard")));
     }
 
     private class TestFileUpload implements CompletedFileUpload {
