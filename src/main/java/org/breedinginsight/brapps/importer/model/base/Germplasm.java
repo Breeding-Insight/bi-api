@@ -158,12 +158,11 @@ public class Germplasm implements BrAPIObject {
      *
      * @param germplasm germplasm object
      * @param program program
-     * @param listId list id
      * @param commit flag indicating if commit changes should be made
      * @param updatePedigree flag indicating if pedigree should be updated
      * @return mutated indicator
      */
-     public boolean updateBrAPIGermplasm(BrAPIGermplasm germplasm, Program program, UUID listId, boolean commit,
+     public boolean updateBrAPIGermplasm(BrAPIGermplasm germplasm, Program program, boolean commit,
                                          boolean updatePedigree, ProgramBreedingMethodEntity breedingMethod) {
 
         boolean mutated = false;
