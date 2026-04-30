@@ -67,7 +67,6 @@ public class SampleSubmissionProcessor implements Processor {
     private static final String UNKNOWN_GID = "Unknown germplasm GID";
     private static final String INVALID_COLUMN = "Column must be a number between 1 and 12";
     private static final String INVALID_ROW = "Row must be a letter between A and H";
-//    private static final String MULTIPLE_SAMPLES_SINGLE_WELL = "The sample in row %d is already in row: %s, column: %d";
     private static final String MULTIPLE_SAMPLES_SINGLE_WELL = "Plate position not unique, duplicate in row %d";
     private final String referenceSource;
     private final BrAPIGermplasmDAO germplasmDAO;
