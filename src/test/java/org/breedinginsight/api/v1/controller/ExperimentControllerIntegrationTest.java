@@ -95,6 +95,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private ProgramUserDAO programUserDAO;
     @Inject
     private RoleDao roleDao;
+    @Inject
+    private BrAPITrialService brAPITrialService;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -201,12 +203,11 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 program,
                 mappingId,
                 newExperimentWorkflowId);
-        experimentId = importResult
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(0).getAsJsonObject()
-                .get("trial").getAsJsonObject()
-                .get("id").getAsString();
+
+        BrAPITrial trial = brAPITrialService.getExperiments(program.getId()).get(0);
+
+        experimentId = trial.getTrialDbId();
+
         // Add environmentIds.
         envIds.add(getEnvId(importResult, 0));
         envIds.add(getEnvId(importResult, 1));
