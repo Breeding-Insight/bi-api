@@ -57,12 +57,10 @@ public class Germplasm implements BrAPIObject {
     private String germplasmName;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportMappingRequired
     @ImportFieldMetadata(id="breedingMethod", name="Breeding Method", description = "The breeding method name or code")
     private String breedingMethod;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportMappingRequired
     @ImportFieldMetadata(id="germplasmSource", name="Source", description = "The germplasm origin. If External UID present, assumed to be the source associated with the External UID.")
     private String germplasmSource;
 
@@ -160,12 +158,12 @@ public class Germplasm implements BrAPIObject {
      *
      * @param germplasm germplasm object
      * @param program program
-     * @param listId list id
      * @param commit flag indicating if commit changes should be made
      * @param updatePedigree flag indicating if pedigree should be updated
      * @return mutated indicator
      */
-    public boolean updateBrAPIGermplasm(BrAPIGermplasm germplasm, Program program, UUID listId, boolean commit, boolean updatePedigree) {
+     public boolean updateBrAPIGermplasm(BrAPIGermplasm germplasm, Program program, boolean commit,
+                                         boolean updatePedigree, ProgramBreedingMethodEntity breedingMethod) {
 
         boolean mutated = false;
 
@@ -184,6 +182,27 @@ public class Germplasm implements BrAPIObject {
             }
             mutated = true;
         }
+
+         // Append Source only when DB value is blank
+         if (StringUtils.isBlank(germplasm.getSeedSource()) && StringUtils.isNotBlank(getGermplasmSource())) {
+             germplasm.setSeedSource(getGermplasmSource());
+             mutated = true;
+         }
+
+         // Append Breeding Method only when DB field is blank
+         if (breedingMethod != null) {
+             boolean hasBreedingMethodId = hasDateInAdditionalInfo(germplasm, BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID);
+             boolean hasBreedingMethodName = hasDateInAdditionalInfo(germplasm, BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD);
+
+             if (!hasBreedingMethodId) {
+                 germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID, breedingMethod.getId().toString());
+                 mutated = true;
+             }
+             if (!hasBreedingMethodName) {
+                 germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD, breedingMethod.getName());
+                 mutated = true;
+             }
+         }
 
         // Append synonyms to germplasm that don't already exist
         // Synonym comparison is based on name and type
@@ -211,6 +230,14 @@ public class Germplasm implements BrAPIObject {
         return mutated;
     }
 
+    //Method to check whether breeding method already exists in DB additionalInfo
+    private boolean hasDateInAdditionalInfo(BrAPIGermplasm germplasm, String key) {
+        JsonObject additionalInfo = germplasm.getAdditionalInfo();
+        return additionalInfo != null
+                && additionalInfo.has(key)
+                && !additionalInfo.get(key).isJsonNull()
+                && StringUtils.isNotBlank(additionalInfo.get(key).getAsString());
+    }
 
     public void setUpdateCommitFields(BrAPIGermplasm germplasm, String programKey) {
 
