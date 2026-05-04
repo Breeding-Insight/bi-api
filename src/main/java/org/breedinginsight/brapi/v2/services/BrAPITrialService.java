@@ -185,10 +185,13 @@ public class BrAPITrialService {
         // add columns for requested dataset obsvars and timestamps
         log.debug(logHash + ": fetching experiment for export");
         BrAPITrial experiment = getExperiment(program, experimentId);
+        String expExRefId = Utilities.getExternalReference(experiment.getExternalReferences(), this.referenceSource, ExternalReferenceSource.TRIALS)
+                .map(BrAPIExternalReference::getReferenceId)
+                .orElse(null);
 
         // get requested environments for the experiment
         log.debug(logHash + ": fetching environments for export");
-        List<BrAPIStudy> expStudies = studyDAO.getStudiesByExperimentID(experimentId, program);
+        List<BrAPIStudy> expStudies = studyDAO.getStudiesByExperimentID(UUID.fromString(expExRefId), program);
         if (!requestedEnvIds.isEmpty()) {
             expStudies = expStudies
                     .stream()

@@ -137,6 +137,7 @@ public class BrAPIStudyDAO extends BrAPICachedDAO<BrAPIStudy> {
     }
 
     public List<BrAPIStudy> getStudiesByExperimentID(@NotNull UUID experimentId, Program program) throws ApiException {
+        // TODO: This should look up on trialDbId, and the trialDbId should be passed thru
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.addExternalReferenceIdsItem(experimentId.toString());

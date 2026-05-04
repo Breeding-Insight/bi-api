@@ -26,6 +26,7 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPITrialSingleResponse;
 import org.breedinginsight.api.auth.*;
@@ -158,6 +159,7 @@ public class BrAPITrialsController {
         return HttpResponse.notFound();
     }
 
+    // TODO: Remove for trialDbId once cache is removed for that entity
     private void setDbIds(BrAPITrial trial) {
         trial.trialDbId(Utilities.getExternalReference(trial.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS))
                                  .orElseThrow(() -> new IllegalStateException("No BI external reference found"))

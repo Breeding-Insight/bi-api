@@ -208,9 +208,14 @@ public class CommitPendingImportObjectsStep {
             // set the DbId to the for each newly created trial
             for (BrAPITrial createdTrial : createdTrials) {
                 String createdTrialName = Utilities.removeProgramKey(createdTrial.getTrialName(), program.getKey());
+
+
                 trialByNameNoScope.get(createdTrialName)
                         .getBrAPIObject()
                         .setTrialDbId(createdTrial.getTrialDbId());
+                // TODO: May need to set the main ID for pending objects with the BrAPI ID for downstream usage once cache is removed.
+                trialByNameNoScope.get(createdTrialName)
+                        .setId(UUID.fromString(createdTrial.getTrialDbId()));
             }
 
             List<ProgramLocation> createdLocations = new ArrayList<>(locationService.create(actingUser, program.getId(), newLocations));

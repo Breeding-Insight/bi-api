@@ -327,12 +327,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newExp.put(Columns.COLUMN, "1");
 
         JsonObject importResponse = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newExp), null, false, false, null), null, true, client, program, mappingId, newExperimentWorkflowId);
-        String expId = importResponse
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(0).getAsJsonObject()
-                .get("trial").getAsJsonObject()
-                .get("id").getAsString();
+        String expId = brAPITrialDAO.getTrialsByName(List.of(newExp.get(Columns.EXP_TITLE).toString()), program).get(0).getTrialDbId();
 
         // Create two sub-entity datasets that have two different sub entity units
         Flowable<HttpResponse<String>> sub1PostCall = client.exchange(
