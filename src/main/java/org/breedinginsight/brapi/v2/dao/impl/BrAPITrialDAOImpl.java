@@ -26,7 +26,6 @@ import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.core.TrialQueryParams;
 import org.brapi.client.v2.modules.core.TrialsApi;
-import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
@@ -36,8 +35,6 @@ import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.daos.cache.ProgramCache;
-import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
@@ -48,14 +45,12 @@ import org.breedinginsight.utilities.Utilities;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Context
 @Singleton
 public class BrAPITrialDAOImpl implements BrAPITrialDAO {
-    private final ProgramCache<BrAPITrial> programExperimentCache;
     private final ProgramDAO programDAO;
     private final ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
@@ -65,15 +60,13 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
     private final boolean runScheduledTasks;
 
     @Inject
-    public BrAPITrialDAOImpl(ProgramCacheProvider programCacheProvider,
-                             ProgramDAO programDAO,
+    public BrAPITrialDAOImpl(ProgramDAO programDAO,
                              ImportDAO importDAO,
                              BrAPIDAOUtil brAPIDAOUtil,
                              ProgramService programService,
                              @Property(name = "brapi.server.reference-source") String referenceSource,
                              BrAPIEndpointProvider brAPIEndpointProvider,
                              @Property(name = "micronaut.bi.api.run-scheduled-tasks") boolean runScheduledTasks) {
-        this.programExperimentCache = programCacheProvider.getProgramCache(this::fetchProgramExperiments, BrAPITrial.class);
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
@@ -81,32 +74,6 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         this.referenceSource = referenceSource;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.runScheduledTasks = runScheduledTasks;
-    }
-
-    // TODO: Can be removed once cache instance is gone
-    private Map<String, BrAPITrial> fetchProgramExperiments(UUID programId) throws ApiException {
-        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
-
-        // Get the program
-        List<Program> programs = programDAO.get(programId);
-        if (programs.size() != 1) {
-            throw new InternalServerException("Program was not found for given key");
-        }
-        Program program = programs.get(0);
-
-        // Get the program experiments
-        BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
-        trialSearch.externalReferenceIDs(List.of(programId.toString()));
-        trialSearch.externalReferenceSources(
-                List.of(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS))
-        );
-        List<BrAPITrial> programExperiments = brAPIDAOUtil.search(
-                api::searchTrialsPost,
-                api::searchTrialsSearchResultsDbIdGet,
-                trialSearch
-        );
-
-        return experimentById(processExperimentsForDisplay(programExperiments, program.getKey()));
     }
 
     /**
@@ -188,18 +155,8 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
     @Override
     public List<BrAPITrial> createBrAPITrials(List<BrAPITrial> brAPITrialList, UUID programId, ImportUpload upload) {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
-        List<BrAPITrial> createdTrials = new ArrayList<>();
         try {
-            if (!brAPITrialList.isEmpty()) {
-                Callable<Map<String, BrAPITrial>> postCallback = () -> {
-                    List<BrAPITrial> postedTrials = brAPIDAOUtil
-                            .post(brAPITrialList, upload, api::trialsPost, importDAO::update);
-                    return experimentById(postedTrials);
-                };
-                createdTrials.addAll(programExperimentCache.post(programId, postCallback));
-            }
-
-            return createdTrials;
+            return brAPIDAOUtil.post(brAPITrialList, upload, api::trialsPost, importDAO::update);
         } catch (Exception e) {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
         }
@@ -289,12 +246,5 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
                 .build();
 
         brAPIDAOUtil.makeCall(brapiRequest);
-    }
-
-    // TODO: Remove when trial cache is removed.
-    @Override
-    public void repopulateCache(UUID programId) {
-        this.programExperimentCache.invalidate(programId);
-        this.programExperimentCache.populate(programId);
     }
 }

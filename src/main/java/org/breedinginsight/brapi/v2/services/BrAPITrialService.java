@@ -823,8 +823,6 @@ public class BrAPITrialService {
                 listDAO.deleteBrAPIList(list.getListDbId(), program.getId(), hard);
             }
             // TODO: if performance is poor, implement more precise invalidation, possibly using hierarchical cache keys.
-            // Invalidate and repopulate cache for Trial, Study, Observation, ObservationUnit.
-            trialDAO.repopulateCache(program.getId());
             studyDAO.repopulateCache(program.getId());
             observationDAO.repopulateCache(program.getId());
             observationUnitDAO.repopulateCache(program.getId());
