@@ -235,7 +235,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         expRows.add(row2);
 
         // Import test experiment, environments.
-        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
+        importTestUtils.uploadAndFetchWorkflow(
                 writeDataToFile(expRows, null),
                 null,
                 true,
@@ -243,14 +243,14 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 targetProgram,
                 mappingId,
                 newExperimentWorkflowId);
-        String expId = importResult
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(0).getAsJsonObject()
-                .get("trial").getAsJsonObject()
-                .get("id").getAsString();
 
-        return expId;
+        BrAPITrial trial = brAPITrialService.getExperiments(targetProgram.getId())
+                .stream()
+                .filter(t -> t.getTrialName().equals(title))
+                .findFirst()
+                .orElseThrow();
+
+        return trial.getTrialDbId();
     }
 
     /**
@@ -930,7 +930,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private String uploadExperimentWithObs(Program targetProgram, String title, List<Map<String, Object>> expRows) throws Exception {
         ImportTestUtils importTestUtils = new ImportTestUtils();
 
-        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
+        importTestUtils.uploadAndFetchWorkflow(
                 importTestUtils.writeExperimentDataToFile(expRows, traits, false, false, null),
                 null,
                 true,
@@ -939,12 +939,13 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 mappingId,
                 newExperimentWorkflowId);
 
-        return importResult
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(0).getAsJsonObject()
-                .get("trial").getAsJsonObject()
-                .get("id").getAsString();
+        BrAPITrial trial = brAPITrialService.getExperiments(targetProgram.getId())
+                .stream()
+                .filter(t -> t.getTrialName().equals(title))
+                .findFirst()
+                .orElseThrow();
+
+        return trial.getTrialDbId();
     }
 
     private List<Map<String, Object>> buildSubEntityRows(List<Map<String, Object>> topLevelRows, String entityName, int repeatedMeasures) {
