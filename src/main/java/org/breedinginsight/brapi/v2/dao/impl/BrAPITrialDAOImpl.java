@@ -205,25 +205,11 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         }
     }
 
-    // TODO: Fix by grabbing inner code of callback, removing callback and cache call, and return result from BrAPI call.
     @Override
     public BrAPITrial updateBrAPITrial(String trialDbId, BrAPITrial trial, UUID programId) {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
-        BrAPITrial updatedTrial = null;
         try {
-            if (trial != null && !trialDbId.isBlank()) {
-                Callable<Map<String, BrAPITrial>> putCallback = () -> {
-                    BrAPITrial putTrial = brAPIDAOUtil.put(trialDbId, trial, api::trialsTrialDbIdPut);
-                    return experimentById(List.of(putTrial));
-                };
-                List<BrAPITrial> cachedUpdates = programExperimentCache.post(programId, putCallback);
-                if (cachedUpdates.isEmpty()) {
-                    throw new Exception();
-                }
-                updatedTrial = cachedUpdates.get(0);
-            }
-
-            return updatedTrial;
+            return brAPIDAOUtil.put(trialDbId, trial, api::trialsTrialDbIdPut);
         } catch (Exception e) {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
         }
