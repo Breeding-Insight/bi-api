@@ -265,18 +265,9 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
 
     @Override
     public List<BrAPITrial> getTrialsByDbIds(Collection<String> trialDbIds, Program program) throws ApiException {
-        // Lookup on trialDbIds directly in BrAPI
-        Map<String, BrAPITrial> cache = programExperimentCache.get(program.getId());
-        List<BrAPITrial> trials = new ArrayList<>();
-        if (cache != null) {
-            trials.addAll(cache
-                    .values()
-                    .stream()
-                    .filter(t -> trialDbIds.contains(t.getTrialDbId()))
-                    .collect(Collectors.toList()));
-        }
+        Collection<UUID> trialDbUUIDs = trialDbIds.stream().map(UUID::fromString).collect(Collectors.toList());
 
-        return trials;
+        return getTrialsByExperimentIds(trialDbUUIDs, program);
     }
 
     // TODO: ExperimentIds will = trialDbIds once cache is updated.  Update this method to get trials on dbId directly from brapi.
