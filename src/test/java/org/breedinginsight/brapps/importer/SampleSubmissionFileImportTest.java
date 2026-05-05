@@ -45,6 +45,7 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.*;
+import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.imports.sample.SampleSubmissionImport.Columns;
@@ -142,6 +143,9 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
 
     @Inject
     private SampleSubmissionService sampleSubmissionService;
+
+    @Inject
+    BrAPITrialService brAPITrialService;
 
     private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
                                                  (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
@@ -567,7 +571,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
                 .getAsJsonArray("data")
                 .get(0).getAsJsonObject().get("id").getAsString();
 
-        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
+        importTestUtils.uploadAndFetchWorkflow(
                 importTestUtils.writeExperimentDataToFile(List.of(makeExpImportRow("Env1")), null, false, false, null),
                 null,
                 true,
@@ -575,12 +579,23 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
                 program,
                 expMappingId,
                 newExperimentWorkflowId);
-        return importResult
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(0).getAsJsonObject()
-                .get("trial").getAsJsonObject()
-                .get("id").getAsString();
+
+
+        String result;
+
+        try {
+            // Assumes only one trial/experiment exists
+            BrAPITrial trial = brAPITrialService.getExperiments(program.getId())
+                    .stream()
+                    .findFirst()
+                    .orElseThrow();
+
+            result = trial.getTrialDbId();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        return result;
     }
 
     private Map<String, Object> makeExpImportRow(String environment) {

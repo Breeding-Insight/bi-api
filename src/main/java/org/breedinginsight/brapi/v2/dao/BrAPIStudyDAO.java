@@ -168,11 +168,7 @@ public class BrAPIStudyDAO extends BrAPICachedDAO<BrAPIStudy> {
     public List<BrAPIStudy> getStudiesByExperimentIds(@NotNull Collection<UUID> experimentIds, Program program) throws ApiException {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
-        // Add all experimentIds as xref ID search terms.
-        for (UUID experimentId : experimentIds) {
-            studySearch.addExternalReferenceIdsItem(experimentId.toString());
-        }
-        studySearch.addExternalReferenceSourcesItem(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS));
+        studySearch.trialDbIds(experimentIds.stream().map(UUID::toString).collect(Collectors.toList()));
         StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), StudiesApi.class);
         return new ArrayList<>(processStudyForDisplay(brAPIDAOUtil.search(
                 api::searchStudiesPost,

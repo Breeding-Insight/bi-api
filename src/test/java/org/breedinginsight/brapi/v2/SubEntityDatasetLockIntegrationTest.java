@@ -10,7 +10,9 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.BrAPITest;
+import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.model.Program;
 import org.junit.jupiter.api.*;
 
@@ -35,6 +37,9 @@ public class SubEntityDatasetLockIntegrationTest extends BrAPITest {
     private BrAPITestUtils brAPITestUtils;
 
     @Inject
+    BrAPITrialService brAPIITrialService;
+
+    @Inject
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
@@ -46,7 +51,10 @@ public class SubEntityDatasetLockIntegrationTest extends BrAPITest {
     void setup() throws Exception {
         var setup = brAPITestUtils.setupTestProgram(super.getBrapiDsl(), gson);
         program = setup.getV1();
-        experimentId = setup.getV2().get(0);
+        experimentId = brAPIITrialService.getExperiments(program.getId()).stream()
+                .map(BrAPITrial::getTrialDbId)
+                .findFirst()
+                .orElseThrow();
     }
 
     @Test

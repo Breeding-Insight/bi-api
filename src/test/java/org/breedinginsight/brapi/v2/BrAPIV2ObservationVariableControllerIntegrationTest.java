@@ -31,6 +31,7 @@ import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.BrAPITest;
@@ -40,6 +41,7 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -88,6 +90,8 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
     private OntologyService ontologyService;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
+    @Inject
+    BrAPITrialService brAPITrialService;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -195,12 +199,15 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
                 program,
                 mappingId,
                 newExperimentWorkflowId);
-        experimentId = importResult
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(0).getAsJsonObject()
-                .get("trial").getAsJsonObject()
-                .get("id").getAsString();
+
+        BrAPITrial trial = brAPITrialService.getExperiments(program.getId())
+                .stream()
+                .findFirst()
+                .orElseThrow();
+
+        experimentId = trial.getTrialDbId();
+
+
         // Add environmentIds.
         envIds.add(getEnvId(importResult, 0));
         envIds.add(getEnvId(importResult, 1));

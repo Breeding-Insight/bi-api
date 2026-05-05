@@ -190,6 +190,10 @@ public class BrAPITrialService {
                 .map(BrAPIExternalReference::getReferenceId)
                 .orElse(null);
 
+        if (expExRefId == null) {
+            throw new InternalServerException(String.format("Trials exref does not exist for experiment [%s]",  experimentId));
+        }
+
         // get requested environments for the experiment
         log.debug(logHash + ": fetching environments for export");
         List<BrAPIStudy> expStudies = studyDAO.getStudiesByExperimentID(UUID.fromString(expExRefId), program);
