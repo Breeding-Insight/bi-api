@@ -13,9 +13,12 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListTypes;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
+import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.imports.germplasm.GermplasmImportService;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
@@ -70,6 +73,8 @@ public class GermplasmFileImportTest extends BrAPITest {
     private BreedingMethodDAO breedingMethodDAO;
     @Inject
     private DSLContext dsl;
+    @Inject
+    private BrAPIGermplasmDAO germplasmDAO;
 
     private ImportTestUtils importTestUtils;
 
@@ -644,7 +649,7 @@ public class GermplasmFileImportTest extends BrAPITest {
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
 
         JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
-        assertEquals(2, rowErrors.size(), "Wrong number of row errors returned");
+        assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
 
         JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
         JsonArray errors = rowError1.getAsJsonArray("errors");
@@ -653,14 +658,126 @@ public class GermplasmFileImportTest extends BrAPITest {
         assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
         assertEquals("Germplasm Name", error.get("field").getAsString(), "Incorrect field name");
         assertEquals(importService.getBlankRequiredFieldMsg("Germplasm Name"), error.get("errorMessage").getAsString(), "Incorrect error message");
+    }
 
-        JsonObject rowError2 = rowErrors.get(1).getAsJsonObject();
-        JsonArray errors2 = rowError2.getAsJsonArray("errors");
-        assertEquals(1, errors2.size(), "Not enough errors were returned");
-        JsonObject error2 = errors2.get(0).getAsJsonObject();
-        assertEquals(422, error2.get("httpStatusCode").getAsInt(), "Incorrect http status code");
-        assertEquals("Source", error2.get("field").getAsString(), "Incorrect field name");
-        assertEquals(importService.getBlankRequiredFieldMsg("Source"), error2.get("errorMessage").getAsString(), "Incorrect error message");
+    @Test
+    @SneakyThrows
+    public void blankBreedingMethodAllowedWithoutParents() {
+        JsonObject result = importGermplasm(
+                "src/test/resources/files/germplasm_import/breeding_method_optional_without_parents.csv",
+                "BlankBreedingMethodNoParents",
+                "Blank breeding method without parents should succeed",
+                false
+        );
+
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+    }
+
+    @Test
+    @SneakyThrows
+    public void blankBreedingMethodRejectedWhenParentProvided() {
+        JsonObject result = importGermplasm(
+                "src/test/resources/files/germplasm_import/breeding_method_required_with_parent.csv",
+                "BlankBreedingMethodWithParent",
+                "Blank breeding method with parent should fail",
+                false
+        );
+
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        JsonArray rowErrors = result.getAsJsonObject("progress").getAsJsonArray("rowErrors");
+        assertEquals(1, rowErrors.size());
+
+        JsonObject error = rowErrors.get(0).getAsJsonObject()
+                .getAsJsonArray("errors").get(0).getAsJsonObject();
+
+        assertEquals("Breeding Method", error.get("field").getAsString());
+        assertEquals(GermplasmProcessor.missingBreedingMethodForParentalGIDorEntryNo, error.get("errorMessage").getAsString());
+    }
+
+    @Test
+    @SneakyThrows
+    public void blankSourceAllowedWhenParentProvided() {
+        JsonObject result = importGermplasm(
+                "src/test/resources/files/germplasm_import/source_optional_with_parent.csv",
+                "BlankSourceWithParent",
+                "Blank source with parent should succeed",
+                false
+        );
+
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+    }
+
+    @Test
+    @SneakyThrows
+    public void appendSourceToExistingRecordWhenBlank() {
+        seedExistingGermplasm("9001", "Existing Blank Source", null, null);
+
+        JsonObject result = importGermplasm(
+                "src/test/resources/files/germplasm_import/append_existing_blank_source.csv",
+                "AppendBlankSource",
+                "Append source to existing record",
+                false
+        );
+
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        assertEquals(ImportObjectState.MUTATED.name(), getPreviewState(result, 0));
+
+        JsonObject germplasm = getPreviewGermplasm(result, 0);
+        assertEquals("Wild", germplasm.get("seedSource").getAsString());
+    }
+
+    @Test
+    @SneakyThrows
+    public void appendBreedingMethodToExistingRecordWhenBlank() {
+        seedExistingGermplasm("9002", "Existing Blank Method", "Wild", null);
+
+        JsonObject result = importGermplasm(
+                "src/test/resources/files/germplasm_import/append_existing_blank_breeding_method.csv",
+                "AppendBlankMethod",
+                "Append breeding method to existing record",
+                false
+        );
+
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        assertEquals(ImportObjectState.MUTATED.name(), getPreviewState(result, 0));
+
+        ProgramBreedingMethodEntity breedingMethod = breedingMethodDAO
+                .findByNameOrAbbreviation("BCR", validProgram.getId())
+                .get(0);
+
+        JsonObject germplasm = getPreviewGermplasm(result, 0);
+        JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
+
+        assertEquals(breedingMethod.getName(), additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString());
+        assertEquals(breedingMethod.getId().toString(), additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID).getAsString());
+    }
+
+    @Test
+    @SneakyThrows
+    public void doNotOverwriteExistingSourceOrBreedingMethod() {
+        seedExistingGermplasm("9003", "Germplasm1", "Existing Source", "ANE");
+
+        JsonObject result = importGermplasm(
+                "src/test/resources/files/germplasm_import/do_not_overwrite_existing_source_or_breeding_method.csv",
+                "DoNotOverwrite",
+                "Existing source and breeding method should not be overwritten",
+                false
+        );
+
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        assertEquals(ImportObjectState.EXISTING.name(), getPreviewState(result, 0));
+
+        ProgramBreedingMethodEntity breedingMethod = breedingMethodDAO
+                .findByNameOrAbbreviation("ANE", validProgram.getId())
+                .get(0);
+
+        JsonObject germplasm = getPreviewGermplasm(result, 0);
+        JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
+
+        assertEquals("Existing Source", germplasm.get("seedSource").getAsString());
+        assertEquals(breedingMethod.getName(), additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString());
+        assertEquals(breedingMethod.getId().toString(), additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID).getAsString());
     }
 
     @Test
@@ -1082,5 +1199,61 @@ public class GermplasmFileImportTest extends BrAPITest {
             assertEquals(germplasmNames.size(), germplasmList.size(), "Wrong number of germplasm found in the list");
             assertFalse(found.contains(false), "Some germplasm names were not found in saved list");
         }
+    }
+
+    /**
+     * Methods to help test scenarios with existing records in DB
+     */
+    private JsonObject getPreviewRow(JsonObject result, int index) {
+        return result.get("preview").getAsJsonObject().get("rows").getAsJsonArray().get(index).getAsJsonObject();
+    }
+
+    private JsonObject getPreviewGermplasm(JsonObject result, int index) {
+        return getPreviewRow(result, index).getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+    }
+
+    private String getPreviewState(JsonObject result, int index) {
+        return getPreviewRow(result, index).getAsJsonObject("germplasm").get("state").getAsString();
+    }
+
+    private void seedExistingGermplasm(String accessionNumber, String displayName, String source, String breedingMethodCode) {
+        BrAPIGermplasm germplasm = new BrAPIGermplasm();
+        germplasm.setAccessionNumber(accessionNumber);
+        germplasm.setDefaultDisplayName(displayName);
+        germplasm.setGermplasmName(String.format("%s [%s-%s]", displayName, validProgram.getKey(), accessionNumber));
+        germplasm.setSeedSource(source);
+
+        JsonObject additionalInfo = new JsonObject();
+        additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, accessionNumber);
+
+        if (isNotBlank(breedingMethodCode)) {
+            ProgramBreedingMethodEntity breedingMethod = breedingMethodDAO
+                    .findByNameOrAbbreviation(breedingMethodCode, validProgram.getId())
+                    .get(0);
+
+            additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID, breedingMethod.getId().toString());
+            additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD, breedingMethod.getName());
+        }
+
+        germplasm.setAdditionalInfo(additionalInfo);
+
+        List<BrAPIExternalReference> externalReferences = new ArrayList<>();
+
+        BrAPIExternalReference programReference = new BrAPIExternalReference();
+        programReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
+        programReference.setReferenceId(validProgram.getId().toString());
+        externalReferences.add(programReference);
+
+        BrAPIExternalReference germplasmReference = new BrAPIExternalReference();
+        germplasmReference.setReferenceSource(BRAPI_REFERENCE_SOURCE);
+        germplasmReference.setReferenceId(UUID.randomUUID().toString());
+        externalReferences.add(germplasmReference);
+
+        germplasm.setExternalReferences(externalReferences);
+
+        germplasmDAO.createBrAPIGermplasm(List.of(germplasm), validProgram.getId(), null);
+
+        //Refresh cache so importer lookup sees the seeded germplasm immediately.
+        germplasmDAO.repopulateGermplasmCacheForProgram(validProgram.getId());
     }
 }
