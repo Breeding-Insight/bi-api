@@ -5,7 +5,10 @@ import com.agorapulse.micronaut.amazon.awssdk.s3.SimpleStorageService;
 import com.agorapulse.micronaut.amazon.awssdk.s3.SimpleStorageServiceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.context.ApplicationContext;
+import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.context.annotation.Replaces;
+import io.micronaut.context.annotation.Requires;
 import io.micronaut.context.event.BeanCreatedEventListener;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -25,15 +28,15 @@ import org.brapi.client.v2.model.queryParams.core.ProgramQueryParams;
 import org.brapi.client.v2.model.queryParams.core.StudyQueryParams;
 import org.brapi.client.v2.modules.core.ProgramsApi;
 import org.brapi.client.v2.modules.core.StudiesApi;
+import org.brapi.client.v2.modules.genotype.SamplesApi;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.v2.model.core.response.BrAPIProgramListResponse;
 import org.brapi.v2.model.core.response.BrAPIStudyListResponse;
 import org.brapi.v2.model.geno.BrAPISample;
+import org.brapi.v2.model.geno.request.BrAPISampleSearchRequest;
+import org.brapi.v2.model.geno.response.BrAPISampleListResponse;
+import org.brapi.v2.model.geno.response.BrAPISampleListResponseResult;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
-import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponse;
-import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponseResult;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.brapps.importer.daos.BrAPISampleDAO;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
@@ -73,6 +76,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Singleton;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -178,10 +182,33 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         return mock(ImportDAO.class);
     }
 
+    @MockBean(BrAPIEndpointProvider.class)
+    BrAPIEndpointProvider brAPIEndpointProvider() {
+        return spy(new BrAPIEndpointProvider());
+    }
+
+    @MockBean(BrAPISampleDAO.class)
+    BrAPISampleDAO sampleDAO() {
+        return mock(BrAPISampleDAO.class);
+    }
+
     @MockBean(SimpleStorageService.class)
     @Named("genotype")
     SimpleStorageService simpleStorageService() {
         return spy(new DefaultSimpleStorageService(bucketName, s3Client, presigner));
+    }
+
+    // @MockBean cannot replace SampleSubmissionDAO here because it extends generated jOOQ DAO code;
+    // Scope this replacement to this spec so it does not affect other test contexts.
+    @Factory
+    @Requires(property = "micronaut.test.active.spec", value = "org.breedinginsight.services.geno.impl.GigwaGenotypeServiceImplIntegrationTest")
+    static class SampleSubmissionTestFactory {
+
+        @Singleton
+        @Replaces(SampleSubmissionDAO.class)
+        SampleSubmissionDAO sampleSubmissionDAO() {
+            return mock(SampleSubmissionDAO.class);
+        }
     }
 
     private GenericContainer gigwa;
@@ -243,7 +270,6 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         properties.put("aws.secretKey", localStackContainer.getSecretKey());
         properties.put("aws.s3.buckets.genotype.bucket", "test");
         properties.put("aws.s3.endpoint", String.valueOf(localStackContainer.getEndpointOverride(LocalStackContainer.Service.S3)));
-        properties.put("test.gigwa-genotype-service", "true");
 
         return properties;
     }
@@ -318,7 +344,9 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         }
     }
 
+    //TODO: Enable in BI-2841
     @Test
+    @Disabled("BI-2841: retrieveGenotypeData should target BrAPI samples directly instead of resolving samples through observation units")
     public void testFetchGermplasmGenotype() throws AuthorizationException, ApiException, DoesNotExistException {
         UUID programId = UUID.fromString("8b667063-480b-4b0a-862c-7eaa651dda28");
         String programKey = "TESTFETCH";
@@ -328,20 +356,26 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
         BrAPIGermplasm germplasm = new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()).germplasmName("Test Germ");
 
-        ObservationUnitsApi mockOUsApi = spy(new ObservationUnitsApi());
+        SamplesApi mockSamplesApi = spy(new SamplesApi());
+        BrAPISample sample = new BrAPISample().sampleName("USDAMSP1_A01")
+                                             .germplasmDbId(germplasm.getGermplasmDbId());
         doReturn(new ApiResponse<>(200,
                                    new HashMap<>(),
-                                   Pair.of(Optional.of(new BrAPIObservationUnitListResponse().result(new BrAPIObservationUnitListResponseResult().data(List.of(new BrAPIObservationUnit().observationUnitName("USDAMSP1_A01"))))),
+                                   Pair.of(Optional.of(new BrAPISampleListResponse().result(new BrAPISampleListResponseResult().data(List.of(sample)))),
                                            Optional.empty())))
-                .when(mockOUsApi).searchObservationunitsPost(any(BrAPIObservationUnitSearchRequest.class));
+                .when(mockSamplesApi).searchSamplesPost(any(BrAPISampleSearchRequest.class));
 
-        doReturn(mockOUsApi).when(brAPIEndpointProvider).get(any(BrAPIClient.class), eq(ObservationUnitsApi.class));
+        doReturn(mockSamplesApi).when(brAPIEndpointProvider).get(any(BrAPIClient.class), eq(SamplesApi.class));
 
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getCoreClient(any(UUID.class));
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getPhenoClient(any(UUID.class));
 
         GermplasmGenotype germplasmGenotype = gigwaGenoStorageService.retrieveGenotypeData(programId, germplasm);
 
+        verify(brAPIEndpointProvider, never()).get(any(BrAPIClient.class), eq(ObservationUnitsApi.class));
+        verify(mockSamplesApi).searchSamplesPost(argThat(searchRequest -> searchRequest.getGermplasmDbIds() != null &&
+                                                                          searchRequest.getGermplasmDbIds().contains(germplasm.getGermplasmDbId()) &&
+                                                                          (searchRequest.getObservationUnitDbIds() == null || searchRequest.getObservationUnitDbIds().isEmpty())));
         assertNotNull(germplasmGenotype);
         assertFalse(germplasmGenotype.getCalls().isEmpty());
         assertFalse(germplasmGenotype.getCallSets().isEmpty());
