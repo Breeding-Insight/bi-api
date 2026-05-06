@@ -17,7 +17,6 @@
 package org.breedinginsight.brapi.v2.dao.impl;
 
 import io.micronaut.context.annotation.Context;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
@@ -33,10 +32,8 @@ import org.brapi.v2.model.core.response.BrAPITrialListResponse;
 import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
@@ -54,33 +51,24 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
     private final ProgramDAO programDAO;
     private final ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
-    private final ProgramService programService;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
-    private final String referenceSource;
-    private final boolean runScheduledTasks;
 
     @Inject
     public BrAPITrialDAOImpl(ProgramDAO programDAO,
                              ImportDAO importDAO,
                              BrAPIDAOUtil brAPIDAOUtil,
-                             ProgramService programService,
-                             @Property(name = "brapi.server.reference-source") String referenceSource,
-                             BrAPIEndpointProvider brAPIEndpointProvider,
-                             @Property(name = "micronaut.bi.api.run-scheduled-tasks") boolean runScheduledTasks) {
+                             BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
-        this.programService = programService;
-        this.referenceSource = referenceSource;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
-        this.runScheduledTasks = runScheduledTasks;
     }
 
     /**
      * This method requires a BI-API program.  If the BrAPIProgram inside this data model is not set,
      * this method will retrieve it.
      */
-    private List<BrAPITrial> getBrAPITrialsUsingBrAPIProgram(Program program) throws ApiException {
+    private List<BrAPITrial> getBrAPITrialsUsingBrAPIProgramId(Program program) throws ApiException {
 
         if (program == null || program.getId() == null) {
             throw new InternalServerException("BI-API Program or Program ID is null");
@@ -128,17 +116,9 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         return processExperimentsForDisplay(trialsFromResponse, program.getKey());
     }
 
-    private Map<String, BrAPITrial> experimentById(List<BrAPITrial> trials) {
-        Map<String, BrAPITrial> experimentById = new HashMap<>();
-        for (BrAPITrial experiment: trials) {
-            experimentById.put(experiment.getTrialDbId(), experiment);
-        }
-        return experimentById;
-    }
-
     @Override
     public List<BrAPITrial> getTrialsByName(List<String> trialNames, Program program) throws ApiException {
-        List<BrAPITrial> allTrialsForProgram = getBrAPITrialsUsingBrAPIProgram(program);
+        List<BrAPITrial> allTrialsForProgram = getBrAPITrialsUsingBrAPIProgramId(program);
 
         List<BrAPITrial> trials = new ArrayList<>();
         if (allTrialsForProgram != null) {
@@ -151,7 +131,6 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         return trials;
     }
 
-    // TODO: Fix by using only code of inner callback and returning result
     @Override
     public List<BrAPITrial> createBrAPITrials(List<BrAPITrial> brAPITrialList, UUID programId, ImportUpload upload) {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
@@ -177,7 +156,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         Program program = programDAO.get(programId).get(0);
         program.setBrapiProgram(programDAO.getProgramBrAPI(program));
 
-        return getBrAPITrialsUsingBrAPIProgram(program);
+        return getBrAPITrialsUsingBrAPIProgramId(program);
     }
 
     //Removes program key from trial name
@@ -213,7 +192,6 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         return getTrialsByExperimentIds(trialDbUUIDs, program);
     }
 
-    // TODO: ExperimentIds will = trialDbIds once cache is updated.  Update this method to get trials on dbId directly from brapi.
     @Override
     public List<BrAPITrial> getTrialsByExperimentIds(Collection<UUID> experimentIds, Program program) throws ApiException {
         if(experimentIds.isEmpty()) {
