@@ -196,7 +196,7 @@ public class BrAPITrialService {
 
         // get requested environments for the experiment
         log.debug(logHash + ": fetching environments for export");
-        List<BrAPIStudy> expStudies = studyDAO.getStudiesByExperimentID(UUID.fromString(expExRefId), program);
+        List<BrAPIStudy> expStudies = studyDAO.getStudiesByBrAPITrialExRefId(UUID.fromString(expExRefId), program);
         if (!requestedEnvIds.isEmpty()) {
             expStudies = expStudies
                     .stream()

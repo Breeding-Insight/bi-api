@@ -213,7 +213,7 @@ public class PopulateExistingPendingImportObjectsStep {
         try {
             // the 'trial' variable will never be "null".
             UUID experimentId = UUID.fromString(expExRefId);
-            existingStudies = brAPIStudyDAO.getStudiesByExperimentID(experimentId, program);
+            existingStudies = brAPIStudyDAO.getStudiesByBrAPITrialExRefId(experimentId, program);
             for (BrAPIStudy existingStudy : existingStudies) {
                 experimentStudyService.processAndCacheStudy(existingStudy, program, BrAPIStudy::getStudyName, studyByName);
             }
