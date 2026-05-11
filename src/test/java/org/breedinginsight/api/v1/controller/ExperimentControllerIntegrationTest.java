@@ -465,6 +465,54 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
+    public void createSubEntityDatasetForbiddenForExperimentalCollaborator() throws Exception {
+        // add otherTestUser to the program as an Experimental Collaborator
+        FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+        dsl.execute(securityFp.get("InsertProgramRolesExperimentalCollaborator"), otherTestUser.getId().toString(), program.getId());
+
+        // add that user to this experiment as a collaborator
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("userId", otherTestUser.getId().toString());
+
+        Flowable<HttpResponse<String>> collaboratorCall = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/collaborators", program.getId().toString(), experimentId), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                String.class
+        );
+        HttpResponse<String> collaboratorResponse = collaboratorCall.blockingFirst();
+        assertEquals(HttpStatus.OK, collaboratorResponse.getStatus());
+
+        JsonObject collaboratorResult = JsonParser.parseString(collaboratorResponse.body()).getAsJsonObject().getAsJsonObject("result");
+        String collaboratorId = collaboratorResult.get("id").getAsString();
+
+        // collaborator should be blocked from creating sub-entity datasets directly
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/dataset", program.getId(), experimentId),
+                        "{\"name\":\"Plant\",\"repeatedMeasures\":2}")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "other-registered-user")),
+                String.class
+        );
+
+        HttpClientResponseException e = assertThrows(HttpClientResponseException.class, call::blockingFirst);
+        assertEquals(HttpStatus.FORBIDDEN, e.getStatus());
+
+        // cleanup collaborator record
+        Flowable<HttpResponse<String>> deleteCall = client.exchange(
+                DELETE(String.format("/programs/%s/experiments/%s/collaborators/%s", program.getId().toString(), experimentId, collaboratorId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                String.class
+        );
+        HttpResponse<String> deleteResponse = deleteCall.blockingFirst();
+        assertEquals(HttpStatus.OK, deleteResponse.getStatus());
+
+        // cleanup program user role
+        dsl.execute(securityFp.get("DeleteProgramUser"), otherTestUser.getId().toString());
+    }
+
+    @Test
     public void recommendedSubEntityDatasetNamesIncludeExpUnitNamesFromOtherExperiments() throws Exception {
         Program testProgram = createSeededProgram("Recommended Names");
         uploadExperimentWithoutObs(testProgram, "Plant Autocomplete Source", "Plant");
