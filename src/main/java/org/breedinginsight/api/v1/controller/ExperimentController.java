@@ -122,7 +122,7 @@ public class ExperimentController {
      * @return An HttpResponse with a Response object containing the newly created Dataset.
      */
     @Post("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/dataset")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<Dataset>> createSubEntityDataset(
             @PathVariable("programId") UUID programId,
