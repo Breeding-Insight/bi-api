@@ -40,7 +40,6 @@ import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -77,11 +76,23 @@ public class BrAPISampleDAO {
 
     public List<BrAPISample> readSamplesByIds(Program program, List<String> sampleExternalIds) throws ApiException {
         if(sampleExternalIds.isEmpty()) {
-            return Collections.emptyList();
+            return  Collections.emptyList();
         }
 
         BrAPISampleSearchRequest searchRequest = new BrAPISampleSearchRequest().externalReferenceIDs(sampleExternalIds)
                                                                                .externalReferenceSources(List.of(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.SAMPLES)));
+
+        SamplesApi samplesApi = brAPIEndpointProvider.get(programDAO.getSampleClient(program.getId()), SamplesApi.class);
+        return brAPIDAOUtil.search(samplesApi::searchSamplesPost, samplesApi::searchSamplesSearchResultsDbIdGet, searchRequest);
+    }
+
+    public List<BrAPISample> readSamplesByGermplasmIds(Program program, List<String> germplasmExternalIds) throws ApiException {
+        if(germplasmExternalIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        BrAPISampleSearchRequest searchRequest = new BrAPISampleSearchRequest().externalReferenceIDs(germplasmExternalIds)
+                .externalReferenceSources(List.of(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.GERMPLASM)));
 
         SamplesApi samplesApi = brAPIEndpointProvider.get(programDAO.getSampleClient(program.getId()), SamplesApi.class);
         return brAPIDAOUtil.search(samplesApi::searchSamplesPost, samplesApi::searchSamplesSearchResultsDbIdGet, searchRequest);

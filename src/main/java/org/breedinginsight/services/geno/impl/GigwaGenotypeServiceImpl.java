@@ -37,6 +37,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
+import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPISampleDAO;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
@@ -57,6 +58,7 @@ import org.breedinginsight.services.geno.GenotypeService;
 import org.breedinginsight.services.parsers.MimeTypeParser;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
+import org.jetbrains.annotations.NotNull;
 import org.jooq.DSLContext;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
@@ -112,6 +114,8 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
+    private final BrAPIGermplasmDAO germplasmDAO;
+
     @Inject
     public GigwaGenotypeServiceImpl(@Property(name = "gigwa.host") String gigwaHost,
                                     @Property(name = "gigwa.username") String username,
@@ -128,7 +132,8 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                                     DSLContext dsl,
                                     MimeTypeParser mimeTypeParser,
                                     BrAPIDAOUtil brAPIDAOUtil,
-                                    BrAPIEndpointProvider brAPIEndpointProvider) {
+                                    BrAPIEndpointProvider brAPIEndpointProvider,
+                                    BrAPIGermplasmDAO germplasmDAO) {
         this.gigwaHost = gigwaHost.endsWith("/") ? gigwaHost : gigwaHost + "/";
         this.username = username;
         this.password = password;
@@ -146,6 +151,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         this.mimeTypeParser = mimeTypeParser;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
+        this.germplasmDAO = germplasmDAO;
     }
 
     @Override
@@ -227,9 +233,44 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         response.setProgress(progress);
         return response;
     }
+//    public GermplasmGenotype retrieveGenotypeData_OLD(UUID programId, BrAPIGermplasm germplasm) throws DoesNotExistException, AuthorizationException, ApiException {
+//        log.debug("fetching genotypes for " + germplasm.getGermplasmName());
+//        Program program = getProgram(programId);
+//        BrAPIClient brAPIClient = programDAO.getCoreClient(programId);
+//        brAPIClient.setBasePath(gigwaHost + GIGWA_BRAPI_BASE_PATH);
+//        Authentication authorizationToken = brAPIClient.getAuthentication("AuthorizationToken");
+//        if(authorizationToken instanceof OAuth) {
+//            ((OAuth)authorizationToken).setAccessToken(getAuthToken());
+//        }
+//
+//        BrAPIClient brapiPhenoClient = programDAO.getPhenoClient(programId);
+//
+//        if(verifyProgramExists(brAPIClient, program)) {
+//            List<BrAPIObservationUnit> germplasmOUs = fetchObservationUnits(brapiPhenoClient, germplasm);
+//
+//            List<BrAPISample> germplasmSamples = fetchSamples(brAPIClient, program, germplasmOUs);
+//
+//            List<BrAPICallSet> callSets = fetchCallsets(brAPIClient, germplasmSamples);
+//
+//            List<BrAPICall> calls = fetchCalls(brAPIClient, callSets);
+//
+//            List<BrAPIVariant> variants = fetchVariants(brAPIClient, calls);
+//
+//            return GermplasmGenotype.builder()
+//                    .germplasm(germplasm)
+//                    .calls(calls.stream().collect(Collectors.groupingBy(BrAPICall::getCallSetDbId)))
+//                    .callSets(callSets.stream().collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
+//                    .variants(variants.stream().collect(Collectors.toMap(BrAPIVariant::getVariantDbId, variant -> variant)))
+//                    .build();
+//        } else {
+//            return new GermplasmGenotype();
+//        }
+//    }
 
     @Override
-    public GermplasmGenotype retrieveGenotypeData(UUID programId, BrAPIGermplasm germplasm) throws DoesNotExistException, AuthorizationException, ApiException {
+    public GermplasmGenotype retrieveGenotypeData(UUID programId, UUID germplasmId) throws DoesNotExistException, AuthorizationException, ApiException {
+        BrAPIGermplasm germplasm = germplasmDAO.getGermplasmByUUID(germplasmId.toString(), programId);
+
         log.debug("fetching genotypes for " + germplasm.getGermplasmName());
         Program program = getProgram(programId);
         BrAPIClient brAPIClient = programDAO.getCoreClient(programId);
@@ -242,25 +283,31 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         BrAPIClient brapiPhenoClient = programDAO.getPhenoClient(programId);
 
         if(verifyProgramExists(brAPIClient, program)) {
-            List<BrAPIObservationUnit> germplasmOUs = fetchObservationUnits(brapiPhenoClient, germplasm);
+            //loose this
+//            List<BrAPIObservationUnit> germplasmOUs = fetchObservationUnits(brapiPhenoClient, germplasm);
+            List<BrAPISample> samples = fetchSamples(program, germplasmId);
+            List<String> sampleNames = samples.stream().map(BrAPISample::getSampleName).collect(Collectors.toList());
+// TEMP REMOVE FOR Debug
 
-            List<BrAPISample> germplasmSamples = fetchSamples(brAPIClient, program, germplasmOUs);
-
-            List<BrAPICallSet> callSets = fetchCallsets(brAPIClient, germplasmSamples);
-
-            List<BrAPICall> calls = fetchCalls(brAPIClient, callSets);
-
-            List<BrAPIVariant> variants = fetchVariants(brAPIClient, calls);
-
-            return GermplasmGenotype.builder()
-                                    .germplasm(germplasm)
-                                    .calls(calls.stream().collect(Collectors.groupingBy(BrAPICall::getCallSetDbId)))
-                                    .callSets(callSets.stream().collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
-                                    .variants(variants.stream().collect(Collectors.toMap(BrAPIVariant::getVariantDbId, variant -> variant)))
-                                    .build();
-        } else {
+//            REMOVE THE BELOW Call
+            List<BrAPISample> germplasmSamples = fetchGigwaSamples(brAPIClient, program, sampleNames);
+            List<BrAPICallSet> callSets = fetchCallsets(brAPIClient, samples);
+//
+//            List<BrAPICall> calls = fetchCalls(brAPIClient, callSets);
+//
+//            List<BrAPIVariant> variants = fetchVariants(brAPIClient, calls);
+//
+//            return GermplasmGenotype.builder()
+//                                    .germplasm(germplasm)
+//                                    .calls(calls.stream().collect(Collectors.groupingBy(BrAPICall::getCallSetDbId)))
+//                                    .callSets(callSets.stream().collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
+//                                    .variants(variants.stream().collect(Collectors.toMap(BrAPIVariant::getVariantDbId, variant -> variant)))
+//                                    .build();
+//        } else {
             return new GermplasmGenotype();
         }
+        // remove the next line
+        return new GermplasmGenotype();
     }
 
     private boolean validateSamples(Program program, UUID submissionId, byte[] fileContents, ImportUpload upload) throws DoesNotExistException, ApiException {
@@ -332,7 +379,6 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         log.debug("VCF samples are valid!");
         return true;
     }
-
     private boolean validateVcfHeader(String[] headerParts) {
         if(headerParts.length < 8) {
             return false;
@@ -380,23 +426,30 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         return brAPIProgramListResponseApiResponse.getBody().getResult().getData().size() == 1;
     }
 
-    private List<BrAPISample> fetchSamples(BrAPIClient genoBrAPIClient, Program program, List<BrAPIObservationUnit> observationUnits) throws ApiException {
-        log.debug("fetching samples for OUs");
-        if(observationUnits.isEmpty()) {
-            log.debug("No OUs were supplied, returning");
+    private List<BrAPISample> fetchGigwaSamples(BrAPIClient genoBrAPIClient, Program program, List<String> sampleNames) throws ApiException {
+//        log.debug("fetching samples for OUs");
+        if(sampleNames.isEmpty()) {
+            log.debug("No samples were supplied, returning");
             return Collections.emptyList();
         }
-
+//
         SamplesApi samplesApi = brAPIEndpointProvider.get(genoBrAPIClient, SamplesApi.class);
 
         BrAPISampleSearchRequest sampleSearchRequest = new BrAPISampleSearchRequest();
-
-        sampleSearchRequest.setGermplasmDbIds(observationUnits.stream().map(ou -> program.getKey() + "§" + Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey())).collect(Collectors.toList()));
+        sampleSearchRequest.setGermplasmDbIds(sampleNames.stream().map(sampleName -> program.getKey() + "§" +sampleName).collect(Collectors.toList()));
 
         return brAPIDAOUtil.search(samplesApi::searchSamplesPost, samplesApi::searchSamplesSearchResultsDbIdGet, sampleSearchRequest);
     }
 
-    private List<BrAPIObservationUnit> fetchObservationUnits(BrAPIClient phenoBrAPIClient, BrAPIGermplasm germplasm) throws ApiException {
+
+    private List<BrAPISample> fetchSamples(Program program, @NotNull UUID germplasmId) throws ApiException {
+        String germplasmIdString = germplasmId.toString();
+        java.util.List<String> germplasmIdList = List.of(germplasmIdString);
+        List<BrAPISample> sampleNames = sampleDAO.readSamplesByGermplasmIds(program, germplasmIdList);;
+        return sampleNames;
+    }
+
+    private List<BrAPISample> fetchObservationSamples(BrAPIClient phenoBrAPIClient, BrAPIGermplasm germplasm) throws ApiException {
         ObservationUnitsApi observationUnitsApi = brAPIEndpointProvider.get(phenoBrAPIClient, ObservationUnitsApi.class);
 
         BrAPIObservationUnitSearchRequest searchRequest = new BrAPIObservationUnitSearchRequest();
@@ -424,7 +477,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
         BrAPICallSetsSearchRequest searchRequest = new BrAPICallSetsSearchRequest();
         searchRequest.setGermplasmDbIds(germplasmSamples.stream().map(BrAPISample::getGermplasmDbId).collect(Collectors.toList()));
-
+        List<BrAPICallSet> callSets =  brAPIDAOUtil.search(callSetsApi::searchCallsetsPost, callSetsApi::searchCallsetsSearchResultsDbIdGet, searchRequest);
         return brAPIDAOUtil.search(callSetsApi::searchCallsetsPost, callSetsApi::searchCallsetsSearchResultsDbIdGet, searchRequest);
     }
 

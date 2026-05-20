@@ -13,5 +13,5 @@ import java.util.UUID;
 public interface GenotypeService {
     ImportResponse submitGenotypeData(UUID userId, UUID programId, UUID submissionId, CompletedFileUpload uploadedFile) throws DoesNotExistException, AuthorizationException, ApiException;
 
-    GermplasmGenotype retrieveGenotypeData(UUID programId, BrAPIGermplasm germplasm) throws DoesNotExistException, AuthorizationException, ApiException;
+    GermplasmGenotype retrieveGenotypeData(UUID programId, UUID germplasmId) throws DoesNotExistException, AuthorizationException, ApiException;
 }
