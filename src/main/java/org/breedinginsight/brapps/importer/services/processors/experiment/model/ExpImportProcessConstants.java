@@ -18,17 +18,19 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.model;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-import io.micronaut.context.annotation.Property;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ExpImportProcessConstants {
 
     public static final CharSequence COMMA_DELIMITER = ",";
+    public static final String OBSERVATION_UNIT_ID_SUFFIX = "ObsUnitID";
     public static final String TIMESTAMP_PREFIX = "TS:";
     public static final String TIMESTAMP_REGEX = "^"+TIMESTAMP_PREFIX+"\\s*";
     public static String BRAPI_REFERENCE_SOURCE;
     public static final String MIDNIGHT = "T00:00:00-00:00";
+    public static final String SUB_UNIT_ID = "Sub Unit ID";
+    public static final String SUB_OBS_UNIT = "Sub-Obs Unit";
 
     public enum ErrMessage {
         MULTIPLE_EXP_TITLES("File contains more than one Experiment Title"),
@@ -36,7 +38,13 @@ public class ExpImportProcessConstants {
         PREEXISTING_EXPERIMENT_TITLE("Experiment Title already exists"),
         UNMATCHED_COLUMN("Ontology term(s) not found: "),
         OBS_UNIT_NOT_FOUND("Invalid ObsUnitID"),
-        DUPLICATE_OBS_UNIT_ID("ObsUnitId is repeated");
+        DUPLICATE_OBS_UNIT_ID("ObsUnitId is repeated"),
+        DATASET_NOT_FOUND("Dataset not found"),
+        OZEX("Missing ObsUnitID column"),
+        VVCN("ObsUnitID is duplicated"),
+        BITB("Invalid or missing ObsUnitID"),
+        PJZH("Required field is blank"),
+        JABH("Observation variable(s) are already associated with another dataset(s) in this experiment");
 
         private String value;
 

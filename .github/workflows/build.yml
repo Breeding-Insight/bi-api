@@ -19,12 +19,22 @@ name: maven build
 
 on:
   pull_request:
-    type: [opened, edited]
+    types: [opened, synchronize, edited]
+  workflow_dispatch:
+    inputs:
+      brapi_server_image:
+        description: 'BrAPI Server Docker Image'
+        required: false
+        default: 'breedinginsight/brapi-java-server:develop'
+      bi_api_branch:
+        description: 'BI API Branch'
+        required: false
+        default: 'develop'
 
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     services:
       postgres:
@@ -38,11 +48,15 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout BI API
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bi_api_branch || github.ref }}
       - name: Set up JDK 13
-        uses: actions/setup-java@v1.4.3
+        uses: actions/setup-java@v4
         with:
           java-version: 13
+          distribution: 'zulu'
 
       - name: Build with Maven
         run: mvn validate -B flyway:migrate clean install --file pom.xml --settings settings.xml
@@ -59,4 +73,7 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           OAUTH_CLIENT_ID: 123abc
           OAUTH_CLIENT_SECRET: asdfljkhalkbaldsfjasdfi238497098asdf
+          GITHUB_OAUTH_CLIENT_ID: 12345678901234567890
+          GITHUB_OAUTH_CLIENT_SECRET: 1234567890123456789012345678901234567890
           BRAPI_REFERENCE_SOURCE: breedinginsight.org
+          BRAPI_DOCKER_IMAGE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.brapi_server_image || 'breedinginsight/brapi-java-server:develop' }}

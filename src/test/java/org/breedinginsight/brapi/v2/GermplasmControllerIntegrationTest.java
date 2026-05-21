@@ -31,6 +31,7 @@ import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.io.ByteArrayInputStream;
@@ -40,7 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import tech.tablesaw.api.Table;
+
 
 import static io.micronaut.http.HttpRequest.GET;
 import static io.micronaut.http.HttpRequest.POST;
@@ -87,7 +88,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
         var brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
-        testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).get();
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Set up BrAPI
@@ -243,7 +244,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
             }
         }
     }
-
+  
     @ParameterizedTest
     @CsvSource(value = {"CSV", "XLSX", "XLS"})
     @SneakyThrows
@@ -276,6 +277,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         int dataSize = download.rowCount();
         assertEquals(3, dataSize, "Wrong number of germplasm were returned");
     }
+  
     @Test
     @SneakyThrows
     public void getAllGermplasmByListSuccess() {

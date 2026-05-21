@@ -19,6 +19,9 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
@@ -28,6 +31,7 @@ import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 import org.breedinginsight.brapps.importer.services.ImportStatusService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.AppendOverwriteIDValidation;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.AppendOverwriteVariableValidation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit.BrAPICommit;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.initialize.WorkflowInitialization;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.ImportTableProcess;
@@ -36,6 +40,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteWorkflowContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
+import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -46,23 +51,54 @@ import java.util.Optional;
 @Singleton
 public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
     private final ExperimentWorkflowNavigator.Workflow workflow;
+    private final AppendOverwriteMiddleware validationMiddleware;
     private final AppendOverwriteMiddleware importPreviewMiddleware;
     private final AppendOverwriteMiddleware brapiCommitMiddleware;
     private final ImportStatusService statusService;
 
     @Inject
     public AppendOverwritePhenotypesWorkflow(AppendOverwriteIDValidation expUnitIDValidation,
+                                             AppendOverwriteVariableValidation obsVariableValidation,
                                              WorkflowInitialization workflowInitialization,
                                              ImportTableProcess importTableProcess,
                                              BrAPICommit brAPICommit,
                                              ImportStatusService statusService){
         this.statusService = statusService;
         this.workflow = ExperimentWorkflowNavigator.Workflow.APPEND_OVERWRITE;
+        this.validationMiddleware = (AppendOverwriteMiddleware) AppendOverwriteMiddleware.link(
+            expUnitIDValidation,
+            obsVariableValidation);
         this.importPreviewMiddleware = (AppendOverwriteMiddleware) AppendOverwriteMiddleware.link(
-                expUnitIDValidation,
                 workflowInitialization,
                 importTableProcess);
         this.brapiCommitMiddleware = (AppendOverwriteMiddleware) AppendOverwriteMiddleware.link(brAPICommit);
+    }
+
+    /**
+     * Determines if any validation or process errors are present in the context and handles result accordingly
+     *
+     * @param context The import service context containing upload, data, program, user, commit flag, and workflow information.
+     * @param result the ImportWorkflowResult to be modified in response to any errors found in context
+     * @return Pair containing a Boolean indicating whether any errors were found, and the potentially modified ImportWorkflowResult
+     */
+    public Pair<Boolean, Optional<ImportWorkflowResult>> checkForExistingErrors(AppendOverwriteMiddlewareContext context, Optional<ImportWorkflowResult> result){
+        // Stop and return any validation errors
+        Optional<ValidationErrors> validationErrorOptional = Optional
+                .ofNullable(context.getAppendOverwriteWorkflowContext().getValidationErrors());
+        if (validationErrorOptional.isPresent() && validationErrorOptional.get().hasErrors()){
+            result.ifPresent(importWorkflowResult -> importWorkflowResult.setCaughtException(Optional.of(new ValidatorException(validationErrorOptional.get()))));
+            return new ImmutablePair<>(true, result);
+        }
+
+        // Stop and return any errors that occurred while processing
+        Optional<MiddlewareException> previewException = Optional
+                .ofNullable(context.getAppendOverwriteWorkflowContext().getProcessError());
+        if (previewException.isPresent()) {
+            log.debug(String.format("%s in %s", previewException.get().getException().getClass().getName(), previewException.get().getLocalTransactionName()));
+            result.ifPresent(importWorkflowResult -> importWorkflowResult.setCaughtException(Optional.ofNullable(previewException.get().getException())));
+            return new ImmutablePair<>(true, result);
+        }
+        return new ImmutablePair<>(false, result);
     }
 
     /**
@@ -101,6 +137,8 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
             return result;
         }
 
+        Pair<Boolean, Optional<ImportWorkflowResult>> errors;
+
         // Build the workflow context for processing the import
         ImportContext importContext = ImportContext.builder()
                 .upload(context.getUpload())
@@ -115,16 +153,19 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
                 .appendOverwriteWorkflowContext(new AppendOverwriteWorkflowContext())
                 .build();
 
-        // Process the import preview
-        AppendOverwriteMiddlewareContext processedPreviewContext = this.importPreviewMiddleware.process(workflowContext);
+        // Validate the import
+        AppendOverwriteMiddlewareContext validatedImportContext = this.validationMiddleware.process(workflowContext);
 
-        // Stop and return any errors that occurred while processing
-        Optional<MiddlewareException> previewException = Optional.ofNullable(processedPreviewContext.getAppendOverwriteWorkflowContext().getProcessError());
-        if (previewException.isPresent()) {
-            log.debug(String.format("%s in %s", previewException.get().getException().getClass().getName(), previewException.get().getLocalTransactionName()));
-            result.ifPresent(importWorkflowResult -> importWorkflowResult.setCaughtException(Optional.ofNullable(previewException.get().getException())));
-            return result;
-        }
+         //Stop and return any validation or process errors, needs to be done before processing import preview to avoid null pointer exceptions
+        errors = checkForExistingErrors(validatedImportContext, result);
+        if (errors.getLeft()) return errors.getRight();
+
+        // Process the import preview
+        AppendOverwriteMiddlewareContext processedPreviewContext = this.importPreviewMiddleware.process(validatedImportContext);
+
+        // Stop and return any validation or process errors
+        errors = checkForExistingErrors(validatedImportContext, result);
+        if (errors.getLeft()) return errors.getRight();
 
         // Build and return the preview response
         ImportPreviewResponse response = new ImportPreviewResponse();

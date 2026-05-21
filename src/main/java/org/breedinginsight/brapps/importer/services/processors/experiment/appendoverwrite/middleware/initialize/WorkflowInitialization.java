@@ -39,10 +39,8 @@ import javax.inject.Inject;
 @Slf4j
 @Prototype
 public class WorkflowInitialization extends AppendOverwriteMiddleware {
-    WorkflowReadInitialization<BrAPITrial> brAPITrialReadWorkflowInitialization;
     WorkflowReadInitialization<BrAPIStudy> brAPIStudyReadWorkflowInitialization;
     WorkflowReadInitialization<ProgramLocation> locationReadWorkflowInitialization;
-    WorkflowReadInitialization<BrAPIListDetails> brAPIDatasetReadWorkflowInitialization;
     WorkflowReadInitialization<BrAPIGermplasm> brAPIGermplasmReadWorkflowInitialization;
     BrAPIReadFactory brAPIReadFactory;
 
@@ -52,18 +50,14 @@ public class WorkflowInitialization extends AppendOverwriteMiddleware {
     }
     @Override
     public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
-        brAPITrialReadWorkflowInitialization = brAPIReadFactory.trialWorkflowReadInitializationBean(context);
         brAPIStudyReadWorkflowInitialization = brAPIReadFactory.studyWorkflowReadInitializationBean(context);
         locationReadWorkflowInitialization = brAPIReadFactory.locationWorkflowReadInitializationBean(context);
-        brAPIDatasetReadWorkflowInitialization = brAPIReadFactory.datasetWorkflowReadInitializationBean(context);
         brAPIGermplasmReadWorkflowInitialization = brAPIReadFactory.germplasmWorkflowReadInitializationBean(context);
 
         log.debug("reading required BrAPI data from BrAPI service");
         try {
-            brAPITrialReadWorkflowInitialization.execute();
             brAPIStudyReadWorkflowInitialization.execute();
             locationReadWorkflowInitialization.execute();
-            brAPIDatasetReadWorkflowInitialization.execute();
             brAPIGermplasmReadWorkflowInitialization.execute();
         } catch (ApiException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));

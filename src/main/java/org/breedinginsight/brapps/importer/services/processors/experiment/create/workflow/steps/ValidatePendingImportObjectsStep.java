@@ -228,18 +228,10 @@ public class ValidatePendingImportObjectsStep {
             validateRequiredCell(importRow.getExpReplicateNo(), ExperimentObservation.Columns.REP_NUM, errorMessage, validationErrors, rowNum);
             validateRequiredCell(importRow.getExpBlockNo(), ExperimentObservation.Columns.BLOCK_NUM, errorMessage, validationErrors, rowNum);
 
-            if(StringUtils.isNotBlank(importRow.getObsUnitID())) {
-                ExperimentUtilities.addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, "ObsUnitID cannot be specified when creating a new environment", validationErrors, rowNum);
-            }
-        } else {
-            //Check if existing environment. If so, ObsUnitId must be assigned
-            validateRequiredCell(
-                    importRow.getObsUnitID(),
-                    ExperimentObservation.Columns.OBS_UNIT_ID,
-                    ExperimentUtilities.MISSING_OBS_UNIT_ID_ERROR,
-                    validationErrors,
-                    rowNum
-            );
+            // TODO: replace validating each row for ObsUnitID with a single validation for the absence of the entire column "<entity> ObsUnitID"
+//            if(StringUtils.isNotBlank(importRow.getObsUnitID())) {
+//                ExperimentUtilities.addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, "ObsUnitID cannot be specified when creating a new environment", validationErrors, rowNum);
+//            }
         }
     }
 
@@ -263,9 +255,10 @@ public class ValidatePendingImportObjectsStep {
 
         String key = ExperimentUtilities.createObservationUnitKey(importRow);
         PendingImportObject<BrAPIObservationUnit> ouPIO = observationUnitByNameNoScope.get(key);
-        if(ouPIO.getState() == ImportObjectState.NEW && StringUtils.isNotBlank(importRow.getObsUnitID())) {
-            ExperimentUtilities.addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, "Could not find observation unit by ObsUnitDBID", validationErrors, rowNum);
-        }
+        // TODO: Is this check still needed for new observation units?
+//        if(ouPIO.getState() == ImportObjectState.NEW && StringUtils.isNotBlank(importRow.getObsUnitID())) {
+//            ExperimentUtilities.addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, "Could not find observation unit by ObsUnitDBID", validationErrors, rowNum);
+//        }
 
         validateGeoCoordinates(validationErrors, rowNum, importRow);
     }
@@ -397,7 +390,7 @@ public class ValidatePendingImportObjectsStep {
                     !existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(rowNum))) {
                 ExperimentUtilities.addRowError(
                         phenoCol.name(),
-                        String.format("Value already exists for ObsUnitId: %s, Phenotype: %s", importRow.getObsUnitID(), phenoCol.name()),
+                        String.format("Value already exists for Phenotype: %s", phenoCol.name()),
                         validationErrors, rowNum
                 );
 

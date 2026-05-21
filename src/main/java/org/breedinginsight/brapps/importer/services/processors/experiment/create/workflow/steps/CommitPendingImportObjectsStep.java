@@ -16,12 +16,14 @@
  */
 package org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps;
 
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
@@ -42,21 +44,23 @@ import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
+import org.breedinginsight.model.DatasetLevel;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities.PREEXISTING_EXPERIMENT_TITLE;
 
 @Singleton
 @Slf4j
@@ -69,6 +73,7 @@ public class CommitPendingImportObjectsStep {
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final ProgramLocationService locationService;
     private final OntologyService ontologyService;
+    private final DatasetService datasetService;
 
     @Inject
     public CommitPendingImportObjectsStep(BrAPIListDAO brAPIListDAO,
@@ -77,7 +82,8 @@ public class CommitPendingImportObjectsStep {
                                           BrAPIObservationDAO brAPIObservationDAO,
                                           BrAPIObservationUnitDAO brAPIObservationUnitDAO,
                                           ProgramLocationService locationService,
-                                          OntologyService ontologyService) {
+                                          OntologyService ontologyService,
+                                          DatasetService datasetService) {
         this.brAPIListDAO = brAPIListDAO;
         this.brapiTrialDAO = brapiTrialDAO;
         this.brAPIStudyDAO = brAPIStudyDAO;
@@ -85,10 +91,13 @@ public class CommitPendingImportObjectsStep {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.locationService = locationService;
         this.ontologyService = ontologyService;
+        this.datasetService = datasetService;
     }
 
     // TODO: some common code between workflows here that could be broken out, removed append/update specific code
-    public void process(ProcessContext processContext, ProcessedData processedData) {
+    // TODO: For instance, multiple trials don't really exist in the use case which this code is used for: creating an experiment.
+    // TODO: This means having a Map of trials doesn't really make sense anymore, and should be replaced with a singular PendingImportObject<Trial>
+    public void process(ProcessContext processContext, ProcessedData processedData) throws UnprocessableEntityException, ApiException {
 
         PendingData pendingData = processContext.getPendingData();
         ImportContext importContext = processContext.getImportContext();
@@ -103,6 +112,33 @@ public class CommitPendingImportObjectsStep {
         Map<String, PendingImportObject<ProgramLocation>> locationByName = pendingData.getLocationByName();
         Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = pendingData.getObservationUnitByNameNoScope();
         Map<String, PendingImportObject<BrAPIObservation>> observationByHash = pendingData.getObservationByHash();
+        Map<String, String> expUnitbyTrialName = pendingData.getExpUnitByTrialName();
+
+        // Assume that there's only one expUnit per trial in this workflow.
+        // This should be a safe assumption to make considering this workflow is for the creation of a single experiment.
+        // If that changes in the future, this code will break and need to be dealt with.
+
+        if (expUnitbyTrialName.size() > 1) {
+            throw new InternalServerException("Multiple Experiment names exist during commit stage");
+        }
+
+        String expUnitName = expUnitbyTrialName.values()
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        if (expUnitName == null) {
+            throw new InternalServerException("Experiment unit name not found during commit stage");
+        }
+
+        String brapiProgramId = Optional.of(program)
+                .map(Program::getBrapiProgram)
+                .map(BrAPIProgram::getProgramDbId)
+                .orElse(null);
+
+        if (brapiProgramId == null) {
+            throw new InternalServerException("BrAPI program not found during commit stage");
+        }
 
         List<BrAPITrial> newTrials = ProcessorData.getNewObjects(pendingData.getTrialByNameNoScope());
 
@@ -130,6 +166,14 @@ public class CommitPendingImportObjectsStep {
 
         List<BrAPIObservationUnit> newObservationUnits = ProcessorData.getNewObjects(pendingData.getObservationUnitByNameNoScope());
 
+        // Inject level names here
+        datasetService.updateObservationUnitsWithLevelNameDbIds(newObservationUnits,
+                program,
+                brapiProgramId,
+                expUnitName,
+                DatasetLevel.EXP_UNIT
+                );
+
         // filter out observations with no 'value' so they will not be saved
         List<BrAPIObservation> newObservations = ProcessorData.getNewObjects(observationByHash)
                 .stream()
@@ -137,6 +181,24 @@ public class CommitPendingImportObjectsStep {
                 .collect(Collectors.toList());
 
         AuthenticatedUser actingUser = new AuthenticatedUser(upload.getUpdatedByUser().getName(), new ArrayList<>(), upload.getUpdatedByUser().getId(), new ArrayList<>());
+
+        // TODO: Implement more robust solution either brapi server side or possibly redis SETNX client side
+        // Do this check here, directly before creating new trials instead of in earlier step to minimize time window of race condition
+        if (!newTrials.isEmpty()) {
+            try {
+                List<BrAPITrial> cachedTrials = brapiTrialDAO.getTrials(program.getId());
+                List<String> existingTrialNames = cachedTrials.stream().map(BrAPITrial::getTrialName).collect(Collectors.toList());
+                List<String> newTrialNames = newTrials.stream().map(t -> Utilities.removeProgramKey(t.getTrialName(), program.getKey())).collect(Collectors.toList());
+                log.debug("** Trials Duplicate Check: {} -> {}", existingTrialNames, newTrialNames);
+                if (newTrialNames.stream().anyMatch(existingTrialNames::contains)) {
+                    log.debug("** New matches existing");
+                    throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
+                }
+            } catch (ApiException e) {
+                log.error("Error getting trials for duplicate name check", e);
+                throw new InternalServerException(e.getMessage(), e);
+            }
+        }
 
         try {
             List<BrAPIListSummary> createdDatasets = new ArrayList<>(brAPIListDAO.createBrAPILists(newDatasetRequests, program.getId(), upload));
@@ -179,7 +241,8 @@ public class CommitPendingImportObjectsStep {
                 // retrieve the BrAPI ObservationUnit from this.observationUnitByNameNoScope
                 String createdObservationUnit_StripedStudyName = Utilities.removeProgramKeyAndUnknownAdditionalData(createdObservationUnit.getStudyName(), program.getKey());
                 String createdObservationUnit_StripedObsUnitName = Utilities.removeProgramKeyAndUnknownAdditionalData(createdObservationUnit.getObservationUnitName(), program.getKey());
-                String createdObsUnit_key = ExperimentUtilities.createObservationUnitKey(createdObservationUnit_StripedStudyName, createdObservationUnit_StripedObsUnitName);
+                String createdObservationUnit_GID = createdObservationUnit.getAdditionalInfo().get("gid").getAsString();
+                String createdObsUnit_key = ExperimentUtilities.createObservationUnitKey(createdObservationUnit_StripedStudyName, createdObservationUnit_StripedObsUnitName, createdObservationUnit_GID);
                 observationUnitByNameNoScope.get(createdObsUnit_key)
                         .getBrAPIObject()
                         .setObservationUnitDbId(createdObservationUnit.getObservationUnitDbId());
@@ -320,10 +383,24 @@ public class CommitPendingImportObjectsStep {
         Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = pendingData.getObservationUnitByNameNoScope();
         Map<String, PendingImportObject<BrAPIObservation>> observationByHash = pendingData.getObservationByHash();
 
+        // Create a lookup map for observations
+        // Key: studyName_observationUnitName (composite key)
+        // Value: List of observations matching the key
+        Map<String, List<PendingImportObject<BrAPIObservation>>> observationsByStudyAndUnit = new java.util.HashMap<>();
+        for (PendingImportObject<BrAPIObservation> obsPio : observationByHash.values()) {
+            BrAPIObservation obs = obsPio.getBrAPIObject();
+            if (obs.getAdditionalInfo() != null && obs.getAdditionalInfo().get(BrAPIAdditionalInfoFields.STUDY_NAME) != null) {
+                String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(obs.getAdditionalInfo().get(BrAPIAdditionalInfoFields.STUDY_NAME).getAsString(), programKey);
+                String obsUnitName = Utilities.removeProgramKeyAndUnknownAdditionalData(obs.getObservationUnitName(), programKey);
+                String key = studyName + "_" + obsUnitName;
+                observationsByStudyAndUnit.computeIfAbsent(key, k -> new ArrayList<>()).add(obsPio);
+            }
+        }
+
         // update the observations study DbIds, Observation Unit DbIds and Germplasm DbIds
         observationUnitByNameNoScope.values().stream()
                 .map(PendingImportObject::getBrAPIObject)
-                .forEach(obsUnit -> updateObservationDbIds(pendingData, obsUnit, programKey));
+                .forEach(obsUnit -> updateObservationDbIds(observationsByStudyAndUnit, obsUnit, programKey)); // Pass the new map
 
         // Update ObservationVariable DbIds
         List<Trait> traits = getTraitList(program);
@@ -340,33 +417,26 @@ public class CommitPendingImportObjectsStep {
         }
     }
 
-    // Update each ovservation's observationUnit DbId, study DbId, and germplasm DbId
-    private void updateObservationDbIds(PendingData pendingData, BrAPIObservationUnit obsUnit, String programKey) {
-        Map<String, PendingImportObject<BrAPIObservation>> observationByHash = pendingData.getObservationByHash();
+    // Update each observation's observationUnit DbId, study DbId, and germplasm DbId
+    private void updateObservationDbIds(Map<String, List<PendingImportObject<BrAPIObservation>>> observationsByStudyAndUnit, BrAPIObservationUnit obsUnit, String programKey) { // Modified signature
 
-        // FILTER LOGIC: Match on Env and Exp Unit ID
-        observationByHash.values()
-                .stream()
-                .filter(obs -> obs.getBrAPIObject()
-                        .getAdditionalInfo() != null
-                        && obs.getBrAPIObject()
-                        .getAdditionalInfo()
-                        .get(BrAPIAdditionalInfoFields.STUDY_NAME) != null
-                        && obs.getBrAPIObject()
-                        .getAdditionalInfo()
-                        .get(BrAPIAdditionalInfoFields.STUDY_NAME)
-                        .getAsString()
-                        .equals(Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getStudyName(), programKey))
-                        && Utilities.removeProgramKeyAndUnknownAdditionalData(obs.getBrAPIObject().getObservationUnitName(), programKey)
-                        .equals(Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getObservationUnitName(), programKey))
-                )
-                .forEach(obs -> {
-                    if (StringUtils.isBlank(obs.getBrAPIObject().getObservationUnitDbId())) {
-                        obs.getBrAPIObject().setObservationUnitDbId(obsUnit.getObservationUnitDbId());
-                    }
-                    obs.getBrAPIObject().setStudyDbId(obsUnit.getStudyDbId());
-                    obs.getBrAPIObject().setGermplasmDbId(obsUnit.getGermplasmDbId());
-                });
+        String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getStudyName(), programKey);
+        String obsUnitName = Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getObservationUnitName(), programKey);
+        String key = studyName + "_" + obsUnitName;
+
+        List<PendingImportObject<BrAPIObservation>> matchingObservations = observationsByStudyAndUnit.get(key);
+
+        if (matchingObservations != null) {
+            for (PendingImportObject<BrAPIObservation> obsPio : matchingObservations) {
+                BrAPIObservation obs = obsPio.getBrAPIObject();
+
+                if (StringUtils.isBlank(obs.getObservationUnitDbId())) {
+                    obs.setObservationUnitDbId(obsUnit.getObservationUnitDbId());
+                }
+                obs.setStudyDbId(obsUnit.getStudyDbId());
+                obs.setGermplasmDbId(obsUnit.getGermplasmDbId());
+            }
+        }
     }
 
     private List<Trait> getTraitList(Program program) {

@@ -145,10 +145,6 @@ public class ExperimentObservation implements BrAPIImport {
     @ImportFieldMetadata(id = "treatmentFactors", name = Columns.TREATMENT_FACTORS, description = "Treatment factors in an experiment with applied variables, like fertilizer or water regimens.")
     private String treatmentFactors;
 
-    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "ObsUnitID", name = Columns.OBS_UNIT_ID, description = "A database generated unique identifier for experimental observation units")
-    private String obsUnitID;
-
     public BrAPITrial constructBrAPITrial(Program program, User user, boolean commit, String referenceSource, UUID id, String expSeqValue) {
         BrAPIProgram brapiProgram = program.getBrapiProgram();
         BrAPITrial trial = new BrAPITrial();
@@ -232,23 +228,6 @@ public class ExperimentObservation implements BrAPIImport {
         return study;
     }
 
-    public BrAPIListDetails constructDatasetDetails(
-            String name,
-            UUID datasetId,
-            String referenceSourceBase,
-            Program program, String trialId) {
-        BrAPIListDetails dataSetDetails = new BrAPIListDetails();
-        dataSetDetails.setListName(name);
-        dataSetDetails.setListType(BrAPIListTypes.OBSERVATIONVARIABLES);
-        dataSetDetails.setData(new ArrayList<>());
-        dataSetDetails.putAdditionalInfoItem("datasetType", "observationDataset");
-        List<BrAPIExternalReference> refs = new ArrayList<>();
-        Utilities.addReference(refs, program.getId(), referenceSourceBase, ExternalReferenceSource.PROGRAMS);
-        Utilities.addReference(refs, UUID.fromString(trialId), referenceSourceBase, ExternalReferenceSource.TRIALS);
-        Utilities.addReference(refs, datasetId, referenceSourceBase, ExternalReferenceSource.DATASET);
-        dataSetDetails.setExternalReferences(refs);
-        return dataSetDetails;
-    }
     public BrAPIObservationUnit constructBrAPIObservationUnit(
             Program program,
             String seqVal,
@@ -284,12 +263,10 @@ public class ExperimentObservation implements BrAPIImport {
         // If expUnit is null, a validation error will be produced later on.
         if (getExpUnit() != null)
         {
-            // TODO: [BI-2219] BJTS only accepts hardcoded levels, need to handle dynamic levels.
             level.setLevelName(getExpUnit().toLowerCase());  // HACK: toLowerCase() is needed to match BJTS hardcoded levels.
         }
         level.setLevelCode(Utilities.appendProgramKey(getExpUnitId(), program.getKey(), seqVal));
         position.setObservationLevel(level);
-        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, getExpUnit());
 
         // Exp Unit
         List<BrAPIObservationUnitLevelRelationship> levelRelationships = new ArrayList<>();
@@ -361,10 +338,6 @@ public class ExperimentObservation implements BrAPIImport {
             BrAPIObservationTreatment treatment = new BrAPIObservationTreatment();
             treatment.setFactor(getTreatmentFactors());
             observationUnit.setTreatments(List.of(treatment));
-        }
-
-        if (getObsUnitID() != null) {
-            observationUnit.setObservationUnitDbId(getObsUnitID());
         }
 
         return observationUnit;
@@ -478,7 +451,6 @@ public class ExperimentObservation implements BrAPIImport {
         public static final String ELEVATION = "Elevation";
         public static final String RTK = "RTK";
         public static final String TREATMENT_FACTORS = "Treatment Factors";
-        public static final String OBS_UNIT_ID = "ObsUnitID";
     }
 
 }

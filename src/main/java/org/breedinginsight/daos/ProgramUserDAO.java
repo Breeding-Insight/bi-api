@@ -120,14 +120,14 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
         return parseRecords(records, createdByUser, updatedByUser);
     }
 
-    public List<ProgramUser> getProgramUsersByOrcid(String orcid) {
+    public List<ProgramUser> getProgramUsersByOAuthId(String oAuthId) {
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
         BiUserTable updatedByUser = BI_USER.as("updatedByUser");
 
         // TODO: When we allow for pulling archived users, active condition won't be hardcoded.
         Result<Record> records = getProgramUsersQuery(createdByUser, updatedByUser)
-                .where(BI_USER.ORCID.eq(orcid))
+                .where(BI_USER.OAUTH_ID.eq(oAuthId))
                 .and(PROGRAM.ACTIVE.eq(true))
                 .fetch();
 

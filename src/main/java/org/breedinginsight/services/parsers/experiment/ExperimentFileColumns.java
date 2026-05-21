@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.*;
+
 public enum ExperimentFileColumns {
 
     GERMPLASM_NAME(ExperimentObservation.Columns.GERMPLASM_NAME, Column.ColumnDataType.STRING),
@@ -32,13 +34,13 @@ public enum ExperimentFileColumns {
     EXP_TITLE(ExperimentObservation.Columns.EXP_TITLE, Column.ColumnDataType.STRING),
     EXP_DESCRIPTION(ExperimentObservation.Columns.EXP_DESCRIPTION, Column.ColumnDataType.STRING),
     EXP_UNIT(ExperimentObservation.Columns.EXP_UNIT, Column.ColumnDataType.STRING),
-    //SUB_OBS_UNIT(ExperimentObservation.Columns.SUB_OBS_UNIT, Column.ColumnDataType.STRING),
+    SUB_OBS_UNIT(ExperimentObservation.Columns.SUB_OBS_UNIT, Column.ColumnDataType.STRING),
     EXP_TYPE(ExperimentObservation.Columns.EXP_TYPE, Column.ColumnDataType.STRING),
     ENV(ExperimentObservation.Columns.ENV, Column.ColumnDataType.STRING),
     ENV_LOCATION(ExperimentObservation.Columns.ENV_LOCATION, Column.ColumnDataType.STRING),
     ENV_YEAR(ExperimentObservation.Columns.ENV_YEAR, Column.ColumnDataType.INTEGER),
     EXP_UNIT_ID(ExperimentObservation.Columns.EXP_UNIT_ID, Column.ColumnDataType.STRING),
-    //SUB_UNIT_ID(ExperimentObservation.Columns.SUB_UNIT_ID, Column.ColumnDataType.STRING),
+    SUB_UNIT_ID(ExperimentObservation.Columns.SUB_UNIT_ID, Column.ColumnDataType.STRING),
     REP_NUM(ExperimentObservation.Columns.REP_NUM, Column.ColumnDataType.INTEGER),
     BLOCK_NUM(ExperimentObservation.Columns.BLOCK_NUM, Column.ColumnDataType.INTEGER),
     ROW(ExperimentObservation.Columns.ROW, Column.ColumnDataType.STRING),
@@ -47,10 +49,10 @@ public enum ExperimentFileColumns {
     LONG(ExperimentObservation.Columns.LONG, Column.ColumnDataType.STRING),
     ELEVATION(ExperimentObservation.Columns.ELEVATION, Column.ColumnDataType.STRING),
     RTK(ExperimentObservation.Columns.RTK, Column.ColumnDataType.STRING),
-    TREATMENT_FACTORS(ExperimentObservation.Columns.TREATMENT_FACTORS, Column.ColumnDataType.STRING),
-    OBS_UNIT_ID(ExperimentObservation.Columns.OBS_UNIT_ID, Column.ColumnDataType.STRING);
+    TREATMENT_FACTORS(ExperimentObservation.Columns.TREATMENT_FACTORS, Column.ColumnDataType.STRING);
 
     private final Column column;
+    private static List<ExperimentFileColumns> subEntityOnlyColumns = Arrays.asList(SUB_OBS_UNIT, SUB_UNIT_ID);
 
     ExperimentFileColumns(String value, Column.ColumnDataType dataType) {
         this.column = new Column(value, dataType);
@@ -62,6 +64,14 @@ public enum ExperimentFileColumns {
     }
 
     public static List<Column> getOrderedColumns() {
+        //Don't include subentity columns
+        return Arrays.stream(ExperimentFileColumns.values())
+                .filter(val -> !(subEntityOnlyColumns.contains(val)))
+                .map(value -> value.column)
+                .collect(Collectors.toList());
+    }
+
+    public static List<Column> getOrderedColumnsSubEntity() {
         return Arrays.stream(ExperimentFileColumns.values())
                 .map(value -> value.column)
                 .collect(Collectors.toList());

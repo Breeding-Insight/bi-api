@@ -96,7 +96,7 @@ public class BrAPITestUtils {
         FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
 
         // Test User
-        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
+        User testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Species
@@ -121,7 +121,7 @@ public class BrAPITestUtils {
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), program.getId());
 
         // Add Experimental Collaborator user.
-        User collaborator = userDAO.getUserByOrcId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
+        User collaborator = userDAO.getUserByOAuthId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
         dsl.execute(securityFp.get("InsertProgramRolesExperimentalCollaborator"), collaborator.getId().toString(), program.getId().toString());
 
         // Get experiment import map
@@ -208,7 +208,7 @@ public class BrAPITestUtils {
                 .get("id").getAsString();
 
         // Refetch collaborator, since we updated program_user_roles.
-        collaborator = userDAO.getUserByOrcId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
+        collaborator = userDAO.getUserByOAuthId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
         // Add collaborator to experiment.
         dsl.execute(securityFp.get("AddCollaborator"), experiment2Id, collaborator.getProgramRoles().get(0).getId());
 

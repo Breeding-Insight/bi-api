@@ -43,6 +43,7 @@ import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Slf4j
+@Singleton
 public class BrAPIListDAO {
 
     private ProgramDAO programDAO;

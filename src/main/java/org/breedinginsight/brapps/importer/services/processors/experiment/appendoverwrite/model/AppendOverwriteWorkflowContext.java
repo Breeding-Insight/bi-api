@@ -31,14 +31,14 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.model.ProgramLocation;
 import tech.tablesaw.columns.Column;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Getter
 @Setter
 public class AppendOverwriteWorkflowContext {
+    // Dynamic Columns
+    private String obsUnitColName;
+
     // Cache maps keyed by existing observation unit ids
     private Set<String> referenceOUIds = new HashSet<>();
     private Map<String, PendingImportObject<BrAPITrial>> pendingTrialByOUId = new HashMap<>();
@@ -54,6 +54,10 @@ public class AppendOverwriteWorkflowContext {
     // Exceptions
     private MiddlewareException processError;
     private ValidationErrors validationErrors;
+
+    // Dynamic Columns
+    private List<Column<?>> phenotypeCols;
+    private List<String> varNames;
 
     // Cache maps keyed by name without program scope
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope;

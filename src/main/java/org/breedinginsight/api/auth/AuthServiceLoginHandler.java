@@ -30,7 +30,6 @@ import io.micronaut.security.token.jwt.cookie.JwtCookieConfiguration;
 import io.micronaut.security.token.jwt.cookie.JwtCookieLoginHandler;
 import io.micronaut.security.token.jwt.generator.AccessRefreshTokenGenerator;
 import io.micronaut.security.token.jwt.generator.AccessTokenConfiguration;
-import io.micronaut.security.token.jwt.generator.JwtGeneratorConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.auth.SignUpJWT;
 import org.breedinginsight.model.ProgramUser;
@@ -83,7 +82,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
     @Override
     public MutableHttpResponse<?> loginSuccess(UserDetails userDetails, HttpRequest<?> request) {
-        // Called when login to orcid is successful.
+        // Called when login to OAuth provider is successful.
         // Check if our login to our system is successful.
         if (request.getCookies().contains(accountTokenCookieName)) {
             Cookie accountTokenCookie = request.getCookies().get(accountTokenCookieName);
@@ -124,7 +123,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
     private AuthenticatedUser getUserCredentials(UserDetails userDetails) throws AuthenticationException {
 
-        Optional<User> user = userService.getByOrcid(userDetails.getUsername());
+        Optional<User> user = userService.getByOAuthId(userDetails.getUsername());
 
         if (user.isPresent()) {
             if (user.get().getActive()) {
@@ -159,9 +158,20 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         }
     }
 
+    private String parseOAuthProvider(HttpRequest request) {
+        // The request path will be something like "/sso/success/github".
+        if (request.getPath().toLowerCase().contains("github")) {
+            return "github";
+        } else {
+            // Default to ORCID.
+            return "orcid";
+        }
+    }
+
     private MutableHttpResponse newAccountCreationResponse(UserDetails userDetails, String accountToken, HttpRequest request) {
 
-        String orcid = userDetails.getUsername();
+        String oAuthId = userDetails.getUsername();
+        String oAuthProvider = parseOAuthProvider(request);
         SignUpJWT signUpJWT;
         try {
             signUpJWT = signUpJwtService.validateAndParseAccountSignUpJwt(accountToken);
@@ -185,9 +195,9 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         }
 
         if (newUser.getAccountToken().equals(signUpJWT.getJwtId().toString())) {
-            // Assign orcid to that user
+            // Assign OAuth Id and provider to that user.
             try {
-                userService.updateOrcid(newUser.getId(), orcid);
+                userService.updateOAuthInfo(newUser.getId(), oAuthId, oAuthProvider);
             } catch (DoesNotExistException e) {
                 MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
                 return resp;

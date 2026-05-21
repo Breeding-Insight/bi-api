@@ -17,11 +17,9 @@
 
 package org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow;
 
-import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
@@ -35,7 +33,6 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistic
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
 import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
-import org.breedinginsight.brapps.importer.model.workflow.Workflow;
 import org.breedinginsight.brapps.importer.services.ImportStatusService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
@@ -46,14 +43,11 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.create
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.PopulateNewPendingImportObjectsStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.ValidatePendingImportObjectsStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentPhenotypeService;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
-import javax.inject.Named;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import lombok.Getter;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
@@ -63,7 +57,9 @@ import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 
 import javax.inject.Singleton;
-import java.util.Optional;
+
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.MULTIPLE_EXP_TITLES;
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.OBSERVATION_UNIT_ID_SUFFIX;
 
 @Slf4j
 @Getter
@@ -105,10 +101,16 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "ObsUnitIDs are detected");
         }
 
+        //Make sure file only contains one exp title, check early cause avoids issues with titles corresponding to existing and new trials
+        List<ExperimentObservation> experimentImportRows = ExperimentUtilities.importRowsToExperimentObservations(importRows);
+        if (experimentImportRows.stream().map(ExperimentObservation::getExpTitle).distinct().count() > 1) {
+            throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES.getValue());
+        }
+
         statusService.updateMessage(upload, "Checking existing experiment objects in brapi service and mapping data");
 
         ProcessedPhenotypeData phenotypeData = experimentPhenotypeService.extractPhenotypes(context);
-        ProcessContext processContext = populateExistingPendingImportObjectsStep.process(context, phenotypeData);
+        ProcessContext processContext = populateExistingPendingImportObjectsStep.process(context);
         populateNewPendingImportObjectsStep.process(processContext, phenotypeData);
         ValidationErrors validationErrors = validatePendingImportObjectsStep.process(context, processContext.getPendingData(), phenotypeData, processedData);
 
@@ -216,12 +218,8 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
     }
 
     private boolean containsObsUnitIDs(ImportContext importContext) {
-        List<BrAPIImport> importRows = importContext.getImportRows();
-        return importRows.stream()
-                .anyMatch(row -> {
-                    ExperimentObservation expRow = (ExperimentObservation) row;
-                    return StringUtils.isNotBlank(expRow.getObsUnitID());
-                });
+        return Arrays.stream(importContext.getUpload().getDynamicColumnNames())
+            .anyMatch(name->name.endsWith(OBSERVATION_UNIT_ID_SUFFIX));
     }
 
     // TODO: move to shared area: experiment import service
@@ -268,6 +266,15 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
                         .count()
         );
 
+        // Assume observationVariableName is set when pending observations are created.
+        int obsVarCount = Math.toIntExact(
+                observationByHash.values()
+                        .stream()
+                        .map(o -> o.getBrAPIObject().getObservationVariableName())
+                        .distinct()
+                        .count()
+        );
+
         ImportPreviewStatistics environmentStats = ImportPreviewStatistics.builder()
                 .newObjectCount(environmentNameCounter.size())
                 .build();
@@ -286,6 +293,9 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
         ImportPreviewStatistics mutatedObservationStats = ImportPreviewStatistics.builder()
                 .newObjectCount(numMutatedObservations)
                 .build();
+        ImportPreviewStatistics obsVarStats = ImportPreviewStatistics.builder()
+                .newObjectCount(obsVarCount)
+                .build();
 
         return Map.of(
                 "Environments", environmentStats,
@@ -293,7 +303,8 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
                 "GIDs", gidStats,
                 "Observations", observationStats,
                 "Existing_Observations", existingObservationStats,
-                "Mutated_Observations", mutatedObservationStats
+                "Mutated_Observations", mutatedObservationStats,
+                "Observation_Variables", obsVarStats
         );
     }
 

@@ -90,7 +90,7 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
         securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
         brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
-        testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).get();
         super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 

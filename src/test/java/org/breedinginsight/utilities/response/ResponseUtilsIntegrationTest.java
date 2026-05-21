@@ -93,7 +93,7 @@ public class ResponseUtilsIntegrationTest extends BrAPITest {
         var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
 
         // Insert system roles
-        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        User testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).get();
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Insert program

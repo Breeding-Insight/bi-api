@@ -542,6 +542,35 @@ public class GermplasmFileImportTest extends BrAPITest {
         assertEquals("Breeding Method",         firstError.get("field").getAsString());
     }
 
+    /**
+     * Test for BI-2185 adding validation for germplasm names to not allow / characters
+     */
+    @Test
+    @SneakyThrows
+    public void badGermplasmNames() {
+        File file = new File("src/test/resources/files/germplasm_import/bad_germplasm_names.csv");
+        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(file, Map.of(GERM_LIST_NAME, "Bad Germplasm Names"), true, client, validProgram, germplasmMappingId);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = importTestUtils.getUploadedFile(importId, client, validProgram, germplasmMappingId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        JsonArray errorList = result
+                .getAsJsonObject("progress")
+                .getAsJsonArray("rowErrors");
+
+        assertEquals(3, errorList.size());
+
+        JsonObject firstError = errorList
+                .get(0).getAsJsonObject()
+                .getAsJsonArray("errors").get(0).getAsJsonObject();
+        assertEquals("Germplasm name cannot contain /", firstError.get("errorMessage").getAsString());
+        assertEquals("Germplasm Name", firstError.get("field").getAsString());
+    }
+
     @Test
     @SneakyThrows
     public void someEntryNumbersError() {

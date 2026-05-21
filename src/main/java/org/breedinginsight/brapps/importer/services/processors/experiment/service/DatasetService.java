@@ -19,33 +19,46 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.servi
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
+import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
+import org.brapi.v2.model.pheno.BrAPIObservationUnitLevelRelationship;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
+import org.breedinginsight.brapi.v2.services.BrAPIObservationLevelService;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.model.BrAPIConstants;
+import org.breedinginsight.model.DatasetLevel;
+import org.breedinginsight.model.DatasetMetadata;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Singleton
 public class DatasetService {
     private final BrAPIListDAO brAPIListDAO;
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
+    private final BrAPIObservationLevelService observationLevelService;
 
     @Inject
-    public DatasetService(BrAPIListDAO brapiListDAO) {
+    public DatasetService(BrAPIListDAO brapiListDAO,
+                          BrAPIObservationLevelService brAPIObservationLevelService) {
         this.brAPIListDAO = brapiListDAO;
+        this.observationLevelService = brAPIObservationLevelService;
     }
     /**
      * Module: Dataset Utility
@@ -74,10 +87,8 @@ public class DatasetService {
                         program.getId(),
                         String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()),
                         UUID.fromString(id));
-
-        // Check if the existing dataset summaries are returned, throw exception if not
         if (existingDatasets == null || existingDatasets.isEmpty()) {
-            throw new InternalServerException("Existing dataset summary not returned from BrAPI server");
+            return Optional.empty();
         }
 
         // Retrieve dataset details using the list DB ID from the existing dataset summary
@@ -86,6 +97,16 @@ public class DatasetService {
                 .getResult());
 
         return dataSetDetails;
+    }
+
+    public Optional<List<BrAPIListDetails>> fetchDatasetsByIds(Set<String> datasetIds, Program program) throws ApiException {
+        List<BrAPIListDetails> datasets = new ArrayList<>();
+        for (String datasetId : datasetIds) {
+            Optional<BrAPIListDetails> dataSetDetailsOptional = fetchDatasetById(datasetId, program);
+            dataSetDetailsOptional.ifPresent(datasets::add);
+        }
+
+        return datasets.isEmpty() ? Optional.empty() : Optional.of(datasets);
     }
 
     /**
@@ -107,5 +128,133 @@ public class DatasetService {
 
         // Create a PendingImportObject for the dataset with the existing list and reference ID
         return new PendingImportObject<BrAPIListDetails>(ImportObjectState.EXISTING, dataset, UUID.fromString(xref.getReferenceId()));
+    }
+
+    public void createBrAPIObsVarListForDataset(Program program,
+                                                BrAPITrial trial,
+                                                DatasetMetadata subEntityDatasetMetadata) throws ApiException {
+
+        String name = String.format("Observation Dataset [%s-%s-%s]",
+                program.getKey(),
+                trial.getAdditionalInfo()
+                        .get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER)
+                        .getAsString(),
+                subEntityDatasetMetadata.getName());
+
+        BrAPIListDetails subEntityObsVarsList = constructDatasetDetails(name,
+                subEntityDatasetMetadata.getId(),
+                BRAPI_REFERENCE_SOURCE,
+                program,
+                trial.getTrialDbId());
+
+        BrAPIListNewRequest listRq = new BrAPIListNewRequest();
+        listRq.setListName(subEntityObsVarsList.getListName());
+        listRq.setListType(subEntityObsVarsList.getListType());
+        listRq.setExternalReferences(subEntityObsVarsList.getExternalReferences());
+        listRq.setAdditionalInfo(subEntityObsVarsList.getAdditionalInfo());
+        listRq.data(subEntityObsVarsList.getData());
+
+        brAPIListDAO.createBrAPILists(List.of(listRq), program.getId(), null);
+    }
+
+    public BrAPIListDetails constructDatasetDetails(
+            String name,
+            UUID datasetId,
+            String referenceSourceBase,
+            Program program, String trialId) {
+        BrAPIListDetails dataSetDetails = new BrAPIListDetails();
+        dataSetDetails.setListName(name);
+        dataSetDetails.setListType(BrAPIListTypes.OBSERVATIONVARIABLES);
+        dataSetDetails.setData(new ArrayList<>());
+        dataSetDetails.putAdditionalInfoItem("datasetType", "observationDataset");
+        List<BrAPIExternalReference> refs = new ArrayList<>();
+        Utilities.addReference(refs, program.getId(), referenceSourceBase, ExternalReferenceSource.PROGRAMS);
+        Utilities.addReference(refs, UUID.fromString(trialId), referenceSourceBase, ExternalReferenceSource.TRIALS);
+        Utilities.addReference(refs, datasetId, referenceSourceBase, ExternalReferenceSource.DATASET);
+        dataSetDetails.setExternalReferences(refs);
+        return dataSetDetails;
+    }
+
+    /**
+     * @return brapiLevelNameDbId of found or created record
+     */
+    public String getOrCreateLevelNameForDataset(Program program,
+                                                 String brapiProgramDbId,
+                                                 String levelName,
+                                                 DatasetLevel levelOrder) throws ApiException {
+
+        String existingLevelNameDbId = findLevelNameByNameAndOrder(program, brapiProgramDbId, levelName, levelOrder);
+
+        if (StringUtils.isNotBlank(existingLevelNameDbId)) {
+            return existingLevelNameDbId;
+        }
+
+        // Level name does not exist and needs to be created.
+        BrAPIObservationUnitHierarchyLevel createdLevelName = observationLevelService.createObservationLevel(program, brapiProgramDbId, levelName, levelOrder);
+
+        return createdLevelName.getLevelNameDbId();
+    }
+
+    /**
+     * This method retrieves the programmatic level names and then matches the level names on the submitted
+     * level name and order.
+     *
+     * @return levelNameDbId of the matched level name
+     */
+    private String findLevelNameByNameAndOrder(Program program,
+                                               String brapiProgramDbId,
+                                               String levelName,
+                                               DatasetLevel levelOrder) {
+        var programmaticLevelNames = observationLevelService.getProgrammaticLevelNames(program, brapiProgramDbId);
+
+        List<BrAPIObservationUnitHierarchyLevel> levelNameStreamResult
+                = programmaticLevelNames.stream()
+                .filter(ouln -> ouln.getLevelName().equals(levelName.toLowerCase()) && ouln.getLevelOrder() == levelOrder.getValue())
+                .limit(1)
+                .collect(Collectors.toList());
+
+        if (levelNameStreamResult.isEmpty()) {
+            return null;
+        }
+
+        return levelNameStreamResult.get(0).getLevelNameDbId();
+    }
+
+    public void updateObservationUnitsWithLevelNameDbIds(List<BrAPIObservationUnit> observationUnits,
+                                                         Program program,
+                                                         String brapiProgramDbId,
+                                                         String expUnitName,
+                                                         DatasetLevel levelOrder) throws ApiException {
+        Map<String, String> levelNameDbIdByName = new HashMap<>();
+
+        String expLevelName = expUnitName.toLowerCase();
+
+        String existingLevelNameDbId = getOrCreateLevelNameForDataset(program, brapiProgramDbId, expLevelName, levelOrder);
+        levelNameDbIdByName.put(expLevelName, existingLevelNameDbId);
+
+        List<BrAPIObservationUnitHierarchyLevel> globalLevelNames = observationLevelService.getGlobalLevelNames(program);
+
+        globalLevelNames.forEach(ouln -> levelNameDbIdByName.put(ouln.getLevelName(), ouln.getLevelNameDbId()));
+
+        for (BrAPIObservationUnit observationUnit : observationUnits) {
+
+            String positionLevelName = observationUnit.getObservationUnitPosition().getObservationLevel().getLevelName().toLowerCase();
+
+            observationUnit.getObservationUnitPosition().getObservationLevel().setLevelNameDbId(levelNameDbIdByName.get(positionLevelName));
+
+            for (BrAPIObservationUnitLevelRelationship lvlRelationship : observationUnit.getObservationUnitPosition().getObservationLevelRelationships()) {
+                if (lvlRelationship.getLevelName().equals(BrAPIConstants.BLOCK.getValue())) {
+                    lvlRelationship.setLevelNameDbId(levelNameDbIdByName.get(lvlRelationship.getLevelName()));
+                } else if (lvlRelationship.getLevelName().equals(BrAPIConstants.REPLICATE.getValue())) {
+                    lvlRelationship.setLevelNameDbId(levelNameDbIdByName.get(lvlRelationship.getLevelName()));
+                } else {
+                    throw new InternalServerException(String.format("Level name [%s] detected in OU Level Relationship " +
+                            "for experiment with Exp Unit name [%s].  This is unexpected and the new level " +
+                            "name must be retrieved properly from BrAPI to insert its DbId into BrAPI request for proper creation and assignment.",
+                            lvlRelationship.getLevelName(), expUnitName));
+                }
+            }
+        }
+
     }
 }

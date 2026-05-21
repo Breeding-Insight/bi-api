@@ -21,6 +21,8 @@ import lombok.*;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 
+import java.util.Objects;
+
 @Getter
 @Setter
 @Accessors(chain=true)
@@ -45,5 +47,18 @@ public class Column {
         STRING,
         INTEGER,
         DOUBLE
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Column that = (Column) o;
+        return Objects.equals(getValue(), that.getValue()) && Objects.equals(getDataType(), that.getDataType());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getValue(), getDataType());
     }
 }

@@ -28,7 +28,9 @@ import org.breedinginsight.services.ExperimentalCollaboratorService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.RoleService;
+import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.CreationBusyException;
 import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
 import javax.inject.Inject;
@@ -120,7 +122,7 @@ public class ExperimentController {
      * @return An HttpResponse with a Response object containing the newly created Dataset.
      */
     @Post("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/dataset")
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ProgramSecured(roles = {ProgramSecuredRole.PROGRAM_ADMIN})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<Dataset>> createSubEntityDataset(
             @PathVariable("programId") UUID programId,
@@ -134,6 +136,12 @@ public class ExperimentController {
 
             Response<Dataset> response = new Response(experimentService.createSubEntityDataset(programOptional.get(), experimentId, datasetRequest));
             return HttpResponse.ok(response);
+        } catch (AlreadyExistsException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
+        } catch (CreationBusyException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
         } catch (Exception e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
@@ -165,6 +173,37 @@ public class ExperimentController {
         Response<List<DatasetMetadata>> response = new Response(experimentService.getDatasetsMetadata(programOptional.get(), experimentId));
         return HttpResponse.ok(response);
 
+    }
+
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/recommended-sub-entity-dataset-names")
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @Produces(MediaType.APPLICATION_JSON)
+    public HttpResponse<Response<DataResponse<String>>> getRecommendedSubEntityDatasetNames(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("experimentId") UUID experimentId) {
+        try {
+            Optional<Program> programOptional = programService.getById(programId);
+            if (programOptional.isEmpty()) {
+                return HttpResponse.status(HttpStatus.NOT_FOUND, "Program does not exist");
+            }
+
+            List<String> recommendedNames = experimentService.getRecommendedSubEntityDatasetNames(programOptional.get(), experimentId);
+
+            List<Status> metadataStatus = new ArrayList<>();
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            //TODO: paging if needed, unlikely to get very large
+            Pagination pagination = new Pagination(recommendedNames.size(), recommendedNames.size(), 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+
+            Response<DataResponse<String>> response = new Response<>(metadata, new DataResponse<>(recommendedNames));
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (Exception e) {
+            log.error("Error finding recommended sub-entity dataset names", e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error finding recommended sub-entity dataset names");
+        }
     }
 
     /**

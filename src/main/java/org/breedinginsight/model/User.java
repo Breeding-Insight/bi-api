@@ -56,13 +56,14 @@ public class User extends BiUserEntity {
 
     public User(BiUserEntity biUser) {
         this.setId(biUser.getId());
-        this.setOrcid(biUser.getOrcid());
+        this.setOauthId(biUser.getOauthId());
         this.setName(biUser.getName());
         this.setEmail(biUser.getEmail());
         this.setSystemRoles(new ArrayList<>());
         this.setProgramRoles(new ArrayList<>());
         this.setActive(biUser.getActive());
         this.setAccountToken(biUser.getAccountToken());
+        this.setOauthProvider(biUser.getOauthProvider());
     }
 
     public User() {
@@ -72,13 +73,14 @@ public class User extends BiUserEntity {
     public static User parseSQLRecord(Record record, @NotNull BiUserTable tableName){
         return User.builder()
                 .id(record.getValue(tableName.ID))
-                .orcid(record.getValue(tableName.ORCID))
+                .oauthId(record.getValue(tableName.OAUTH_ID))
                 .name(record.getValue(tableName.NAME))
                 .email(record.getValue(tableName.EMAIL))
                 .systemRoles(new ArrayList<>())
                 .programRoles(new ArrayList<>())
                 .active(record.getValue(tableName.ACTIVE))
                 .accountToken(record.getValue(tableName.ACCOUNT_TOKEN))
+                .oauthProvider(record.getValue(tableName.OAUTH_PROVIDER))
                 .build();
     }
 
@@ -98,7 +100,7 @@ public class User extends BiUserEntity {
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
         return Objects.equals(getId(), user.getId()) &&
-                Objects.equals(getOrcid(), user.getOrcid()) &&
+                Objects.equals(getOauthId(), user.getOauthId()) &&
                 Objects.equals(getName(), user.getName()) &&
                 Objects.equals(getEmail(), user.getEmail()) &&
                 Objects.equals(getCreatedAt(), user.getCreatedAt()) &&
@@ -106,11 +108,12 @@ public class User extends BiUserEntity {
                 Objects.equals(getCreatedBy(), user.getCreatedBy()) &&
                 Objects.equals(getUpdatedBy(), user.getUpdatedBy()) &&
                 Objects.equals(getActive(), user.getActive()) &&
-                Objects.equals(getAccountToken(), user.getAccountToken());
+                Objects.equals(getAccountToken(), user.getAccountToken()) &&
+                Objects.equals(getOauthProvider(), user.getOauthProvider());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getOrcid(), getName(), getEmail(), getCreatedAt(), getUpdatedAt(), getCreatedBy(), getUpdatedBy(), getActive(), getAccountToken());
+        return Objects.hash(getId(), getOauthId(), getName(), getEmail(), getCreatedAt(), getUpdatedAt(), getCreatedBy(), getUpdatedBy(), getActive(), getAccountToken(), getOauthProvider());
     }
 }

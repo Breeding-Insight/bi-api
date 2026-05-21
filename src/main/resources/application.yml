@@ -59,6 +59,17 @@ micronaut:
             jwks-uri: ${OAUTH_OPENID_JWKSURI:`https://sandbox.orcid.org/oauth/jwks`}
             user-info:
               url: ${OAUTH_OPENID_USERINFOURL:`https://sandbox.orcid.org/oauth/userinfo`}
+        github:
+          client-id: ${GITHUB_OAUTH_CLIENT_ID:`placeholder`}
+          client-secret: ${GITHUB_OAUTH_CLIENT_SECRET:`placeholder`}
+          scopes:
+            - user:email
+            - read:user
+          authorization:
+            url: https://github.com/login/oauth/authorize
+          token:
+            url: https://github.com/login/oauth/access_token
+            auth-method: client-secret-basic
       state:
         cookie:
           cookie-max-age: 10m

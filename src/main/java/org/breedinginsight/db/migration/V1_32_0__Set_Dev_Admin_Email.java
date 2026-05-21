@@ -69,19 +69,56 @@ public class V1_32_0__Set_Dev_Admin_Email extends BaseJavaMigration {
 
     private void addConstraint(Context context) throws SQLException {
         final String CONSTRAINT_NAME = "email_orcid";
-        // First, drop the constraint if it already exist.
+        // First, drop the constraint if it already exists.
         try (Statement altTable = context.getConnection().createStatement()) {
-            String sql = "ALTER TABLE bi_user DROP CONSTRAINT IF EXISTS "+ CONSTRAINT_NAME;
+            String sql = "ALTER TABLE bi_user DROP CONSTRAINT IF EXISTS " + CONSTRAINT_NAME;
             log.debug(sql);
             altTable.executeUpdate(sql);
         }
 
-        // Add new constraint
-        try (Statement altTable = context.getConnection().createStatement()) {
-            String sql = "ALTER TABLE bi_user\n" +
-                    "ADD CONSTRAINT " +CONSTRAINT_NAME+ " CHECK ( (email IS NOT NULL ) OR (orcid IS NULL) ) ;";
-            log.debug(sql);
-            altTable.executeUpdate(sql);
+        /* NOTE:
+        * (1) Because Java-based migrations don't run at build time, they end up running last (out of order) on
+        * application startup. If they haven't been applied to the database already. For that reason, the reference
+        * to column `orcid` was changed to `oauth_id` 2025-08-25 to allow this migration to run after
+        * V1.34.0__rename-orcid.sql.
+        *
+        * (2) At test time, however, the build has already run, but a fresh database is set up at runtime.
+        * Migrations run in order in this context, meaning this Java-based migration runs before
+        * V1.34.0__rename-orcid.sql, hence the logic below to check for the existence of the old column.
+        */
+
+        // Determine if the old column, orcid, exists (true when migrations run in order).
+        String orcidExistsSQL = "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bi_user' AND column_name='orcid') AS exists;";
+        Boolean orcidExists = false;
+        try (Statement existsQuery = context.getConnection().createStatement()) {
+            var resultSet = existsQuery.executeQuery(orcidExistsSQL);
+            if (resultSet.next()) {
+                orcidExists = resultSet.getBoolean("exists");
+            }
+        }
+
+        if (orcidExists) {
+            try (Statement altTable = context.getConnection().createStatement()) {
+
+                String oldSql = "ALTER TABLE bi_user\n" +
+                        "ADD CONSTRAINT " + CONSTRAINT_NAME + " CHECK ( (email IS NOT NULL ) OR (orcid IS NULL) ) ;";
+
+                log.debug("Attempting to reference `orcid` column.");
+                altTable.executeUpdate(oldSql);
+                log.debug(oldSql);
+                log.debug("Successfully referenced `orcid` column.");
+            }
+        } else {
+            try (Statement newAltTable = context.getConnection().createStatement()) {
+                String newSql = "ALTER TABLE bi_user\n" +
+                        "ADD CONSTRAINT " +CONSTRAINT_NAME+ " CHECK ( (email IS NOT NULL ) OR (oauth_id IS NULL) ) ;";
+
+                log.debug("Referencing `orcid` column failed.");
+                log.debug("Attempting to reference `oauth_id` column.");
+                newAltTable.executeUpdate(newSql);
+                log.debug(newSql);
+                log.debug("Successfully referenced `oauth_id` column.");
+            }
         }
     }
 }

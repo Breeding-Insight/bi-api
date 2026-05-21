@@ -67,11 +67,11 @@ public class UserDAOImpl extends BiUserDao implements UserDAO {
         return Utilities.getSingleOptional(users);
     }
 
-    public Optional<User> getUserByOrcId(String orcid) {
+    public Optional<User> getUserByOAuthId(String oAuthId) {
         List<Record> records = getUsersQuery()
-                .where(BI_USER.ORCID.eq(orcid))
+                .where(BI_USER.OAUTH_ID.eq(oAuthId))
                 .fetch();
-        List<ProgramUser> programUsers = programUserDAO.getProgramUsersByOrcid(orcid);
+        List<ProgramUser> programUsers = programUserDAO.getProgramUsersByOAuthId(oAuthId);
         List<User> users = parseRecords(records, programUsers);
 
         return Utilities.getSingleOptional(users);

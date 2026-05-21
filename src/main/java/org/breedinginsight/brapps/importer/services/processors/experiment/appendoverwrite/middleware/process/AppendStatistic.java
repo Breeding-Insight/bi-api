@@ -18,6 +18,7 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process;
 
 import io.micronaut.context.annotation.Prototype;
+import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 
 import java.util.HashSet;
@@ -32,6 +33,8 @@ public class AppendStatistic {
     private int newCount;
     private int existingCount;
     private int mutatedCount;
+    @Setter
+    private int obsVarCount;
 
     public AppendStatistic() {
         this.clearData();
@@ -44,6 +47,7 @@ public class AppendStatistic {
         this.newCount = 0;
         this.existingCount = 0;
         this.mutatedCount = 0;
+        this.obsVarCount = 0;
     }
     public int incrementNewCount(Integer value) {
         int increment = 0;
@@ -94,6 +98,7 @@ public class AppendStatistic {
         ImportPreviewStatistics newStats = ImportPreviewStatistics.builder().newObjectCount(newCount).build();
         ImportPreviewStatistics existingStats = ImportPreviewStatistics.builder().newObjectCount(existingCount).build();
         ImportPreviewStatistics mutatedStats = ImportPreviewStatistics.builder().newObjectCount(mutatedCount).build();
+        ImportPreviewStatistics obsVarStats = ImportPreviewStatistics.builder().newObjectCount(obsVarCount).build();
 
         return Map.of(
                 "Environments", environmentStats,
@@ -101,7 +106,8 @@ public class AppendStatistic {
                 "GIDs", gidStats,
                 "Observations", newStats,
                 "Existing_Observations", existingStats,
-                "Mutated_Observations", mutatedStats
+                "Mutated_Observations", mutatedStats,
+                "Observation_Variables", obsVarStats
         );
     }
 }

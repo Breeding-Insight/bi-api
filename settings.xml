@@ -52,7 +52,7 @@
                 <repository>
                     <id>github-fannypack</id>
                     <name>FannyPack github repository</name>
-                    <url>https://maven.pkg.github.com/Kowalski-IO/fannypack</url>
+                    <url>https://maven.pkg.github.com/BrandonKowalski/fannypack</url>
                     <releases><enabled>true</enabled></releases>
                     <snapshots><enabled>true</enabled></snapshots>
                 </repository>

@@ -164,20 +164,15 @@ public class ExperimentTrialService {
      * Initializes trials by name without scope for the given program.
      *
      * @param program                   the program to initialize trials for
-     * @param observationUnitByNameNoScope   a map of observation units by name without scope
      * @param experimentImportRows      a list of experiment observation rows
      * @return a map of trials by name with pending import objects
      *
-     * @throws InternalServerException
      */
-    public Map<String, PendingImportObject<BrAPITrial>> initializeTrialByNameNoScope(Program program, Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope,
-                                                                                      List<ExperimentObservation> experimentImportRows) {
+    public Map<String, PendingImportObject<BrAPITrial>> initializeTrialByNameNoScope(Program program,
+                                                                                     List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPITrial>> trialByName = new HashMap<>();
 
-        initializeTrialsForExistingObservationUnits(program, observationUnitByNameNoScope, trialByName);
-
         List<String> uniqueTrialNames = experimentImportRows.stream()
-                .filter(row -> StringUtils.isBlank(row.getObsUnitID()))
                 .map(ExperimentObservation::getExpTitle)
                 .distinct()
                 .collect(Collectors.toList());

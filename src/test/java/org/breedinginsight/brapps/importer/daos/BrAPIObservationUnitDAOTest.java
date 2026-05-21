@@ -36,6 +36,7 @@ import java.util.UUID;
 
 import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -92,7 +93,7 @@ public class BrAPIObservationUnitDAOTest extends BrAPITest {
 
         // Insert system admin role so can create program
         FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
-        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        User testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).get();
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
@@ -119,12 +120,14 @@ public class BrAPIObservationUnitDAOTest extends BrAPITest {
     @SneakyThrows
     @Order(1)
     public void testCreateObservationUnitAdditionalInfoSingleTreatmentFactor() {
-        // create observation unit with treatments only in additional info to simulate breedbase not populating
         // treatments field
         BrAPIObservationUnit ou1 = new BrAPIObservationUnit();
         ou1.setObservationUnitName("test1");
-        ou1.putAdditionalInfoItem(BrAPIAdditionalInfoFields.TREATMENTS, List.of(testTreatment));
         ou1.setProgramDbId(validProgram.getBrapiProgram().getProgramDbId());
+
+        var treatment = new BrAPIObservationTreatment();
+        treatment.setFactor("ou1 treatment");
+        ou1.setTreatments(List.of(treatment));
         // Set xref.
         BrAPIExternalReference xref = new BrAPIExternalReference();
         xref.setReferenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATION_UNITS));
@@ -153,6 +156,9 @@ public class BrAPIObservationUnitDAOTest extends BrAPITest {
 
         BrAPIObservationTreatment treatment = treatments.get(0);
         assertEquals(expectedTreatment, treatment, "Expected treatments to be same");
+
+        // Storing treatments in additionalInfo is no longer necessary since BrAPI server stores treatments in observation_unit_treatment
+        assertNull(ou.getAdditionalInfo(), "Expected OU additionalInfo to be null");
     }
 
 }

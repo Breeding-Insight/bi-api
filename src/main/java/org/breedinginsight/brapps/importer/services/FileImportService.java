@@ -458,6 +458,13 @@ public class FileImportService {
                 progress.setBody(JSONB.valueOf(json));
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
+            } catch (BadRequestException e) {
+                log.error(e.getMessage(), e);
+                ImportProgress progress = upload.getProgress();
+                progress.setStatuscode((short) HttpStatus.BAD_REQUEST.getCode());
+                progress.setMessage(e.getMessage());
+                progress.setUpdatedBy(actingUser.getId());
+                importDAO.update(upload);
             } catch (Exception e) {
                 if(e instanceof ApiException) {
                     log.error("Error making BrAPI call: " + Utilities.generateApiExceptionLogMessage((ApiException) e), e);

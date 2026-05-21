@@ -52,6 +52,7 @@ import java.util.regex.Pattern;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.OBSERVATION_UNIT_ID_SUFFIX;
 
 /**
  * Intended to be a utility class, but methods being static was causing issues.
@@ -180,7 +181,7 @@ public class ImportTestUtils {
                 .getAsJsonArray("data")
                 .get(0).getAsJsonObject().get("id").getAsString();
 
-        BiUserEntity testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        BiUserEntity testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).get();
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId());
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
@@ -239,16 +240,34 @@ public class ImportTestUtils {
                                              Program program,
                                              String mappingId,
                                              String workflowId) throws InterruptedException {
-        Flowable<HttpResponse<String>> call = uploadWorkflowDataFile(file, userData, commit, client, program, mappingId, workflowId);
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
-
-        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
-
-        HttpResponse<String> upload = getUploadedFile(importId, client, program, mappingId);
-        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonObject result = generatePreview(file,userData, commit, client, program, mappingId, workflowId);
         assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
         return result;
+    }
+
+    public JsonObject uploadAndFetchWorkflowPreview(File file,
+                                                    Map<String, String> userData,
+                                                    Boolean commit,
+                                                    RxHttpClient client,
+                                                    Program program,
+                                                    String mappingId,
+                                                    String workflowId) throws InterruptedException {
+        return generatePreview(file, userData, commit, client, program, mappingId, workflowId);
+    }
+
+    private JsonObject generatePreview(File file,
+                               Map<String, String> userData,
+                               Boolean commit,
+                               RxHttpClient client,
+                               Program program,
+                               String mappingId,
+                               String workflowId) throws InterruptedException {
+        Flowable<HttpResponse<String>> call = uploadWorkflowDataFile(file, userData, commit, client, program, mappingId, workflowId);
+        HttpResponse<String> response = call.blockingFirst();
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+        HttpResponse<String> upload = getUploadedFile(importId, client, program, mappingId);
+
+        return JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
     }
 
     public JsonObject uploadAndFetchWorkflowNoStatusCheck(File file,
@@ -296,7 +315,8 @@ public class ImportTestUtils {
         return traits;
     }
 
-    public File writeExperimentDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
+    public File writeExperimentDataToFile(List<Map<String, Object>> data, List<Trait> traits, boolean ObsUnitIDCol, boolean isSubEntity, String level) throws IOException {
+        String obsLevel = level == null ? "Plot" : level;
         File file = File.createTempFile("test", ".csv");
 
         List<Column> columns = new ArrayList<>();
@@ -306,13 +326,17 @@ public class ImportTestUtils {
         columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_TITLE).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_DESCRIPTION).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_UNIT).dataType(Column.ColumnDataType.STRING).build());
-        //columns.add(Column.builder().value(ExperimentObservation.Columns.SUB_OBS_UNIT).dataType(Column.ColumnDataType.STRING).build());
+        if (isSubEntity) {
+            columns.add(Column.builder().value(ExperimentObservation.Columns.SUB_OBS_UNIT).dataType(Column.ColumnDataType.STRING).build());
+        }
         columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_TYPE).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.ENV).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.ENV_LOCATION).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.ENV_YEAR).dataType(Column.ColumnDataType.INTEGER).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
-        //columns.add(Column.builder().value(ExperimentObservation.Columns.SUB_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
+        if (isSubEntity) {
+            columns.add(Column.builder().value(ExperimentObservation.Columns.SUB_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
+        }
         columns.add(Column.builder().value(ExperimentObservation.Columns.REP_NUM).dataType(Column.ColumnDataType.INTEGER).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.BLOCK_NUM).dataType(Column.ColumnDataType.INTEGER).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.ROW).dataType(Column.ColumnDataType.INTEGER).build());
@@ -322,7 +346,10 @@ public class ImportTestUtils {
         columns.add(Column.builder().value(ExperimentObservation.Columns.ELEVATION).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.RTK).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.TREATMENT_FACTORS).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.OBS_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
+
+        if (ObsUnitIDCol) {
+            columns.add(Column.builder().value(obsLevel + " " + OBSERVATION_UNIT_ID_SUFFIX).dataType(Column.ColumnDataType.STRING).build());
+        }
 
         if(traits != null) {
             traits.forEach(trait -> {

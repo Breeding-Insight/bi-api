@@ -83,13 +83,13 @@
         <geojson-jackson.version>1.14</geojson-jackson.version>
         <apache-commons-csv.version>1.9.0</apache-commons-csv.version>
         <apache-commons-lang.version>3.12.0</apache-commons-lang.version>
-        <testcontainers.version>1.16.3</testcontainers.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
         <!-- Version of flyway dependent on version of micronaut -->
         <flyway.version>7.7.3</flyway.version>
         <guava.version>31.0.1-jre</guava.version>
         <okhttp.version>4.9.3</okhttp.version>
         <mockito.version>4.3.1</mockito.version>
-        <brapi-java-client.version>2.1-SNAPSHOT</brapi-java-client.version>
+        <brapi-java-client.version>2.2.0</brapi-java-client.version>
         <commons-io.version>2.11.0</commons-io.version>
         <tika-app.version>2.2.1</tika-app.version>
         <!-- Version of apache-poi depends on version of tika. Tika uses these. -->
@@ -190,6 +190,11 @@
         <dependency>
             <groupId>io.micronaut</groupId>
             <artifactId>micronaut-inject</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-http-client</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -537,6 +542,16 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Temporary: skip Gigwa IT until the Gigwa image issue is resolved -->
+                    <excludes>
+                        <exclude>**/GigwaGenotypeServiceImplIntegrationTest.java</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.jooq</groupId>
                 <artifactId>jooq-codegen-maven</artifactId>
                 <version>${jooq.version}</version>
@@ -619,6 +634,10 @@
                     <url>jdbc:postgresql://${DB_SERVER}/${DB_NAME}</url>
                     <user>${DB_USER}</user>
                     <password>${DB_PASSWORD}</password>
+                    <locations>
+                        <location>filesystem:src/main/java/org/breedinginsight/db/migration</location>
+                        <location>filesystem:src/main/resources/db/migration</location>
+                    </locations>
                 </configuration>
                 <dependencies>
                     <dependency>

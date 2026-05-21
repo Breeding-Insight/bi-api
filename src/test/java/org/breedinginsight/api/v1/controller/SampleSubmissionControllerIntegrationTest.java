@@ -48,7 +48,6 @@ import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.parsers.ParsingException;
-import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
 import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.utilities.FileUtil;
 import org.breedinginsight.utilities.Utilities;
@@ -102,7 +101,7 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
         FannyPack brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
         // Test User
-        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
+        User testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Species
@@ -407,7 +406,7 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
                 .get(0).getAsJsonObject().get("id").getAsString();
 
         JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
-                importTestUtils.writeExperimentDataToFile(List.of(makeExpImportRow("Env1")), null),
+                importTestUtils.writeExperimentDataToFile(List.of(makeExpImportRow("Env1")), null, false, false, null),
                 null,
                 true,
                 client,

@@ -1,4 +1,4 @@
-/*
+    /*
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership.
  *
@@ -43,6 +43,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.create
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingImportObjectData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentSeasonService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
@@ -76,6 +77,7 @@ public class PopulateNewPendingImportObjectsStep {
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final DSLContext dsl;
     private final Gson gson;
+    private final DatasetService datasetService;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -83,11 +85,12 @@ public class PopulateNewPendingImportObjectsStep {
     @Inject
     public PopulateNewPendingImportObjectsStep(ExperimentSeasonService experimentSeasonService,
                                                BrAPIObservationUnitDAO brAPIObservationUnitDAO,
-                                               DSLContext dsl) {
+                                               DSLContext dsl, DatasetService datasetService) {
         this.experimentSeasonService = experimentSeasonService;
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.dsl = dsl;
         this.gson = new JSON().getGson();
+        this.datasetService = datasetService;
     }
 
     /**
@@ -302,7 +305,9 @@ public class PopulateNewPendingImportObjectsStep {
         boolean commit = importContext.isCommit();
         Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = pendingData.getTrialByNameNoScope();
         Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = pendingData.getStudyByNameNoScope();
+        Map<String, String> expUnitByTrialName = pendingData.getExpUnitByTrialName();
 
+        //Experiment titles and environment checks
         if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
             PendingImportObject<BrAPIStudy> envPio;
             trialPio = trialByNameNoScope.get(importRow.getExpTitle());
@@ -310,7 +315,7 @@ public class PopulateNewPendingImportObjectsStep {
 
             // creating new units for existing experiments and environments is not possible
             if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() &&
-                    (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
+                    (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
                 throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
             }
         } else if (!trialByNameNoScope.isEmpty()) {
@@ -325,6 +330,13 @@ public class PopulateNewPendingImportObjectsStep {
             trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
             // NOTE: moved up a level
             //trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
+        }
+
+        //Experiment unit duplicate check
+        if (expUnitByTrialName.get(importRow.getExpTitle()) == null) {
+            expUnitByTrialName.put(importRow.getExpTitle(), importRow.getExpUnit());
+        } else if (!expUnitByTrialName.get(importRow.getExpTitle()).equalsIgnoreCase(importRow.getExpUnit())) {
+            throw new UnprocessableEntityException(MULTIPLE_EXP_UNITS);
         }
 
         return trialPio;
@@ -361,7 +373,7 @@ public class PopulateNewPendingImportObjectsStep {
             pio = obsVarDatasetByName.get(name);
         } else {
             UUID id = UUID.randomUUID();
-            BrAPIListDetails newDataset = importRow.constructDatasetDetails(
+            BrAPIListDetails newDataset = datasetService.constructDatasetDetails(
                     name,
                     id,
                     BRAPI_REFERENCE_SOURCE,
@@ -517,7 +529,7 @@ public class PopulateNewPendingImportObjectsStep {
         String key = ExperimentUtilities.createObservationUnitKey(importRow);
         // NOTE: removed other workflow
 
-        if (observationUnitByNameNoScope.containsKey(key)) {
+        if (observationUnitByNameNoScope!=null && observationUnitByNameNoScope.containsKey(key)) {
             pio = observationUnitByNameNoScope.get(key);
         } else {
             String germplasmName = "";
@@ -551,6 +563,9 @@ public class PopulateNewPendingImportObjectsStep {
                 }
             } else {
                 pio = new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit, id);
+            }
+            if(observationUnitByNameNoScope==null){
+                observationUnitByNameNoScope = new HashMap<>();
             }
             observationUnitByNameNoScope.put(key, pio);
         }
