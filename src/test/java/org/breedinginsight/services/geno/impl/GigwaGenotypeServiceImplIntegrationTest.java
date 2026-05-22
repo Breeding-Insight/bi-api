@@ -38,6 +38,7 @@ import org.brapi.v2.model.geno.response.BrAPISampleListResponse;
 import org.brapi.v2.model.geno.response.BrAPISampleListResponseResult;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPISampleDAO;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
@@ -129,6 +130,9 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     private BrAPISampleDAO sampleDAO;
 
     @Inject
+    private BrAPIGermplasmDAO germplasmDAO;
+
+    @Inject
     private ObjectMapper objectMapper;
 
     @Inject
@@ -210,6 +214,18 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
             return mock(SampleSubmissionDAO.class);
         }
     }
+
+    @Factory
+    @Requires(property = "micronaut.test.active.spec", value = "org.breedinginsight.services.geno.impl.GigwaGenotypeServiceImplIntegrationTest")
+    static class GermplasmDaoTestFactory {
+
+        @Singleton
+        @Replaces(BrAPIGermplasmDAO.class)
+        BrAPIGermplasmDAO germplasmDAO() {
+            return mock(BrAPIGermplasmDAO.class);
+        }
+    }
+
 
     private GenericContainer gigwa;
 
@@ -346,7 +362,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
     //TODO: Enable in BI-2841
     @Test
-    @Disabled("BI-2841: retrieveGenotypeData should target BrAPI samples directly instead of resolving samples through observation units")
+    //@Disabled("BI-2841: retrieveGenotypeData should target BrAPI samples directly instead of resolving samples through observation units")
     public void testFetchGermplasmGenotype() throws AuthorizationException, ApiException, DoesNotExistException {
         UUID programId = UUID.fromString("8b667063-480b-4b0a-862c-7eaa651dda28");
         String programKey = "TESTFETCH";
@@ -370,7 +386,12 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getCoreClient(any(UUID.class));
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getPhenoClient(any(UUID.class));
 
-        GermplasmGenotype germplasmGenotype = gigwaGenoStorageService.retrieveGenotypeData(programId, germplasm);
+        assertTrue(mockingDetails(germplasmDAO).isMock(), germplasmDAO.getClass().getName());
+
+        doReturn(germplasm).when(germplasmDAO)
+                .getGermplasmByUUID(any(String.class), any(UUID.class));
+
+        GermplasmGenotype germplasmGenotype = gigwaGenoStorageService.retrieveGenotypeData(programId, UUID.randomUUID());
 
         verify(brAPIEndpointProvider, never()).get(any(BrAPIClient.class), eq(ObservationUnitsApi.class));
         verify(mockSamplesApi).searchSamplesPost(argThat(searchRequest -> searchRequest.getGermplasmDbIds() != null &&
