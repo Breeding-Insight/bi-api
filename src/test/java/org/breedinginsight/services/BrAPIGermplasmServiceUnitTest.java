@@ -1,5 +1,6 @@
 package org.breedinginsight.services;
 
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
@@ -37,7 +38,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -165,12 +166,94 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         List<String> expectedColumnNames = GermplasmFileColumns.getOrderedColumns().stream().map(c -> c.getValue()).collect(Collectors.toList());
 
         //Check file values
-        assertEquals(listName+"_"+timestamp, downloadFile.getFileName(), "Incorrect export file name");
+        assertEquals(listName + "_" + timestamp, downloadFile.getFileName(), "Incorrect export file name");
         assertEquals(expectedColumnNames, resultTable.columnNames(), "Incorrect columns were exported");
         assertEquals(2, resultTable.rowCount(), "Wrong number of rows were exported");
         assertEquals("Germplasm A", resultTable.get(0, 1), "Incorrect data exported");
         // Check that "GID" column matches "Entry No" for both (https://breedinginsight.atlassian.net/browse/BI-2266).
-        assertEquals(resultTable.get(0,0), resultTable.get(0, 6), "Incorrect data exported");
-        assertEquals(resultTable.get(1,0), resultTable.get(1, 6), "Incorrect data exported");
+        assertEquals(resultTable.get(0, 0), resultTable.get(0, 6), "Incorrect data exported");
+        assertEquals(resultTable.get(1, 0), resultTable.get(1, 6), "Incorrect data exported");
+    }
+
+    @Test
+    public void processListDataAllowsBlankOptionalFieldsForProgramExport() { // NEW: covers full germplasm export path
+        Program testProgram = new Program();
+        testProgram.setKey("TEST");
+
+        BrAPIGermplasm testGermplasm = new BrAPIGermplasm();
+        testGermplasm.setGermplasmName("Germplasm A");
+        testGermplasm.setAccessionNumber("1");
+
+        JsonObject additionalInfo = new JsonObject();
+        additionalInfo.addProperty(GERMPLASM_BREEDING_METHOD, false);
+        additionalInfo.addProperty(MALE_PARENT_UNKNOWN, false);
+        additionalInfo.addProperty(FEMALE_PARENT_UNKNOWN, false);
+
+        testGermplasm.setAdditionalInfo(additionalInfo);
+        testGermplasm.setExternalReferences(null);
+
+        germplasmService = new BrAPIGermplasmService(listDAO, programService, germplasmDAO);
+
+        List<Map<String, Object>> processedData = germplasmService.processListData(
+                Collections.singletonList(testGermplasm),
+                null,
+                testProgram
+        );
+
+        assertEquals(1, processedData.size());
+        assertEquals("Germplasm A", processedData.get(0).get("Germplasm Name"));
+        assertEquals(1, processedData.get(0).get("Entry No"));
+        assertTrue(processedData.get(0).containsKey("Breeding Method"));
+        assertFalse(processedData.get(0).containsKey("Source"));
+        assertFalse(processedData.get(0).containsKey("External UID"));
+    }
+
+    @Test
+    public void processListDataAllowsBlankOptionalFieldsForListExport() {
+        Program testProgram = new Program();
+        testProgram.setKey("TEST");
+
+        BrAPIGermplasm blankOptionalFields = new BrAPIGermplasm();
+        blankOptionalFields.setGermplasmName("Germplasm A");
+        blankOptionalFields.setAccessionNumber("1");
+        blankOptionalFields.setSeedSource("");
+
+        JsonObject blankInfo = new JsonObject();
+        blankInfo.add(GERMPLASM_BREEDING_METHOD, JsonNull.INSTANCE);
+        blankInfo.addProperty(MALE_PARENT_UNKNOWN, false);
+        blankInfo.addProperty(FEMALE_PARENT_UNKNOWN, false);
+
+        blankOptionalFields.setAdditionalInfo(blankInfo);
+        blankOptionalFields.setExternalReferences(new ArrayList<>());
+
+        BrAPIGermplasm orderedFirst = new BrAPIGermplasm();
+        orderedFirst.setGermplasmName("Germplasm B");
+        orderedFirst.setAccessionNumber("2");
+        orderedFirst.setSeedSource("Cultivated");
+
+        JsonObject orderedFirstInfo = new JsonObject();
+        orderedFirstInfo.addProperty(GERMPLASM_BREEDING_METHOD, "Autopolyploid");
+        orderedFirstInfo.addProperty(MALE_PARENT_UNKNOWN, false);
+        orderedFirstInfo.addProperty(FEMALE_PARENT_UNKNOWN, false);
+
+        orderedFirst.setAdditionalInfo(orderedFirstInfo);
+        orderedFirst.setExternalReferences(new ArrayList<>());
+
+        germplasmService = new BrAPIGermplasmService(listDAO, programService, germplasmDAO);
+
+        List<Map<String, Object>> processedData = germplasmService.processListData(
+                Arrays.asList(blankOptionalFields, orderedFirst),
+                Arrays.asList("Germplasm B [TEST-2]", "Germplasm A [TEST-1]"),
+                testProgram
+        );
+
+        assertEquals(2, processedData.size());
+        assertEquals("Germplasm B", processedData.get(0).get("Germplasm Name"));
+        assertEquals(1, processedData.get(0).get("Entry No"));
+        assertEquals("Germplasm A", processedData.get(1).get("Germplasm Name"));
+        assertEquals(2, processedData.get(1).get("Entry No"));
+        assertEquals("", processedData.get(1).get("Source"));
+        assertFalse(processedData.get(1).containsKey("Breeding Method"));
+        assertFalse(processedData.get(1).containsKey("External UID"));
     }
 }

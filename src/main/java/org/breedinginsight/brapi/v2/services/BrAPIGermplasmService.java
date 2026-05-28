@@ -120,7 +120,8 @@ public class BrAPIGermplasmService {
             // Strip programKey and accessionNumber from germplasmName for the file output.
             row.put("Germplasm Name", Utilities.removeProgramKeyAnyAccession(germplasmEntry.getGermplasmName(), program.getKey()));
             if (germplasmEntry.getAdditionalInfo() != null &&
-                    germplasmEntry.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD)) {
+                    germplasmEntry.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD) &&
+                    !germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).isJsonNull()) {
                 row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString());
             }
 
