@@ -50,4 +50,7 @@ public interface BrAPITrialDAO {
     void deleteBrAPITrial(Program program, BrAPITrial trial, boolean hard) throws ApiException;
 
     BrAPITrialListResponse brapiTrialSearch(Program program, ExperimentQuery experimentQuery) throws ApiException;
+
+    BrAPITrialListResponse brapiTrialSearch(Program program, List<UUID> brapiTrialIds, ExperimentQuery experimentQuery) throws ApiException;
+
 }

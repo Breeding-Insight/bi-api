@@ -127,6 +127,12 @@ public class BrAPITrialService {
         return trialDAO.brapiTrialSearch(program, experimentQuery);
     }
 
+    public BrAPITrialListResponse searchTrials(Program program,
+                                               List<UUID> brapiTrialIds,
+                                               ExperimentQuery experimentQuery) throws ApiException, DoesNotExistException {
+        return trialDAO.brapiTrialSearch(program, brapiTrialIds, experimentQuery);
+    }
+
     public List<BrAPITrial> getTrialsByProgramId(UUID programId) throws ApiException {
         return trialDAO.getTrials(programId);
     }

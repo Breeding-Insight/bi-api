@@ -227,11 +227,17 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
     }
 
     @Override
+    public BrAPITrialListResponse brapiTrialSearch(Program program, ExperimentQuery experimentQuery) throws ApiException {
+        return brapiTrialSearch(program, Collections.emptyList(), experimentQuery);
+    }
+
+    @Override
     public BrAPITrialListResponse brapiTrialSearch(Program program,
-                                             ExperimentQuery experimentQuery) throws ApiException {
+                                                   List<UUID> brapiTrialIds,
+                                                   ExperimentQuery experimentQuery) throws ApiException {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
 
-        BrAPITrialSearchRequest brAPITrialSearchRequest = buildSearchRequest(program, experimentQuery);
+        BrAPITrialSearchRequest brAPITrialSearchRequest = buildSearchRequest(program, brapiTrialIds, experimentQuery);
 
         BrAPITrialListResponse brAPIResponse =
                 brAPIDAOUtil.simpleSearch(
@@ -263,7 +269,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
     }
 
 
-    private BrAPITrialSearchRequest buildSearchRequest(Program program, ExperimentQuery experimentQuery) {
+    private BrAPITrialSearchRequest buildSearchRequest(Program program, List<UUID> brapiTrialIds, ExperimentQuery experimentQuery) {
         BrAPIProgram brAPIProgram = programDAO.getProgramBrAPI(program);
 
         if (brAPIProgram == null || brAPIProgram.getProgramDbId() == null) {
@@ -273,6 +279,10 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         BrAPITrialSearchRequest searchRequest = new BrAPITrialSearchRequest();
 
         searchRequest.programDbIds(List.of(brAPIProgram.getProgramDbId()));
+
+        if (brapiTrialIds != null && !brapiTrialIds.isEmpty()) {
+            searchRequest.setTrialDbIds(brapiTrialIds.stream().map(UUID::toString).collect(Collectors.toList()));
+        }
 
         // Set FilterBy
         List<BrAPIFilterBy> brAPIFilterBy = new ArrayList<>();

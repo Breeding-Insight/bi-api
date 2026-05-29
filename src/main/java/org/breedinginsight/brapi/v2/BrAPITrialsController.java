@@ -104,9 +104,14 @@ public class BrAPITrialsController {
             Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
             if (experimentalCollaborator.isPresent()) {
                 // TODO: Modify this code to use brapi side filter, pagination and sort
-                List<UUID> experimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
-                List<BrAPITrial> authorizedExperiments = experimentService.getTrialsByExperimentIds(program.get(), experimentIds).stream().peek(this::setDbIds).collect(Collectors.toList());
-                return ResponseUtils.getBrapiQueryResponse(authorizedExperiments, experimentQueryMapper, queryParams, searchRequest);
+                List<UUID> authorizedExperimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
+
+                BrAPITrialListResponse brapiResponse = experimentService.searchTrials(program.get(), authorizedExperimentIds, queryParams);
+
+                List<BrAPITrial> foundTrials = brapiResponse.getResult().getData();
+                foundTrials.forEach(this::setDbIds);
+
+                return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse, queryParams);
             }
 
             BrAPITrialListResponse brapiResponse = experimentService.searchTrials(program.get(), queryParams);
