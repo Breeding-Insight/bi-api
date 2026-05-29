@@ -185,12 +185,11 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         testGermplasm.setAccessionNumber("1");
 
         JsonObject additionalInfo = new JsonObject();
-        additionalInfo.addProperty(GERMPLASM_BREEDING_METHOD, false);
         additionalInfo.addProperty(MALE_PARENT_UNKNOWN, false);
         additionalInfo.addProperty(FEMALE_PARENT_UNKNOWN, false);
 
         testGermplasm.setAdditionalInfo(additionalInfo);
-        testGermplasm.setExternalReferences(null);
+        testGermplasm.setExternalReferences(new ArrayList<>());
 
         germplasmService = new BrAPIGermplasmService(listDAO, programService, germplasmDAO);
 
@@ -203,7 +202,7 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         assertEquals(1, processedData.size());
         assertEquals("Germplasm A", processedData.get(0).get("Germplasm Name"));
         assertEquals(1, processedData.get(0).get("Entry No"));
-        assertTrue(processedData.get(0).containsKey("Breeding Method"));
+        assertFalse(processedData.get(0).containsKey("Breeding Method"));
         assertFalse(processedData.get(0).containsKey("Source"));
         assertFalse(processedData.get(0).containsKey("External UID"));
     }
