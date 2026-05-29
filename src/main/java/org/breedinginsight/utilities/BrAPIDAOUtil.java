@@ -35,6 +35,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.*;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
+import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
@@ -79,10 +80,7 @@ public class BrAPIDAOUtil {
     // Also verifies response paging matches requested paging
     public <T extends BrAPIResponse, U extends BrAPISearchRequestParametersPaging, V> T simpleSearch(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
                                                                                      U searchBody) throws ApiException {
-        List<V> result = new ArrayList<>();
-
-
-        T brapiResponseResult = null;
+        T brapiResponseResult;
 
         try {
             // Traverse response with an optional to allow for free null checking with .map()
@@ -529,5 +527,19 @@ public class BrAPIDAOUtil {
         sortBy.setSortOrder(sortOrderEnum);
 
         return sortBy;
+    }
+
+    public <T extends BrAPISearchRequestParametersPaging, U extends BrapiQuery> void setPagination(T brapiSearchRequest, U biSearchQuery) {
+        if (biSearchQuery.getPage() == null) {
+            brapiSearchRequest.setPage(biSearchQuery.getDefaultPage());
+        } else {
+            brapiSearchRequest.setPage(biSearchQuery.getPage());
+        }
+
+        if (biSearchQuery.getPageSize() == null) {
+            brapiSearchRequest.setPageSize(biSearchQuery.getDefaultPageSize());
+        } else  {
+            brapiSearchRequest.setPageSize(biSearchQuery.getPageSize());
+        }
     }
 }

@@ -305,8 +305,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
             searchRequest.setSortBy(brAPISortBy);
         }
 
-        searchRequest.setPage(experimentQuery.getPage());
-        searchRequest.setPageSize(experimentQuery.getPageSize());
+        brAPIDAOUtil.setPagination(searchRequest, experimentQuery);
 
         return searchRequest;
 
