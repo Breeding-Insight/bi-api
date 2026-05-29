@@ -24,6 +24,8 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import org.apache.commons.lang3.tuple.Pair;
+import org.brapi.client.v2.model.queryParams.core.BrAPIQueryParams;
+import org.brapi.v2.model.BrAPIResponse;
 import org.breedinginsight.api.model.v1.request.query.PaginationParams;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -127,6 +129,19 @@ public class ResponseUtils {
         Pair<List, Pagination> paginationResult = paginateData(data, queryParams);
         metadata = constructMetadata(metadata, paginationResult.getRight());
         return HttpResponse.ok(new Response(metadata, new DataResponse(paginationResult.getLeft())));
+    }
+
+    public static <T> HttpResponse<Response<DataResponse<T>>> getBrapiQueryResponse(List<T> data,
+                                                                                    BrAPIResponse brAPIResponse,
+                                                                                    BrapiQuery queryParams) {
+        Pagination pagination = new Pagination();
+        pagination.setTotalCount(brAPIResponse.getMetadata().getPagination().getTotalCount());
+        pagination.setCurrentPage(queryParams.getPage());
+        pagination.setPageSize(queryParams.getPageSize());
+
+        Metadata metadata = constructMetadata(new Metadata(), pagination);
+
+        return HttpResponse.ok(new Response<>(metadata, new DataResponse<>(data)));
     }
 
     private static <T> HttpResponse<Response<ProgramUpload>> processUploadSearchResponse(

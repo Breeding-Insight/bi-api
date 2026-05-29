@@ -15,6 +15,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
+import org.brapi.v2.model.core.response.BrAPITrialListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 
 import org.brapi.v2.model.pheno.*;
@@ -22,6 +23,7 @@ import org.breedinginsight.api.model.v1.request.SubEntityDatasetRequest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.*;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
+import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation.Columns;
@@ -120,8 +122,12 @@ public class BrAPITrialService {
         this.observationLevelService = observationLevelService;
     }
 
-    public List<BrAPITrial> getExperiments(UUID programId) throws ApiException, DoesNotExistException {
-        // TODO: Edit this to filter/paginate trials
+    public BrAPITrialListResponse searchTrials(Program program,
+                                               ExperimentQuery experimentQuery) throws ApiException, DoesNotExistException {
+        return trialDAO.brapiTrialSearch(program, experimentQuery);
+    }
+
+    public List<BrAPITrial> getTrialsByProgramId(UUID programId) throws ApiException {
         return trialDAO.getTrials(programId);
     }
 

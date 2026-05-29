@@ -21,15 +21,21 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 import okhttp3.Request;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.core.TrialQueryParams;
 import org.brapi.client.v2.modules.core.TrialsApi;
+import org.brapi.v2.model.BrAPIFilterBy;
+import org.brapi.v2.model.BrAPIResponse;
+import org.brapi.v2.model.BrAPISortBy;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
 import org.brapi.v2.model.core.response.BrAPITrialListResponse;
 import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
+import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
+import org.breedinginsight.brapi.v2.utilities.BrAPITrialsMapper;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
@@ -52,16 +58,25 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
     private final ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
+    private final BrAPITrialsMapper brAPITrialsMapper;
+
+
+    private static final String BI_FILTER_COLUMN_NAME = "name";
+    private static final String BI_FILTER_COLUMN_ACTIVE = "active";
+    private static final String BI_FILTER_COLUMN_CREATED_DATE = "createdDate";
+    private static final String BI_FILTER_COLUMN_CREATED_BY = "createdBy";
 
     @Inject
     public BrAPITrialDAOImpl(ProgramDAO programDAO,
                              ImportDAO importDAO,
                              BrAPIDAOUtil brAPIDAOUtil,
-                             BrAPIEndpointProvider brAPIEndpointProvider) {
+                             BrAPIEndpointProvider brAPIEndpointProvider,
+                             BrAPITrialsMapper brAPITrialsMapper) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
+        this.brAPITrialsMapper = brAPITrialsMapper;
     }
 
     /**
@@ -212,6 +227,27 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
     }
 
     @Override
+    public BrAPITrialListResponse brapiTrialSearch(Program program,
+                                             ExperimentQuery experimentQuery) throws ApiException {
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
+
+        BrAPITrialSearchRequest brAPITrialSearchRequest = buildSearchRequest(program, experimentQuery);
+
+        BrAPITrialListResponse brAPIResponse =
+                brAPIDAOUtil.simpleSearch(
+                        api::searchTrialsPost,
+                        brAPITrialSearchRequest
+                );
+
+        List<BrAPITrial> processedTrials =
+                processExperimentsForDisplay(brAPIDAOUtil.getListResult(brAPIResponse), program.getKey());
+
+        brAPIResponse.getResult().setData(processedTrials);
+
+        return brAPIResponse;
+    }
+
+    @Override
     public void deleteBrAPITrial(Program program, BrAPITrial trial, boolean hard) throws ApiException {
         // TODO: Switch to using the TrialsApi from the BrAPI client library once the delete endpoints are merged into it.
         var programBrAPIBaseUrl = brAPIDAOUtil.getProgramBrAPIBaseUrl(program.getId());
@@ -224,5 +260,55 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
                 .build();
 
         brAPIDAOUtil.makeCall(brapiRequest);
+    }
+
+
+    private BrAPITrialSearchRequest buildSearchRequest(Program program, ExperimentQuery experimentQuery) {
+        BrAPIProgram brAPIProgram = programDAO.getProgramBrAPI(program);
+
+        if (brAPIProgram == null || brAPIProgram.getProgramDbId() == null) {
+            throw new InternalServerException(String.format("BI program with id [%s] not found in BrAPI db", program.getId()));
+        }
+
+        BrAPITrialSearchRequest searchRequest = new BrAPITrialSearchRequest();
+
+        searchRequest.programDbIds(List.of(brAPIProgram.getProgramDbId()));
+
+        // Set FilterBy
+        List<BrAPIFilterBy> brAPIFilterBy = new ArrayList<>();
+
+        if (StringUtils.isNotBlank(experimentQuery.getName())) {
+            brAPIFilterBy.add(brAPIDAOUtil.constructFilterBy(brAPITrialsMapper.getBrAPIName(BI_FILTER_COLUMN_NAME), experimentQuery.getName()));
+        }
+        if (StringUtils.isNotBlank(experimentQuery.getActive())) {
+            brAPIFilterBy.add(brAPIDAOUtil.constructFilterBy(brAPITrialsMapper.getBrAPIName(BI_FILTER_COLUMN_ACTIVE), experimentQuery.getActive()));
+        }
+        if (StringUtils.isNotBlank(experimentQuery.getCreatedBy())) {
+            brAPIFilterBy.add(brAPIDAOUtil.constructFilterBy(brAPITrialsMapper.getBrAPIName(BI_FILTER_COLUMN_CREATED_BY), experimentQuery.getCreatedBy()));
+        }
+        if (StringUtils.isNotBlank(experimentQuery.getCreatedDate())) {
+            brAPIFilterBy.add(brAPIDAOUtil.constructFilterBy(brAPITrialsMapper.getBrAPIName(BI_FILTER_COLUMN_CREATED_DATE), experimentQuery.getCreatedDate()));
+        }
+
+        if (!brAPIFilterBy.isEmpty()) {
+            searchRequest.setFilterBy(brAPIFilterBy);
+        }
+
+        // Set SortBy
+        List<BrAPISortBy> brAPISortBy = new ArrayList<>();
+
+        if (StringUtils.isNotBlank(experimentQuery.getSortField()) && brAPITrialsMapper.exists(experimentQuery.getSortField())) {
+            brAPISortBy.add(brAPIDAOUtil.constructSortBy(brAPITrialsMapper.getBrAPIName(experimentQuery.getSortField()), experimentQuery.getSortOrder().toString()));
+        }
+
+        if (!brAPISortBy.isEmpty()) {
+            searchRequest.setSortBy(brAPISortBy);
+        }
+
+        searchRequest.setPage(experimentQuery.getPage());
+        searchRequest.setPageSize(experimentQuery.getPageSize());
+
+        return searchRequest;
+
     }
 }

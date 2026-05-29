@@ -26,8 +26,8 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.core.response.BrAPITrialListResponse;
 import org.brapi.v2.model.core.response.BrAPITrialSingleResponse;
 import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -43,8 +43,6 @@ import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.services.ExperimentalCollaboratorService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
-import org.breedinginsight.model.ProgramUser;
-import org.breedinginsight.model.Role;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.ResponseUtils;
@@ -52,7 +50,6 @@ import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -65,6 +62,7 @@ public class BrAPITrialsController {
 
     private final String referenceSource;
     private final BrAPITrialService experimentService;
+    // TODO: See if it's feasible to remove this mapper entirely
     private final ExperimentQueryMapper experimentQueryMapper;
     private final SecurityService securityService;
     private final ProgramUserService programUserService;
@@ -92,7 +90,7 @@ public class BrAPITrialsController {
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN
             ,ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR })
-    public HttpResponse<Response<DataResponse<List<BrAPITrial>>>> getExperiments(
+    public HttpResponse<Response<DataResponse<BrAPITrial>>> getExperiments(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = ExperimentQueryMapper.class) @Valid ExperimentQuery queryParams) {
         try {
@@ -105,13 +103,17 @@ public class BrAPITrialsController {
             // If the program user is an experimental collaborator, filter results for only authorized experiments.
             Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
             if (experimentalCollaborator.isPresent()) {
+                // TODO: Modify this code to use brapi side filter, pagination and sort
                 List<UUID> experimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
                 List<BrAPITrial> authorizedExperiments = experimentService.getTrialsByExperimentIds(program.get(), experimentIds).stream().peek(this::setDbIds).collect(Collectors.toList());
                 return ResponseUtils.getBrapiQueryResponse(authorizedExperiments, experimentQueryMapper, queryParams, searchRequest);
             }
 
-            List<BrAPITrial> experiments = experimentService.getExperiments(programId).stream().peek(this::setDbIds).collect(Collectors.toList());
-            return ResponseUtils.getBrapiQueryResponse(experiments, experimentQueryMapper, queryParams, searchRequest);
+            BrAPITrialListResponse brapiResponse = experimentService.searchTrials(program.get(), queryParams);
+
+            List<BrAPITrial> foundTrials = brapiResponse.getResult().getData();
+            foundTrials.forEach(this::setDbIds);
+            return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse, queryParams);
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving experiments");
