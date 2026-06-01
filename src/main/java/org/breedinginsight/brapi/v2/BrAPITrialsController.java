@@ -62,8 +62,6 @@ public class BrAPITrialsController {
 
     private final String referenceSource;
     private final BrAPITrialService experimentService;
-    // TODO: See if it's feasible to remove this mapper entirely
-    private final ExperimentQueryMapper experimentQueryMapper;
     private final SecurityService securityService;
     private final ProgramUserService programUserService;
     private final ExperimentalCollaboratorService experimentalCollaboratorService;
@@ -71,14 +69,12 @@ public class BrAPITrialsController {
 
     @Inject
     public BrAPITrialsController(BrAPITrialService experimentService,
-                                 ExperimentQueryMapper experimentQueryMapper,
                                  @Property(name = "brapi.server.reference-source") String referenceSource,
                                  SecurityService securityService,
                                  ProgramUserService programUserService,
                                  ExperimentalCollaboratorService experimentalCollaboratorService,
                                  ProgramService programService) {
         this.experimentService = experimentService;
-        this.experimentQueryMapper = experimentQueryMapper;
         this.referenceSource = referenceSource;
         this.securityService = securityService;
         this.programUserService = programUserService;
@@ -103,7 +99,6 @@ public class BrAPITrialsController {
             // If the program user is an experimental collaborator, filter results for only authorized experiments.
             Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
             if (experimentalCollaborator.isPresent()) {
-                // TODO: Modify this code to use brapi side filter, pagination and sort
                 List<UUID> authorizedExperimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
 
                 BrAPITrialListResponse brapiResponse = experimentService.searchTrials(program.get(), authorizedExperimentIds, queryParams);
