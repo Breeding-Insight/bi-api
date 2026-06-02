@@ -2,7 +2,6 @@ package org.breedinginsight.services.geno;
 
 import io.micronaut.http.multipart.CompletedFileUpload;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.model.GermplasmGenotype;
 import org.breedinginsight.services.exceptions.AuthorizationException;
