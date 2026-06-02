@@ -359,7 +359,6 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         }
     }
 
-    //TODO: Enable in BI-2841
     @Test
     public void testFetchGermplasmGenotype() throws AuthorizationException, ApiException, DoesNotExistException {
         UUID programId = UUID.fromString("8b667063-480b-4b0a-862c-7eaa651dda28");
