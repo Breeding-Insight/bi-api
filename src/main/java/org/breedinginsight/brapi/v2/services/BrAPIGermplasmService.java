@@ -119,24 +119,30 @@ public class BrAPIGermplasmService {
             row.put("GID", Integer.valueOf(germplasmEntry.getAccessionNumber()));
             // Strip programKey and accessionNumber from germplasmName for the file output.
             row.put("Germplasm Name", Utilities.removeProgramKeyAnyAccession(germplasmEntry.getGermplasmName(), program.getKey()));
-            row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString());
-            String source = germplasmEntry.getSeedSource();
-            row.put("Source", source);
+            if (germplasmEntry.getAdditionalInfo() != null &&
+                    germplasmEntry.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD) &&
+                    !germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).isJsonNull()) {
+                row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString());
+            }
 
             // Use the entry number in the list map if generated
-            if(listData == null) {
+            if (listData == null) {
                 // Not downloading a real list, use GID (https://breedinginsight.atlassian.net/browse/BI-2266).
                 row.put("Entry No", Integer.valueOf(germplasmEntry.getAccessionNumber()));
             } else {
                 row.put("Entry No", entryNumber);
             }
 
-            //If germplasm was imported with an external UID, it will be stored in external reference with same source as seed source
-            List<BrAPIExternalReference> externalReferences = germplasmEntry.getExternalReferences();
-            for (BrAPIExternalReference reference: externalReferences){
-                if (reference.getReferenceSource().equals(source)) {
-                    row.put("External UID", reference.getReferenceID());
-                    break;
+            String source = germplasmEntry.getSeedSource();
+            if (source != null) {
+                row.put("Source", source);
+                //If germplasm was imported with an external UID, it will be stored in external reference with same source as seed source
+                List<BrAPIExternalReference> externalReferences = germplasmEntry.getExternalReferences();
+                for (BrAPIExternalReference reference : externalReferences) {
+                    if (reference.getReferenceSource().equals(source)) {
+                        row.put("External UID", reference.getReferenceID());
+                        break;
+                    }
                 }
             }
 
