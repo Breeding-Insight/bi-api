@@ -44,6 +44,7 @@ import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
+import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SampleSubmissionDAO;
 import org.breedinginsight.daos.UserDAO;
@@ -73,6 +74,12 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+
+import org.breedinginsight.model.GenotypeImportDetails;
+import static org.breedinginsight.dao.db.Tables.BI_USER;
+import static org.breedinginsight.dao.db.Tables.GENOTYPE_IMPORT;
+import static org.breedinginsight.dao.db.Tables.IMPORTER_IMPORT;
+import static org.breedinginsight.dao.db.Tables.SAMPLE_SUBMISSION;
 
 @Singleton
 @Slf4j
@@ -153,36 +160,38 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         Program program = getProgram(programId);
 
         User user = userDAO.getUser(userId)
-                           .orElseThrow(() -> new DoesNotExistException("User ID does not exist"));
+                .orElseThrow(() -> new DoesNotExistException("User ID does not exist"));
 
         ImportMapping mapping = importMappingDAO.getSystemMappingByName("GenotypicDataImport")
-                                                .get(0);
+                .get(0);
 
         ImportUpload upload;
         ImportProgress progress = ImportProgress.builder()
-                                                .createdBy(user.getId())
-                                                .createdAt(OffsetDateTime.now())
-                                                .updatedAt(OffsetDateTime.now())
-                                                .updatedBy(userId)
-                                                .statuscode((short) HttpStatus.ACCEPTED.getCode())
-                                                .message("Validating file")
-                                                .build();
+                .createdBy(user.getId())
+                .createdAt(OffsetDateTime.now())
+                .updatedAt(OffsetDateTime.now())
+                .updatedBy(userId)
+                .statuscode((short) HttpStatus.ACCEPTED.getCode())
+                .message("Validating file")
+                .build();
         try {
             upload = dsl.transactionResult(configuration -> {
                 importDAO.createProgress(progress);
                 ImportUpload importUpload = ImportUpload.uploadBuilder()
-                                                        .createdBy(user.getId())
-                                                        .createdAt(OffsetDateTime.now())
-                                                        .updatedBy(user.getId())
-                                                        .updatedAt(OffsetDateTime.now())
-                                                        .programId(programId)
-                                                        .importerProgressId(progress.getId())
-                                                        .importerMappingId(mapping.getId())
-                                                        .userId(user.getId())
-                                                        .uploadFileName(uploadedFile.getFilename())
-                                                        .build();
+                        .createdBy(user.getId())
+                        .createdAt(OffsetDateTime.now())
+                        .updatedBy(user.getId())
+                        .updatedAt(OffsetDateTime.now())
+                        .programId(programId)
+                        .importerProgressId(progress.getId())
+                        .importerMappingId(mapping.getId())
+                        .userId(user.getId())
+                        .uploadFileName(uploadedFile.getFilename())
+                        .build();
 
                 importDAO.insert(importUpload);
+                //logic to add record to the new JOIN table
+                createGenotypeImportLink(submissionId, importUpload.getId(), user.getId());
 
                 return importUpload;
             });
@@ -206,7 +215,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
         try {
             byte[] fileContents = uploadedFile.getBytes();
-            if(validateSamples(program, submissionId, fileContents, upload)) {
+            if (validateSamples(program, submissionId, fileContents, upload)) {
                 executor.execute(() -> {
                     try {
                         processSubmission(gigwaAuthToken, program, submissionId, fileContents, uploadedFile.getFilename(), upload, progress);
@@ -235,13 +244,13 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         BrAPIClient brAPIClient = programDAO.getCoreClient(programId);
         brAPIClient.setBasePath(gigwaHost + GIGWA_BRAPI_BASE_PATH);
         Authentication authorizationToken = brAPIClient.getAuthentication("AuthorizationToken");
-        if(authorizationToken instanceof OAuth) {
-            ((OAuth)authorizationToken).setAccessToken(getAuthToken());
+        if (authorizationToken instanceof OAuth) {
+            ((OAuth) authorizationToken).setAccessToken(getAuthToken());
         }
 
         BrAPIClient brapiPhenoClient = programDAO.getPhenoClient(programId);
 
-        if(verifyProgramExists(brAPIClient, program)) {
+        if (verifyProgramExists(brAPIClient, program)) {
             List<BrAPIObservationUnit> germplasmOUs = fetchObservationUnits(brapiPhenoClient, germplasm);
 
             List<BrAPISample> germplasmSamples = fetchSamples(brAPIClient, program, germplasmOUs);
@@ -253,23 +262,66 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
             List<BrAPIVariant> variants = fetchVariants(brAPIClient, calls);
 
             return GermplasmGenotype.builder()
-                                    .germplasm(germplasm)
-                                    .calls(calls.stream().collect(Collectors.groupingBy(BrAPICall::getCallSetDbId)))
-                                    .callSets(callSets.stream().collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
-                                    .variants(variants.stream().collect(Collectors.toMap(BrAPIVariant::getVariantDbId, variant -> variant)))
-                                    .build();
+                    .germplasm(germplasm)
+                    .calls(calls.stream().collect(Collectors.groupingBy(BrAPICall::getCallSetDbId)))
+                    .callSets(callSets.stream().collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
+                    .variants(variants.stream().collect(Collectors.toMap(BrAPIVariant::getVariantDbId, variant -> variant)))
+                    .build();
         } else {
             return new GermplasmGenotype();
         }
+    }
+
+    @Override
+    public List<GenotypeImportDetails> getGenotypeImports(UUID programId) {
+        log.debug("Fetching genotypeImport data for programId={}", programId);
+        BiUserTable sampleSubmissionCreatedByUser = BI_USER.as("sampleSubmissionCreatedByUser");
+        BiUserTable genotypingImportByUser = BI_USER.as("genotypingImportByUser");
+        return dsl.select(
+                        SAMPLE_SUBMISSION.ID,
+                        SAMPLE_SUBMISSION.NAME,
+                        sampleSubmissionCreatedByUser.NAME,
+                        IMPORTER_IMPORT.UPLOAD_FILE_NAME,
+                        IMPORTER_IMPORT.CREATED_AT,
+                        genotypingImportByUser.NAME)
+                .from(GENOTYPE_IMPORT)
+                .join(SAMPLE_SUBMISSION).on(GENOTYPE_IMPORT.SAMPLE_SUBMISSION_ID.eq(SAMPLE_SUBMISSION.ID))
+                .join(sampleSubmissionCreatedByUser).on(SAMPLE_SUBMISSION.CREATED_BY.eq(sampleSubmissionCreatedByUser.ID))
+                .join(IMPORTER_IMPORT).on(GENOTYPE_IMPORT.IMPORTER_IMPORT_ID.eq(IMPORTER_IMPORT.ID))
+                .join(genotypingImportByUser).on(IMPORTER_IMPORT.USER_ID.eq(genotypingImportByUser.ID))
+                .where(SAMPLE_SUBMISSION.PROGRAM_ID.eq(programId))
+                .and(IMPORTER_IMPORT.PROGRAM_ID.eq(programId))
+                .orderBy(IMPORTER_IMPORT.CREATED_AT.desc())
+                .fetch(record -> GenotypeImportDetails.builder()
+                        .sampleSubmissionId(record.get(SAMPLE_SUBMISSION.ID))
+                        .projectNameForSampleSubmission(record.get(SAMPLE_SUBMISSION.NAME))
+                        .sampleSubmissionCreatedBy(record.get(sampleSubmissionCreatedByUser.NAME))
+                        .genotypingFileName(record.get(IMPORTER_IMPORT.UPLOAD_FILE_NAME))
+                        .genotypingImportDate(record.get(IMPORTER_IMPORT.CREATED_AT))
+                        .genotypingImportBy(record.get(genotypingImportByUser.NAME))
+                        .build());
+    }
+
+    private void createGenotypeImportLink(UUID submissionId, UUID importerImportId, UUID userId) {
+        OffsetDateTime now = OffsetDateTime.now();
+        log.debug("Inserting record into GenotypeImport table for submissionId={}, importerImportId={}, userId={}", submissionId, importerImportId, userId);
+        dsl.insertInto(GENOTYPE_IMPORT)
+                .set(GENOTYPE_IMPORT.SAMPLE_SUBMISSION_ID, submissionId)
+                .set(GENOTYPE_IMPORT.IMPORTER_IMPORT_ID, importerImportId)
+                .set(GENOTYPE_IMPORT.CREATED_AT, now)
+                .set(GENOTYPE_IMPORT.UPDATED_AT, now)
+                .set(GENOTYPE_IMPORT.CREATED_BY, userId)
+                .set(GENOTYPE_IMPORT.UPDATED_BY, userId)
+                .execute();
     }
 
     private boolean validateSamples(Program program, UUID submissionId, byte[] fileContents, ImportUpload upload) throws DoesNotExistException, ApiException {
         log.debug("Validating samples in submitted VCF file for submission: " + submissionId);
 
         Set<String> submissionSampleNames = fetchSubmissionSamples(program, submissionId).stream()
-                                                                                        .map(BrAPISample::getSampleName)
-                                                                                        .filter(Objects::nonNull)
-                                                                                        .collect(Collectors.toSet());
+                .map(BrAPISample::getSampleName)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
 
         log.debug("searching for the VCF header row");
         String[] headerParts = null;
@@ -277,15 +329,15 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         boolean foundHeader = false;
         while (sc.hasNextLine() && !foundHeader) {
             String line = sc.nextLine();
-            if(line.startsWith("#CHROM")) {
+            if (line.startsWith("#CHROM")) {
                 log.debug("Header row found! -> " + line);
                 foundHeader = true;
                 headerParts = line.split("\t");
             }
         }
 
-        if(!foundHeader) {
-            upload.getProgress().setStatuscode((short)HttpStatus.BAD_REQUEST.getCode());
+        if (!foundHeader) {
+            upload.getProgress().setStatuscode((short) HttpStatus.BAD_REQUEST.getCode());
             upload.getProgress().setMessage("Could not find header row in file");
             importDAO.updateProgress(upload.getProgress());
             return false;
@@ -293,22 +345,22 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
         List<String> samples = new ArrayList<>();
         boolean validHeader = false;
-        if(headerParts.length >= 8) {
+        if (headerParts.length >= 8) {
             validHeader = validateVcfHeader(headerParts);
-            if(validHeader) {
+            if (validHeader) {
                 int sampleStart = 8;
 
-                if(headerParts[8].equals("FORMAT")) {
+                if (headerParts[8].equals("FORMAT")) {
                     sampleStart++;
                 }
 
                 samples.addAll(Arrays.asList(headerParts)
-                                     .subList(sampleStart, headerParts.length));
+                        .subList(sampleStart, headerParts.length));
             }
         }
 
-        if(!validHeader) {
-            upload.getProgress().setStatuscode((short)HttpStatus.BAD_REQUEST.getCode());
+        if (!validHeader) {
+            upload.getProgress().setStatuscode((short) HttpStatus.BAD_REQUEST.getCode());
             upload.getProgress().setMessage("Header row is not valid VCF format");
             importDAO.updateProgress(upload.getProgress());
             return false;
@@ -317,13 +369,13 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         log.debug("pulled all the samples from the VCF, now checking each one belongs to the submission");
         List<String> samplesMissingSubmission = new ArrayList<>();
         samples.forEach(s -> {
-            if(!submissionSampleNames.contains(s)) {
+            if (!submissionSampleNames.contains(s)) {
                 samplesMissingSubmission.add(s);
             }
         });
 
-        if(!samplesMissingSubmission.isEmpty()) {
-            upload.getProgress().setStatuscode((short)HttpStatus.BAD_REQUEST.getCode());
+        if (!samplesMissingSubmission.isEmpty()) {
+            upload.getProgress().setStatuscode((short) HttpStatus.BAD_REQUEST.getCode());
             upload.getProgress().setMessage("There are samples that are not linked to the selected submission");
             importDAO.updateProgress(upload.getProgress());
             return false;
@@ -334,39 +386,39 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     }
 
     private boolean validateVcfHeader(String[] headerParts) {
-        if(headerParts.length < 8) {
+        if (headerParts.length < 8) {
             return false;
         }
 
-        if(!headerParts[0].equals("#CHROM")) {
+        if (!headerParts[0].equals("#CHROM")) {
             return false;
         }
 
-        if(!headerParts[1].equals("POS")) {
+        if (!headerParts[1].equals("POS")) {
             return false;
         }
 
-        if(!headerParts[2].equals("ID")) {
+        if (!headerParts[2].equals("ID")) {
             return false;
         }
 
-        if(!headerParts[3].equals("REF")) {
+        if (!headerParts[3].equals("REF")) {
             return false;
         }
 
-        if(!headerParts[4].equals("ALT")) {
+        if (!headerParts[4].equals("ALT")) {
             return false;
         }
 
-        if(!headerParts[5].equals("QUAL")) {
+        if (!headerParts[5].equals("QUAL")) {
             return false;
         }
 
-        if(!headerParts[6].equals("FILTER")) {
+        if (!headerParts[6].equals("FILTER")) {
             return false;
         }
 
-        if(!headerParts[7].equals("INFO")) {
+        if (!headerParts[7].equals("INFO")) {
             return false;
         }
 
@@ -382,7 +434,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
     private List<BrAPISample> fetchSamples(BrAPIClient genoBrAPIClient, Program program, List<BrAPIObservationUnit> observationUnits) throws ApiException {
         log.debug("fetching samples for OUs");
-        if(observationUnits.isEmpty()) {
+        if (observationUnits.isEmpty()) {
             log.debug("No OUs were supplied, returning");
             return Collections.emptyList();
         }
@@ -406,7 +458,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     }
 
     private List<BrAPISample> fetchSubmissionSamples(Program program, UUID submissionId) throws ApiException, DoesNotExistException {
-        if(sampleSubmissionDAO.getBySubmissionId(program, submissionId).isEmpty()) {
+        if (sampleSubmissionDAO.getBySubmissionId(program, submissionId).isEmpty()) {
             throw new DoesNotExistException("Could not find sample submission in database");
         }
 
@@ -415,7 +467,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
     private List<BrAPICallSet> fetchCallsets(BrAPIClient genoBrAPIClient, List<BrAPISample> germplasmSamples) throws ApiException {
         log.debug("fetching callsets for samples");
-        if(germplasmSamples.isEmpty()) {
+        if (germplasmSamples.isEmpty()) {
             log.debug("No samples were supplied, returning");
             return Collections.emptyList();
         }
@@ -430,14 +482,14 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
     private List<BrAPICall> fetchCalls(BrAPIClient genoBrAPIClient, List<BrAPICallSet> callSets) throws ApiException {
         log.debug("fetching calls for callsets");
-        if(callSets.isEmpty()) {
+        if (callSets.isEmpty()) {
             log.debug("No callsets were supplied, returning");
             return Collections.emptyList();
         }
         CallsApi callsApi = brAPIEndpointProvider.get(genoBrAPIClient, CallsApi.class);
 
         List<BrAPICall> calls = new ArrayList<>();
-        for(BrAPICallSet callSet : callSets) {
+        for (BrAPICallSet callSet : callSets) {
             BrAPICallsSearchRequest searchRequest = new BrAPICallsSearchRequest();
             searchRequest.setCallSetDbIds(List.of(callSet.getCallSetDbId()));
 
@@ -449,14 +501,14 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
     private List<BrAPIVariant> fetchVariants(BrAPIClient genoBrAPIClient, List<BrAPICall> calls) throws ApiException {
         log.debug("fetching variants for calls");
-        if(calls.isEmpty()) {
+        if (calls.isEmpty()) {
             log.debug("No calls were supplied, returning");
             return Collections.emptyList();
         }
         List<String> variantIds = calls.stream()
-                                       .map(BrAPICall::getVariantDbId)
-                                       .distinct()
-                                       .collect(Collectors.toList());
+                .map(BrAPICall::getVariantDbId)
+                .distinct()
+                .collect(Collectors.toList());
 
         VariantsApi variantsApi = brAPIEndpointProvider.get(genoBrAPIClient, VariantsApi.class);
 
@@ -486,7 +538,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         OkHttpClient client = new OkHttpClient();
         String gigwaProgressToken = submitRequestToGigwa(client, program, submissionId, uploadedFileResult.getLeft(), gigwaAuthToken, progress);
 
-        if(checkGigwaProgress(client, gigwaAuthToken, gigwaProgressToken, progress)) {
+        if (checkGigwaProgress(client, gigwaAuthToken, gigwaProgressToken, progress)) {
             log.debug("Gigwa import was successful!");
             progress.setMessage("Import successful");
             progress.setStatuscode((short) HttpStatus.OK.getCode());
@@ -500,9 +552,9 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
         Request progressRequest = new Request.Builder()
                 .url(HttpUrl.parse(buildPath("gigwa/progress"))
-                            .newBuilder()
-                            .addQueryParameter("progressToken", progressToken)
-                            .build())
+                        .newBuilder()
+                        .addQueryParameter("progressToken", progressToken)
+                        .build())
                 .header(AUTHORIZATION, BEARER + gigwaAuthToken)
                 .build();
 
@@ -510,7 +562,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         while (!completed) {
             log.debug("checking gigwa progress");
             try (Response response = client.newCall(progressRequest)
-                                           .execute()) {
+                    .execute()) {
                 if (!response.isSuccessful()) {
                     progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
                     progress.setMessage("An error occurred saving the genotypic data");
@@ -520,8 +572,8 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                 AtomicReference<String> error = new AtomicReference<>();
                 if (response.code() == 200) {
                     String body = Objects.requireNonNull(response.body())
-                                         .string();
-                    if(body.length() == 0) {
+                            .string();
+                    if (body.length() == 0) {
                         error.set("No status response returned, assuming error");
                     } else {
                         log.debug("Progress as of now: " + body);
@@ -530,10 +582,10 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                                 .ifPresent(jsonElement -> error.set(jsonElement.getAsString()));
                         completed = getBooleanValue(gigwaProgress, "complete", false);
                         progress.setMessage(gigwaProgress.get("progressDescription")
-                                                         .getAsString());
+                                .getAsString());
                         importDAO.updateProgress(progress);
                     }
-                } else if(response.code() == 204) {
+                } else if (response.code() == 204) {
                     error.set("No status response returned, assuming error");
                 }
 
@@ -557,6 +609,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
     /**
      * Submits the upload request to Gigwa, and returns the progress token
+     *
      * @param client
      * @param program
      * @param submissionId
@@ -569,15 +622,15 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     private String submitRequestToGigwa(OkHttpClient client, Program program, UUID submissionId, String fileUrl, String gigwaAuthToken, ImportProgress progress) throws IOException {
         Request request = new Request.Builder()
                 .url(HttpUrl.parse(buildPath("gigwa/genotypeImport"))
-                            .newBuilder()
-                            .addQueryParameter("module", program.getKey())
-                            .addQueryParameter("project", submissionId.toString())
-                            .addQueryParameter("run", LocalDateTime.now().toString())
-                            .addQueryParameter("dataFile1", fileUrl)
+                        .newBuilder()
+                        .addQueryParameter("module", program.getKey())
+                        .addQueryParameter("project", submissionId.toString())
+                        .addQueryParameter("run", LocalDateTime.now().toString())
+                        .addQueryParameter("dataFile1", fileUrl)
 
 //                            .addQueryParameter("ploidy", "4") //TODO CHANGE THIS!!  it's only for the hackathon!!!!
 
-                            .build())
+                        .build())
                 .header(AUTHORIZATION, BEARER + gigwaAuthToken)
                 .header(X_FORWARDED_FOR, referenceSource)
                 .post(RequestBody.create("", MediaType.parse("text/plain")))
@@ -585,7 +638,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
         log.debug("uploading data to Gigwa");
         try (Response response = client.newCall(request)
-                                       .execute()) {
+                .execute()) {
             if (!response.isSuccessful()) {
                 progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
                 progress.setMessage("An error occurred saving the genotypic data");
@@ -600,7 +653,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     private Pair<String, Long> uploadGenotypeData(UUID programId, UUID submissionId, UUID uploadId, byte[] fileContents, String filename) throws IOException, MimeTypeException {
         log.debug("saving genotype data to S3");
 
-        if(!storageService.listBucketNames().contains(storageService.getDefaultBucketName())) {
+        if (!storageService.listBucketNames().contains(storageService.getDefaultBucketName())) {
             log.debug("bucket doesn't exist, creating it");
             storageService.createBucket();
         }
@@ -619,34 +672,34 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         String bucketName = storageService.getDefaultBucketName();
 
         CreateMultipartUploadResponse response = s3Client.createMultipartUpload(CreateMultipartUploadRequest.builder()
-                                                                                                            .bucket(bucketName)
-                                                                                                            .key(key)
-                                                                                                            .metadata(metadata)
-                                                                                                            .build());
+                .bucket(bucketName)
+                .key(key)
+                .metadata(metadata)
+                .build());
         String uploadId = response.uploadId();
 
         List<CompletedPart> parts = new ArrayList<>();
         int partNumber = 1;
         String etag = s3Client.uploadPart(UploadPartRequest.builder()
-                                                            .bucket(bucketName)
-                                                            .key(key)
-                                                            .uploadId(uploadId)
-                                                            .partNumber(partNumber)
-                                                            .build(),
-                                          software.amazon.awssdk.core.sync.RequestBody.fromBytes(fileContents))
-                              .eTag();
+                                .bucket(bucketName)
+                                .key(key)
+                                .uploadId(uploadId)
+                                .partNumber(partNumber)
+                                .build(),
+                        software.amazon.awssdk.core.sync.RequestBody.fromBytes(fileContents))
+                .eTag();
 
         parts.add(CompletedPart.builder().partNumber(partNumber).eTag(etag).build());
 
         log.debug("all parts have been uploaded, completing the upload");
         CompleteMultipartUploadResponse completeMultipartUploadResponse = s3Client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
-                                                                                                                                         .bucket(bucketName)
-                                                                                                                                         .key(key)
-                                                                                                                                         .uploadId(uploadId)
-                                                                                                                                         .multipartUpload(CompletedMultipartUpload.builder()
-                                                                                                                                                                                  .parts(parts)
-                                                                                                                                                                                  .build())
-                                                                                                                                         .build());
+                .bucket(bucketName)
+                .key(key)
+                .uploadId(uploadId)
+                .multipartUpload(CompletedMultipartUpload.builder()
+                        .parts(parts)
+                        .build())
+                .build());
         log.debug("upload complete");
         return completeMultipartUploadResponse.location();
     }
@@ -654,7 +707,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     private boolean getBooleanValue(JsonObject progress, String key, boolean defaultVal) {
         if (progress.has(key)) {
             return progress.get(key)
-                           .getAsBoolean();
+                    .getAsBoolean();
         }
         return defaultVal;
     }
@@ -666,15 +719,15 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                 .post(RequestBody.create(gson.toJson(Map.of("username", username, "password", password)), MEDIA_TYPE_JSON))
                 .build();
         try (Response response = authClient.newCall(request)
-                                           .execute()) {
+                .execute()) {
             if (!response.isSuccessful()) {
                 throw new AuthorizationException("Unable to authorize with Gigwa server");
             } else {
                 JsonObject responseBody = gson.fromJson(response.body()
-                                                                .string(), JsonObject.class);
+                        .string(), JsonObject.class);
                 if (responseBody.has("token")) {
                     return responseBody.get("token")
-                                       .getAsString();
+                            .getAsString();
                 } else {
                     throw new AuthorizationException("Authorization token was not returned");
                 }
@@ -690,8 +743,8 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
     private Program getProgram(UUID programId) throws DoesNotExistException {
         return programDAO.get(programId)
-                         .stream()
-                         .findFirst()
-                         .orElseThrow(() -> new DoesNotExistException("Program ID does not exist"));
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new DoesNotExistException("Program ID does not exist"));
     }
 }
