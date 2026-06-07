@@ -15,6 +15,7 @@ public class GenotypeImportQueryMapper extends AbstractQueryMapper<GenotypeImpor
 
     public GenotypeImportQueryMapper() {
         fields = Map.ofEntries(
+                Map.entry("sampleSubmissionId", GenotypeImportDetails::getSampleSubmissionId),
                 Map.entry("projectNameForSampleSubmission", GenotypeImportDetails::getProjectNameForSampleSubmission),
                 Map.entry("sampleSubmissionCreatedBy", GenotypeImportDetails::getSampleSubmissionCreatedBy),
                 Map.entry("genotypingFileName", GenotypeImportDetails::getGenotypingFileName),

@@ -7,7 +7,8 @@ import io.micronaut.http.multipart.CompletedFileUpload;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.*;
-import org.breedinginsight.api.model.v1.request.query.QueryParams;
+import org.breedinginsight.api.model.v1.request.query.GenotypeImportQuery;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
@@ -44,19 +45,26 @@ public class GenotypeDataUploadController {
         this.genotypeImportQueryMapper = genotypeImportQueryMapper;
     }
 
-    @Get("programs/{programId}/geno/imports{?queryParams*}")
+    @Get("programs/{programId}/geno/imports{?genotypeImportQuery*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES)
     public HttpResponse<Response<DataResponse<GenotypeImportDetails>>> getGenotypeImports(
             @PathVariable UUID programId,
-            @QueryValue @QueryValid(using = GenotypeImportQueryMapper.class) @Valid QueryParams queryParams) {
+            @QueryValue @QueryValid(using = GenotypeImportQueryMapper.class) @Valid GenotypeImportQuery genotypeImportQuery) {
         Optional<Program> program = programService.getById(programId);
         if (program.isEmpty()) {
             log.info("programId not found: {}", programId.toString());
             return HttpResponse.notFound();
         }
 
-        return ResponseUtils.getQueryResponse(genoService.getGenotypeImports(programId), genotypeImportQueryMapper, queryParams);
+        SearchRequest searchRequest = genotypeImportQuery.constructSearchRequest();
+
+        return ResponseUtils.getQueryResponse(
+                genoService.getGenotypeImports(programId),
+                genotypeImportQueryMapper,
+                searchRequest,
+                genotypeImportQuery
+        );
     }
 
     @Post("programs/{programId}/submissions/{submissionId}/geno/import")
