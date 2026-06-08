@@ -63,8 +63,7 @@ public class BrAPIDAOUtil {
     private final ProgramService programService;
 
     @Inject
-    public
-    BrAPIDAOUtil(@Property(name = "brapi.search.wait-time") int searchWaitTime,
+    public BrAPIDAOUtil(@Property(name = "brapi.search.wait-time") int searchWaitTime,
                         @Property(name = "brapi.read-timeout") Duration searchTimeout,
                         @Property(name = "brapi.page-size") int pageSize,
                         @Property(name = "brapi.post-group-size") int postGroupSize,
