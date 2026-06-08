@@ -42,6 +42,7 @@ import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import static org.breedinginsight.dao.db.Tables.IMPORTER_PROGRESS;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.dao.db.tables.BiUserTable;
@@ -190,8 +191,6 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                         .build();
 
                 importDAO.insert(importUpload);
-                //logic to add record to the new JOIN table
-                createGenotypeImportLink(submissionId, importUpload.getId(), user.getId());
 
                 return importUpload;
             });
@@ -288,9 +287,11 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                 .join(SAMPLE_SUBMISSION).on(GENOTYPE_IMPORT.SAMPLE_SUBMISSION_ID.eq(SAMPLE_SUBMISSION.ID))
                 .join(sampleSubmissionCreatedByUser).on(SAMPLE_SUBMISSION.CREATED_BY.eq(sampleSubmissionCreatedByUser.ID))
                 .join(IMPORTER_IMPORT).on(GENOTYPE_IMPORT.IMPORTER_IMPORT_ID.eq(IMPORTER_IMPORT.ID))
+                .join(IMPORTER_PROGRESS).on(IMPORTER_IMPORT.IMPORTER_PROGRESS_ID.eq(IMPORTER_PROGRESS.ID))
                 .join(genotypingImportByUser).on(IMPORTER_IMPORT.USER_ID.eq(genotypingImportByUser.ID))
                 .where(SAMPLE_SUBMISSION.PROGRAM_ID.eq(programId))
                 .and(IMPORTER_IMPORT.PROGRAM_ID.eq(programId))
+                .and(IMPORTER_PROGRESS.STATUSCODE.eq((short) HttpStatus.OK.getCode()))
                 .orderBy(IMPORTER_IMPORT.CREATED_AT.desc())
                 .fetch(record -> GenotypeImportDetails.builder()
                         .sampleSubmissionId(record.get(SAMPLE_SUBMISSION.ID))
@@ -540,6 +541,8 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
         if (checkGigwaProgress(client, gigwaAuthToken, gigwaProgressToken, progress)) {
             log.debug("Gigwa import was successful!");
+            //logic to add record to the new JOIN table
+            createGenotypeImportLink(submissionId, upload.getId(), upload.getCreatedBy());
             progress.setMessage("Import successful");
             progress.setStatuscode((short) HttpStatus.OK.getCode());
             importDAO.updateProgress(progress);
