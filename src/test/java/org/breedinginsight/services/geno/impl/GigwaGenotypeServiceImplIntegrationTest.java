@@ -5,6 +5,7 @@ import com.agorapulse.micronaut.amazon.awssdk.s3.SimpleStorageService;
 import com.agorapulse.micronaut.amazon.awssdk.s3.SimpleStorageServiceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.context.ApplicationContext;
+import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Replaces;
@@ -38,6 +39,7 @@ import org.brapi.v2.model.geno.response.BrAPISampleListResponse;
 import org.brapi.v2.model.geno.response.BrAPISampleListResponseResult;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.dao.impl.ImportMappingDAOImpl;
 import org.breedinginsight.brapps.importer.daos.BrAPISampleDAO;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
@@ -125,6 +127,9 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     private BrAPISampleDAO sampleDAO;
 
     @Inject
+    private BrAPIGermplasmDAO germplasmDAO;
+
+    @Inject
     private ObjectMapper objectMapper;
 
     @Inject
@@ -188,8 +193,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         return mock(BrAPISampleDAO.class);
     }
 
-    @MockBean(SimpleStorageService.class)
-    @Named("genotype")
+    @MockBean(value = SimpleStorageService.class, named = "genotype")
     SimpleStorageService simpleStorageService() {
         return spy(new DefaultSimpleStorageService(bucketName, s3Client, presigner));
     }
@@ -204,6 +208,17 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         @Replaces(SampleSubmissionDAO.class)
         SampleSubmissionDAO sampleSubmissionDAO() {
             return mock(SampleSubmissionDAO.class);
+        }
+    }
+
+    @Factory
+    @Requires(property = "micronaut.test.active.spec", value = "org.breedinginsight.services.geno.impl.GigwaGenotypeServiceImplIntegrationTest")
+    static class GermplasmDaoTestFactory {
+
+        @Context
+        @Replaces(BrAPIGermplasmDAO.class)
+        BrAPIGermplasmDAO germplasmDAO() {
+            return mock(BrAPIGermplasmDAO.class);
         }
     }
 
@@ -239,12 +254,12 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
                 .withEnv("GIGWA.serversAllowedToImport", gigwaAllowedServer)
                 .waitingFor(
                         Wait.forHttp("/gigwa")
-                                .forStatusCode(200)
-                                .withStartupTimeout(Duration.of(2, ChronoUnit.MINUTES)));
+                            .forStatusCode(200)
+                            .withStartupTimeout(Duration.of(2, ChronoUnit.MINUTES)));
         gigwa.start();
 
         localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack")
-                .withTag("3.0.2"))
+                                                                     .withTag("3.0.2"))
                 .withServices(LocalStackContainer.Service.S3)
                 .withNetwork(super.getNetwork())
                 .withNetworkAliases("localstack")
@@ -257,7 +272,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     public Map<String, String> getProperties() {
         Map<String, String> properties = super.getProperties();
 
-        properties.put("gigwa.host", "http://" + gigwa.getContainerIpAddress() + ":" + gigwa.getMappedPort(8080) + "/");
+        properties.put("gigwa.host", "http://"+gigwa.getContainerIpAddress()+":"+gigwa.getMappedPort(8080)+"/");
         properties.put("gigwa.username", "gigwadmin");
         properties.put("gigwa.password", "nimda");
 
@@ -285,7 +300,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
         storageService = applicationContext.getBean(SimpleStorageService.class, Qualifiers.byName("genotype"));
         storageService.createBucket();
-    }
+     }
 
     @AfterAll
     public void teardown() {
@@ -306,33 +321,33 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
         BrAPIClient brAPIClient = new BrAPIClient(gigwaHost + "gigwa/rest/brapi/v2");
         Authentication authorizationToken = brAPIClient.getAuthentication("AuthorizationToken");
-        if (authorizationToken instanceof OAuth) {
-            ((OAuth) authorizationToken).setAccessToken(gigwaGenoStorageService.getAuthToken());
+        if(authorizationToken instanceof OAuth) {
+            ((OAuth)authorizationToken).setAccessToken(gigwaGenoStorageService.getAuthToken());
         }
 
         ProgramsApi programsApi = new ProgramsApi(brAPIClient);
         try {
             ApiResponse<BrAPIProgramListResponse> brAPIProgramListResponseApiResponse = programsApi.programsGet(ProgramQueryParams.builder()
-                    .programDbId(programKey)
-                    .build());
+                                                                                                                                  .programDbId(programKey)
+                                                                                                                                  .build());
             assertEquals(1,
-                    brAPIProgramListResponseApiResponse.getBody()
-                            .getResult()
-                            .getData()
-                            .size());
+                         brAPIProgramListResponseApiResponse.getBody()
+                                                            .getResult()
+                                                            .getData()
+                                                            .size());
 
             StudiesApi studiesApi = new StudiesApi(brAPIClient);
             ApiResponse<BrAPIStudyListResponse> brAPIStudyListResponseApiResponse = studiesApi.studiesGet(StudyQueryParams.builder()
-                    .build());
+                                                                                                                          .build());
 
             assertEquals(1,
-                    brAPIStudyListResponseApiResponse.getBody()
-                            .getResult()
-                            .getData()
-                            .stream()
-                            .filter(brAPIStudy -> brAPIStudy.getStudyName()
-                                    .equals(submissionId.toString()))
-                            .count());
+                         brAPIStudyListResponseApiResponse.getBody()
+                                                          .getResult()
+                                                          .getData()
+                                                          .stream()
+                                                          .filter(brAPIStudy -> brAPIStudy.getStudyName()
+                                                                                          .equals(submissionId.toString()))
+                                                          .count());
         } catch (ApiException e) {
             System.err.println(e.getMessage());
             System.err.println(e.getResponseBody());
@@ -340,9 +355,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         }
     }
 
-    //TODO: Enable in BI-2841
     @Test
-    @Disabled("BI-2841: retrieveGenotypeData should target BrAPI samples directly instead of resolving samples through observation units")
     public void testFetchGermplasmGenotype() throws AuthorizationException, ApiException, DoesNotExistException {
         UUID programId = UUID.fromString("8b667063-480b-4b0a-862c-7eaa651dda28");
         String programKey = "TESTFETCH";
@@ -350,15 +363,19 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         UUID importId = UUID.randomUUID();
         assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> uploadGenoData(programId, programKey, submissionId, importId), "Upload did not complete within the time period");
 
-        BrAPIGermplasm germplasm = new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()).germplasmName("Test Germ");
+        String germplasmName = "USDAMSP1";
+        String sampleName = germplasmName + "_A01";
+        BrAPIGermplasm germplasm = new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()).germplasmName(germplasmName);
 
         SamplesApi mockSamplesApi = spy(new SamplesApi());
-        BrAPISample sample = new BrAPISample().sampleName("USDAMSP1_A01")
-                .germplasmDbId(germplasm.getGermplasmDbId());
+        BrAPISample sample = new BrAPISample().sampleName(sampleName)
+                                             .germplasmDbId(programKey + "§" + sampleName);
+        doReturn(List.of(sample)).when(sampleDAO)
+                                 .readSamplesByGermplasmIds(any(Program.class), eq(List.of(germplasm.getGermplasmDbId())));
         doReturn(new ApiResponse<>(200,
-                new HashMap<>(),
-                Pair.of(Optional.of(new BrAPISampleListResponse().result(new BrAPISampleListResponseResult().data(List.of(sample)))),
-                        Optional.empty())))
+                                   new HashMap<>(),
+                                   Pair.of(Optional.of(new BrAPISampleListResponse().result(new BrAPISampleListResponseResult().data(List.of(sample)))),
+                                           Optional.empty())))
                 .when(mockSamplesApi).searchSamplesPost(any(BrAPISampleSearchRequest.class));
 
         doReturn(mockSamplesApi).when(brAPIEndpointProvider).get(any(BrAPIClient.class), eq(SamplesApi.class));
@@ -366,12 +383,16 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getCoreClient(any(UUID.class));
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getPhenoClient(any(UUID.class));
 
-        GermplasmGenotype germplasmGenotype = gigwaGenoStorageService.retrieveGenotypeData(programId, germplasm);
+        doReturn(germplasm).when(germplasmDAO)
+                .getGermplasmByUUID(any(String.class), any(UUID.class));
 
+        GermplasmGenotype germplasmGenotype = gigwaGenoStorageService.retrieveGenotypeData(programId, UUID.fromString(germplasm.getGermplasmDbId()));
+
+        verify(sampleDAO).readSamplesByGermplasmIds(any(Program.class), eq(List.of(germplasm.getGermplasmDbId())));
         verify(brAPIEndpointProvider, never()).get(any(BrAPIClient.class), eq(ObservationUnitsApi.class));
         verify(mockSamplesApi).searchSamplesPost(argThat(searchRequest -> searchRequest.getGermplasmDbIds() != null &&
-                searchRequest.getGermplasmDbIds().contains(germplasm.getGermplasmDbId()) &&
-                (searchRequest.getObservationUnitDbIds() == null || searchRequest.getObservationUnitDbIds().isEmpty())));
+                                                                          searchRequest.getGermplasmDbIds().contains(programKey + "§" + sample.getSampleName()) &&
+                                                                          (searchRequest.getObservationUnitDbIds() == null || searchRequest.getObservationUnitDbIds().isEmpty())));
         assertNotNull(germplasmGenotype);
         assertFalse(germplasmGenotype.getCalls().isEmpty());
         assertFalse(germplasmGenotype.getCallSets().isEmpty());
@@ -479,7 +500,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         ImportResponse response = importResponse.get();
         assertNotNull(response);
         assertNotNull(response.getProgress());
-        assertEquals((short) HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
+        assertEquals((short)HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
         assertEquals("Header row is not valid VCF format", response.getProgress().getMessage());
     }
 
@@ -497,7 +518,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         ImportResponse response = importResponse.get();
         assertNotNull(response);
         assertNotNull(response.getProgress());
-        assertEquals((short) HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
+        assertEquals((short)HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
         assertEquals("There are samples that are not linked to the selected submission", response.getProgress().getMessage());
     }
 
