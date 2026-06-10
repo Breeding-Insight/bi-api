@@ -823,7 +823,7 @@ public class BrAPITrialService {
             // Make request to delete experiment.
             trialDAO.deleteBrAPITrial(program, trial, hard);
             // Get all lists for the trial.
-            // TODO: Get lists by trialDbId if trials get decoupled from datasets.
+            // TODO: Get lists by trialDbId if trials get decoupled from datasets. [BI-2993]
             List<BrAPIListSummary> lists = listDAO
                     .getListsByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
                             program.getId(),

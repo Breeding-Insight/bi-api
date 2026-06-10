@@ -161,7 +161,7 @@ public class BrAPITrialsController {
         return HttpResponse.notFound();
     }
 
-    // TODO: Remove for trialDbId once cache is removed for that entity
+    // TODO: Verify that the programDbId does not need to be reset and that the BrAPI programDbId can be used instead [BI-2931]
     private void setDbIds(BrAPITrial trial) {
         trial.programDbId(Utilities.getExternalReference(trial.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS))
                                  .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
