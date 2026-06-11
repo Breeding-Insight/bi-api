@@ -439,7 +439,8 @@ public class BrAPIGermplasmController {
 
         try {
             BrAPIGermplasm germplasm = germplasmDAO.getGermplasmByUUID(germplasmId, programId);
-            GermplasmGenotype germplasmGenotype = genoService.retrieveGenotypeData(programId, germplasm);
+
+            GermplasmGenotype germplasmGenotype = genoService.retrieveGenotypeData(programId, UUID.fromString(germplasmId));
 
             Response<GermplasmGenotype> response = new Response(germplasmGenotype);
             return HttpResponse.ok(response);
