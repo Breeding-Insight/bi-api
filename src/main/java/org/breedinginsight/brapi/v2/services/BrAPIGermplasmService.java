@@ -178,8 +178,10 @@ public class BrAPIGermplasmService {
             }
 
             // Pedigrees
-            String pedigreeString = germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME).getAsString();
-            row.put("Pedigree", pedigreeString);
+            if (germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME) != null) {
+                String pedigreeString = germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME).getAsString();
+                row.put("Pedigree", pedigreeString);
+            }
 
             processedData.add(row);
         }
