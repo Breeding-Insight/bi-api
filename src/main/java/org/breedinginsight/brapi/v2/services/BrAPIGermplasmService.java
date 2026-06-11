@@ -171,6 +171,10 @@ public class BrAPIGermplasmService {
                 row.put("Synonyms", joinedSynonyms);
             }
 
+            // Pedigrees
+            String pedigreeString = germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME).getAsString();
+            row.put("Pedigree", pedigreeString);
+
             processedData.add(row);
         }
         return processedData;
