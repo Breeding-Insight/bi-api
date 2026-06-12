@@ -22,6 +22,7 @@ public class GermplasmQuery extends BrapiQuery {
     private String femaleParentGID;
     private String maleParentGID;
     private String createdDate;
+    private String externalUID;
     private String createdByUserName;
     private String synonym;
     // This is a meta-parameter, it describes the display format of any date fields.
@@ -56,9 +57,15 @@ public class GermplasmQuery extends BrapiQuery {
         if (!StringUtils.isBlank(getMaleParentGID())) {
             filters.add(constructFilterRequest("maleParentGID", getMaleParentGID()));
         }
+
         if (!StringUtils.isBlank(getCreatedDate())) {
             filters.add(constructFilterRequest("createdDate", getCreatedDate()));
         }
+
+        if (!StringUtils.isBlank(getExternalUID())) {
+            filters.add(constructFilterRequest("externalUID", getExternalUID()));
+        }
+
         if (!StringUtils.isBlank(getCreatedByUserName())) {
             filters.add(constructFilterRequest("createdByUserName", getCreatedByUserName()));
         }
