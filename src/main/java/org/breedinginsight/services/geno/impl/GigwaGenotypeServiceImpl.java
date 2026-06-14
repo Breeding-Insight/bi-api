@@ -40,13 +40,13 @@ import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import static org.breedinginsight.dao.db.Tables.IMPORTER_PROGRESS;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
-import org.breedinginsight.dao.db.tables.BiUserTable;
+import org.breedinginsight.daos.GenotypeImportDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SampleSubmissionDAO;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.GenotypeImportDetails;
 import org.breedinginsight.model.GermplasmGenotype;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
@@ -74,12 +74,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import org.breedinginsight.model.GenotypeImportDetails;
-import static org.breedinginsight.dao.db.Tables.BI_USER;
-import static org.breedinginsight.dao.db.Tables.GENOTYPE_IMPORT;
-import static org.breedinginsight.dao.db.Tables.IMPORTER_IMPORT;
-import static org.breedinginsight.dao.db.Tables.SAMPLE_SUBMISSION;
-
 @Singleton
 @Slf4j
 public class GigwaGenotypeServiceImpl implements GenotypeService {
@@ -104,7 +98,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     private final ImportDAO importDAO;
     private final SampleSubmissionDAO sampleSubmissionDAO;
     private final BrAPISampleDAO sampleDAO;
-
+    private final GenotypeImportDAO genotypeImportDAO;
     private final ImportMappingDAO importMappingDAO;
     private final SimpleStorageService storageService;
 
@@ -130,6 +124,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                                     ImportDAO importDAO,
                                     SampleSubmissionDAO sampleSubmissionDAO,
                                     BrAPISampleDAO sampleDAO,
+                                    GenotypeImportDAO genotypeImportDAO,
                                     ImportMappingDAO importMappingDAO,
                                     @Named("genotype") SimpleStorageService storageService,
                                     S3Client s3Client,
@@ -142,6 +137,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         this.username = username;
         this.password = password;
         this.referenceSource = referenceSource;
+        this.genotypeImportDAO = genotypeImportDAO;
         this.gson = new GsonBuilder().create();
         this.programDAO = programDAO;
         this.userDAO = userDAO;
@@ -276,47 +272,8 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
     @Override
     public List<GenotypeImportDetails> getGenotypeImports(UUID programId) {
-        log.debug("Fetching genotypeImport data for programId={}", programId);
-        BiUserTable sampleSubmissionCreatedByUser = BI_USER.as("sampleSubmissionCreatedByUser");
-        BiUserTable genotypingImportByUser = BI_USER.as("genotypingImportByUser");
-        return dsl.select(
-                        SAMPLE_SUBMISSION.ID,
-                        SAMPLE_SUBMISSION.NAME,
-                        sampleSubmissionCreatedByUser.NAME,
-                        IMPORTER_IMPORT.UPLOAD_FILE_NAME,
-                        IMPORTER_IMPORT.CREATED_AT,
-                        genotypingImportByUser.NAME)
-                .from(GENOTYPE_IMPORT)
-                .join(SAMPLE_SUBMISSION).on(GENOTYPE_IMPORT.SAMPLE_SUBMISSION_ID.eq(SAMPLE_SUBMISSION.ID))
-                .join(sampleSubmissionCreatedByUser).on(SAMPLE_SUBMISSION.CREATED_BY.eq(sampleSubmissionCreatedByUser.ID))
-                .join(IMPORTER_IMPORT).on(GENOTYPE_IMPORT.IMPORTER_IMPORT_ID.eq(IMPORTER_IMPORT.ID))
-                .join(IMPORTER_PROGRESS).on(IMPORTER_IMPORT.IMPORTER_PROGRESS_ID.eq(IMPORTER_PROGRESS.ID))
-                .join(genotypingImportByUser).on(IMPORTER_IMPORT.USER_ID.eq(genotypingImportByUser.ID))
-                .where(SAMPLE_SUBMISSION.PROGRAM_ID.eq(programId))
-                .and(IMPORTER_IMPORT.PROGRAM_ID.eq(programId))
-                .and(IMPORTER_PROGRESS.STATUSCODE.eq((short) HttpStatus.OK.getCode()))
-                .orderBy(IMPORTER_IMPORT.CREATED_AT.desc())
-                .fetch(record -> GenotypeImportDetails.builder()
-                        .sampleSubmissionId(record.get(SAMPLE_SUBMISSION.ID))
-                        .projectNameForSampleSubmission(record.get(SAMPLE_SUBMISSION.NAME))
-                        .sampleSubmissionCreatedBy(record.get(sampleSubmissionCreatedByUser.NAME))
-                        .genotypingFileName(record.get(IMPORTER_IMPORT.UPLOAD_FILE_NAME))
-                        .genotypingImportDate(record.get(IMPORTER_IMPORT.CREATED_AT))
-                        .genotypingImportBy(record.get(genotypingImportByUser.NAME))
-                        .build());
-    }
 
-    private void createGenotypeImportLink(UUID submissionId, UUID importerImportId, UUID userId) {
-        OffsetDateTime now = OffsetDateTime.now();
-        log.debug("Inserting record into GenotypeImport table for submissionId={}, importerImportId={}, userId={}", submissionId, importerImportId, userId);
-        dsl.insertInto(GENOTYPE_IMPORT)
-                .set(GENOTYPE_IMPORT.SAMPLE_SUBMISSION_ID, submissionId)
-                .set(GENOTYPE_IMPORT.IMPORTER_IMPORT_ID, importerImportId)
-                .set(GENOTYPE_IMPORT.CREATED_AT, now)
-                .set(GENOTYPE_IMPORT.UPDATED_AT, now)
-                .set(GENOTYPE_IMPORT.CREATED_BY, userId)
-                .set(GENOTYPE_IMPORT.UPDATED_BY, userId)
-                .execute();
+        return genotypeImportDAO.getGenotypeImportsByProgramId(programId);
     }
 
     private boolean validateSamples(Program program, UUID submissionId, byte[] fileContents, ImportUpload upload) throws DoesNotExistException, ApiException {
@@ -539,7 +496,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         if (checkGigwaProgress(client, gigwaAuthToken, gigwaProgressToken, progress)) {
             log.debug("Gigwa import was successful!");
             //logic to add record to the new JOIN table
-            createGenotypeImportLink(submissionId, upload.getId(), upload.getCreatedBy());
+            genotypeImportDAO.createGenotypeImportLink(submissionId, upload.getId(), upload.getCreatedBy());
             progress.setMessage("Import successful");
             progress.setStatuscode((short) HttpStatus.OK.getCode());
             importDAO.updateProgress(progress);
