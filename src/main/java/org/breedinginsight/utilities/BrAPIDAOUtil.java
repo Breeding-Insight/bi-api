@@ -33,7 +33,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.*;
-import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -506,7 +505,7 @@ public class BrAPIDAOUtil {
         return programBrAPIBaseUrl.endsWith(BrapiVersion.BRAPI_V2) ? programBrAPIBaseUrl : programBrAPIBaseUrl + BrapiVersion.BRAPI_V2;
     }
 
-    public BrAPIFilterBy constructFilterBy(String filterOn, String value) {
+    private BrAPIFilterBy constructFilterBy(String filterOn, String value) {
         var filterBy = new BrAPIFilterBy();
 
         filterBy.setFilterOn(filterOn);
@@ -514,7 +513,7 @@ public class BrAPIDAOUtil {
         return filterBy;
     }
 
-    public BrAPISortBy constructSortBy(String sortOn, String sortOrder) {
+    private BrAPISortBy constructSortBy(String sortOn, String sortOrder) {
         var sortBy = new BrAPISortBy();
         sortBy.setSortedOn(sortOn);
 
@@ -529,7 +528,42 @@ public class BrAPIDAOUtil {
         return sortBy;
     }
 
-    public <T extends BrAPISearchRequestParametersPaging, U extends BrapiQuery> void setPagination(T brapiSearchRequest, U biSearchQuery) {
+    /**
+     * Sets three generic search parameters for an outgoing BrAPI Search Query:
+     * - Sorting
+     * - Filtering
+     * - Pagination
+     */
+    public <T extends BrAPISearchRequestParametersPaging, U extends BrapiQuery> void setGenericSearchParameters(T brapiSearchRequest, U biSearchQuery) {
+        // Set SortBy
+        List<BrAPISortBy> brAPISortBy = new ArrayList<>();
+
+        Map<String, String> brapiColNameByBiColName = biSearchQuery.getBrAPIColumnNamesByBiColumnName();
+
+        if (StringUtils.isNotBlank(biSearchQuery.getSortField()) && brapiColNameByBiColName.containsKey(biSearchQuery.getSortField())) {
+            brAPISortBy.add(constructSortBy(brapiColNameByBiColName.get(biSearchQuery.getSortField()), biSearchQuery.getSortOrder().toString()));
+        }
+
+        if (!brAPISortBy.isEmpty()) {
+            brapiSearchRequest.setSortBy(brAPISortBy);
+        }
+
+        // Set FilterBy
+        List<BrAPIFilterBy> brAPIFilterBy = new ArrayList<>();
+
+        Map<String, String> filterValuesByBrAPIColName = biSearchQuery.getFilterValuesByBrAPIColumnName();
+
+        filterValuesByBrAPIColName.forEach((brapiColumnName, value) -> {
+            if (StringUtils.isNotBlank(value)) {
+                brAPIFilterBy.add(constructFilterBy(brapiColumnName, value));
+            }
+        });
+
+        if (!brAPIFilterBy.isEmpty()) {
+            brapiSearchRequest.setFilterBy(brAPIFilterBy);
+        }
+
+        // Set Pagination
         if (biSearchQuery.getPage() == null) {
             brapiSearchRequest.setPage(biSearchQuery.getDefaultPage());
         } else {

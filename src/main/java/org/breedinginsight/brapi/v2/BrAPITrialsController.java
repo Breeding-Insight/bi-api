@@ -93,7 +93,6 @@ public class BrAPITrialsController {
             Optional<Program> program = programService.getById(programId);
             if (program.isEmpty()) { return HttpResponse.notFound(); }
 
-            SearchRequest searchRequest = queryParams.constructSearchRequest();
             log.debug("fetching trials for program: " + programId);
 
             // If the program user is an experimental collaborator, filter results for only authorized experiments.

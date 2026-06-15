@@ -26,6 +26,7 @@ import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -57,5 +58,27 @@ public class BrapiQuery implements PaginationParams {
                 .field(field)
                 .value(value)
                 .build();
+    }
+
+    /**
+     * For BrapiQuery objects that have implemented this method, this map is used by the BrAPIDAOUtil
+     * to iterate through all valid filter columns and their associated values that are submitted from the fe.
+     *
+     * See @ExperimentQuery for example implementation
+     */
+    public Map<String, String> getFilterValuesByBrAPIColumnName() {
+            throw new UnsupportedOperationException(
+                    String.format("Server side BrAPI filtering not implemented for class [%s]", this.getClass().getSimpleName())
+            );
+    }
+
+    /**
+     * For BrapiQuery objects that have implemented this method, this map is used by the BrAPIDAOUtil
+     * to match submitted sortField column names to the associated brapi column name for sorting.
+     *
+     * See @ExperimentQuery for example implementation
+     */
+    public Map<String, String> getBrAPIColumnNamesByBiColumnName() {
+        throw new UnsupportedOperationException(String.format("Server side BrAPI sorting not implemented for class [%s]", this.getClass().getSimpleName()));
     }
 }

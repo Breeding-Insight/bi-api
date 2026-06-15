@@ -27,7 +27,6 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.core.TrialQueryParams;
 import org.brapi.client.v2.modules.core.TrialsApi;
 import org.brapi.v2.model.BrAPIFilterBy;
-import org.brapi.v2.model.BrAPIResponse;
 import org.brapi.v2.model.BrAPISortBy;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPITrial;
@@ -284,40 +283,8 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
             searchRequest.setTrialDbIds(brapiTrialIds.stream().map(UUID::toString).collect(Collectors.toList()));
         }
 
-        // Set FilterBy
-        List<BrAPIFilterBy> brAPIFilterBy = new ArrayList<>();
-
-        if (StringUtils.isNotBlank(experimentQuery.getName())) {
-            brAPIFilterBy.add(brAPIDAOUtil.constructFilterBy(brAPITrialsMapper.getBrAPIName(BI_FILTER_COLUMN_NAME), experimentQuery.getName()));
-        }
-        if (StringUtils.isNotBlank(experimentQuery.getActive())) {
-            brAPIFilterBy.add(brAPIDAOUtil.constructFilterBy(brAPITrialsMapper.getBrAPIName(BI_FILTER_COLUMN_ACTIVE), experimentQuery.getActive()));
-        }
-        if (StringUtils.isNotBlank(experimentQuery.getCreatedBy())) {
-            brAPIFilterBy.add(brAPIDAOUtil.constructFilterBy(brAPITrialsMapper.getBrAPIName(BI_FILTER_COLUMN_CREATED_BY), experimentQuery.getCreatedBy()));
-        }
-        if (StringUtils.isNotBlank(experimentQuery.getCreatedDate())) {
-            brAPIFilterBy.add(brAPIDAOUtil.constructFilterBy(brAPITrialsMapper.getBrAPIName(BI_FILTER_COLUMN_CREATED_DATE), experimentQuery.getCreatedDate()));
-        }
-
-        if (!brAPIFilterBy.isEmpty()) {
-            searchRequest.setFilterBy(brAPIFilterBy);
-        }
-
-        // Set SortBy
-        List<BrAPISortBy> brAPISortBy = new ArrayList<>();
-
-        if (StringUtils.isNotBlank(experimentQuery.getSortField()) && brAPITrialsMapper.exists(experimentQuery.getSortField())) {
-            brAPISortBy.add(brAPIDAOUtil.constructSortBy(brAPITrialsMapper.getBrAPIName(experimentQuery.getSortField()), experimentQuery.getSortOrder().toString()));
-        }
-
-        if (!brAPISortBy.isEmpty()) {
-            searchRequest.setSortBy(brAPISortBy);
-        }
-
-        brAPIDAOUtil.setPagination(searchRequest, experimentQuery);
+        brAPIDAOUtil.setGenericSearchParameters(searchRequest, experimentQuery);
 
         return searchRequest;
-
     }
 }
