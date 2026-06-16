@@ -2,6 +2,7 @@ package org.breedinginsight.utilities.response.mappers;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
@@ -11,6 +12,7 @@ import org.breedinginsight.brapi.v2.constants.GermplasmQueryDefaults;
 import javax.inject.Singleton;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -60,6 +62,21 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
                         germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID) ?
                                 germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID).getAsString() :
                                 null),
+                Map.entry("externalUID", (germplasm) ->{
+                    String externalUID = null;
+                    if (germplasm.getExternalReferences() != null) {
+                        String source = germplasm.getSeedSource();
+                        List<BrAPIExternalReference> externalReferences = germplasm.getExternalReferences();
+                        for (BrAPIExternalReference reference : externalReferences) {
+                            if (reference.getReferenceSource().equals(source)) {
+                                externalUID = reference.getReferenceID();
+                                break;
+                            }
+                        }
+                    }
+
+                    return externalUID;
+                }),
                 Map.entry("createdDate", (germplasm) ->{
                     String createdDate = null;
                     if (germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CREATED_DATE)) {
