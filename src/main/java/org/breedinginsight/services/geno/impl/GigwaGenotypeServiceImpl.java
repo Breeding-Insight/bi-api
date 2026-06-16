@@ -42,9 +42,11 @@ import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
+import org.breedinginsight.daos.GenotypeImportDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SampleSubmissionDAO;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.GenotypeImportDetails;
 import org.breedinginsight.model.GermplasmGenotype;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
@@ -96,7 +98,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     private final ImportDAO importDAO;
     private final SampleSubmissionDAO sampleSubmissionDAO;
     private final BrAPISampleDAO sampleDAO;
-
+    private final GenotypeImportDAO genotypeImportDAO;
     private final ImportMappingDAO importMappingDAO;
     private final SimpleStorageService storageService;
 
@@ -122,6 +124,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                                     ImportDAO importDAO,
                                     SampleSubmissionDAO sampleSubmissionDAO,
                                     BrAPISampleDAO sampleDAO,
+                                    GenotypeImportDAO genotypeImportDAO,
                                     ImportMappingDAO importMappingDAO,
                                     @Named("genotype") SimpleStorageService storageService,
                                     S3Client s3Client,
@@ -134,6 +137,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         this.username = username;
         this.password = password;
         this.referenceSource = referenceSource;
+        this.genotypeImportDAO = genotypeImportDAO;
         this.gson = new GsonBuilder().create();
         this.programDAO = programDAO;
         this.userDAO = userDAO;
@@ -266,6 +270,12 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         }
     }
 
+    @Override
+    public List<GenotypeImportDetails> getGenotypeImports(UUID programId) {
+
+        return genotypeImportDAO.getGenotypeImportsByProgramId(programId);
+    }
+
     private boolean validateSamples(Program program, UUID submissionId, byte[] fileContents, ImportUpload upload) throws DoesNotExistException, ApiException {
         log.debug("Validating samples in submitted VCF file for submission: " + submissionId);
 
@@ -335,6 +345,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         log.debug("VCF samples are valid!");
         return true;
     }
+
     private boolean validateVcfHeader(String[] headerParts) {
         if(headerParts.length < 8) {
             return false;
@@ -420,6 +431,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
         BrAPICallSetsSearchRequest searchRequest = new BrAPICallSetsSearchRequest();
         searchRequest.setGermplasmDbIds(germplasmSamples.stream().map(BrAPISample::getGermplasmDbId).collect(Collectors.toList()));
+
         return brAPIDAOUtil.search(callSetsApi::searchCallsetsPost, callSetsApi::searchCallsetsSearchResultsDbIdGet, searchRequest);
     }
 
@@ -481,8 +493,10 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         OkHttpClient client = new OkHttpClient();
         String gigwaProgressToken = submitRequestToGigwa(client, program, submissionId, uploadedFileResult.getLeft(), gigwaAuthToken, progress);
 
-        if(checkGigwaProgress(client, gigwaAuthToken, gigwaProgressToken, progress)) {
+        if (checkGigwaProgress(client, gigwaAuthToken, gigwaProgressToken, progress)) {
             log.debug("Gigwa import was successful!");
+            //logic to add record to the new JOIN table
+            genotypeImportDAO.createGenotypeImportLink(submissionId, upload.getId(), upload.getCreatedBy());
             progress.setMessage("Import successful");
             progress.setStatuscode((short) HttpStatus.OK.getCode());
             importDAO.updateProgress(progress);

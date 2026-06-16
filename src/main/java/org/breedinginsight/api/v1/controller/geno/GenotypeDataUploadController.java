@@ -1,3 +1,19 @@
+/*
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.breedinginsight.api.v1.controller.geno;
 
 import io.micronaut.http.HttpResponse;
@@ -6,18 +22,26 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.auth.ProgramSecured;
-import org.breedinginsight.api.auth.ProgramSecuredRole;
-import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.auth.*;
+import org.breedinginsight.api.model.v1.request.query.GenotypeImportQuery;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
+import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
+import org.breedinginsight.model.GenotypeImportDetails;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.geno.GenotypeService;
+import org.breedinginsight.utilities.response.ResponseUtils;
+import org.breedinginsight.utilities.response.mappers.GenotypeImportQueryMapper;
 
 import javax.inject.Inject;
+import javax.validation.Valid;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -25,11 +49,38 @@ import java.util.UUID;
 public class GenotypeDataUploadController {
     private final GenotypeService genoService;
     private final SecurityService securityService;
+    private final ProgramService programService;
+    private final GenotypeImportQueryMapper genotypeImportQueryMapper;
 
     @Inject
-    public GenotypeDataUploadController(GenotypeService genoService, SecurityService securityService) {
+    public GenotypeDataUploadController(GenotypeService genoService, SecurityService securityService,
+                                        ProgramService programService, GenotypeImportQueryMapper genotypeImportQueryMapper) {
         this.genoService = genoService;
         this.securityService = securityService;
+        this.programService = programService;
+        this.genotypeImportQueryMapper = genotypeImportQueryMapper;
+    }
+
+    @Get("programs/{programId}/geno/imports{?genotypeImportQuery*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES)
+    public HttpResponse<Response<DataResponse<GenotypeImportDetails>>> getGenotypeImports(
+            @PathVariable UUID programId,
+            @QueryValue @QueryValid(using = GenotypeImportQueryMapper.class) @Valid GenotypeImportQuery genotypeImportQuery) {
+        Optional<Program> program = programService.getById(programId);
+        if (program.isEmpty()) {
+            log.info("programId not found: {}", programId.toString());
+            return HttpResponse.notFound();
+        }
+
+        SearchRequest searchRequest = genotypeImportQuery.constructSearchRequest();
+
+        return ResponseUtils.getQueryResponse(
+                genoService.getGenotypeImports(programId),
+                genotypeImportQueryMapper,
+                searchRequest,
+                genotypeImportQuery
+        );
     }
 
     @Post("programs/{programId}/submissions/{submissionId}/geno/import")
