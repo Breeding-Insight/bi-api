@@ -173,6 +173,9 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         // Check that "GID" column matches "Entry No" for both (https://breedinginsight.atlassian.net/browse/BI-2266).
         assertEquals(resultTable.get(0, 0), resultTable.get(0, 7), "Incorrect data exported");
         assertEquals(resultTable.get(1, 0), resultTable.get(1, 7), "Incorrect data exported");
+        //Assert "Pedigree" column contains properly formatted data
+        assertEquals(resultTable.get(0, 4), "", "Incorrect data exported");
+        assertEquals(resultTable.get(1, 4), "Germplasm A", "Incorrect data exported");
     }
 
     @Test
