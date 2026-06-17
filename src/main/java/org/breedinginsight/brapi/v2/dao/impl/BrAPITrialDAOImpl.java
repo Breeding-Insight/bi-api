@@ -103,32 +103,13 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         TrialQueryParams trialQueryParams =
                 TrialQueryParams.builder()
                         .programDbId(brapiProgramDbId)
-                        .pageSize(1000)
-                        .page(0)
                         .build();
 
-        return getTrialsFromBrAPI(program, trialQueryParams);
-    }
-
-    private List<BrAPITrial> getTrialsFromBrAPI(Program program, TrialQueryParams trialQueryParams) throws ApiException {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
 
-        ApiResponse<BrAPITrialListResponse> response;
+        List<BrAPITrial> result = brAPIDAOUtil.get(api::trialsGet, trialQueryParams);
 
-        try {
-            response = api.trialsGet(trialQueryParams);
-        } catch (ApiException e) {
-            log.warn(Utilities.generateApiExceptionLogMessage(e));
-            throw new InternalServerException("Error making BrAPI call", e);
-        }
-
-        if (response.getBody().getMetadata().getPagination().getTotalCount() > trialQueryParams.pageSize()) {
-            throw new InternalServerException(String.format("More trials exist than requested [%s]", trialQueryParams));
-        }
-
-        List<BrAPITrial> trialsFromResponse = response.getBody().getResult().getData();
-
-        return processExperimentsForDisplay(trialsFromResponse, program.getKey());
+        return processExperimentsForDisplay(result, program.getKey());
     }
 
     @Override
@@ -192,12 +173,21 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
 
         TrialQueryParams params = TrialQueryParams.builder()
                 .trialDbId(trialId.toString())
-                .pageSize(1)
-                .page(0)
                 .build();
 
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
 
-        return getTrialsFromBrAPI(program, params).stream().findFirst();
+        List<BrAPITrial> result = brAPIDAOUtil.get(api::trialsGet, params);
+
+        if (result.isEmpty()) {
+            throw new DoesNotExistException(String.format("Trial with ID [%s] does not exist", trialId));
+        } else if (result.size() > 1) {
+            throw new InternalServerException(String.format("Trial with ID [%s] found multiple times in database. This should not be possible.", trialId));
+        }
+
+        processExperimentsForDisplay(result, program.getKey());
+
+        return result.stream().findFirst();
     }
 
     @Override
