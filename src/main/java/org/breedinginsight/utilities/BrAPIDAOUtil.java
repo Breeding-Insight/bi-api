@@ -401,14 +401,6 @@ public class BrAPIDAOUtil {
                 .orElseThrow();
     }
 
-    // TODO: write generic put code
-    public <T> List<T> put(List<T> brapiObjects,
-                           ImportUpload upload,
-                           Function<List<T>, ApiResponse> putMethod,
-                           Consumer<ImportUpload> progressUpdateMethod) throws ApiException {
-        throw new UnsupportedOperationException();
-    }
-
     public <T, R> List<R> post(List<T> brapiObjects,
                             ImportUpload upload,
                             Function<List<T>, ApiResponse> postMethod,

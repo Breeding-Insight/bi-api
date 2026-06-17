@@ -82,7 +82,6 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
      * This method requires a BI-API program.  If the BrAPIProgram inside this data model is not set,
      * this method will retrieve it.
      */
-    // TODO: Generalize Code for General Get By Program for BrAPI Entities [BI-2932]
     private List<BrAPITrial> getBrAPITrialsUsingBrAPIProgramId(Program program) throws ApiException {
 
         if (program == null || program.getId() == null) {
@@ -97,8 +96,6 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         if (brapiProgramDbId == null) {
             brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
         }
-
-        // TODO: Configurable max amount of trials per program, or paginate [BI-2932]
 
         TrialQueryParams trialQueryParams =
                 TrialQueryParams.builder()
