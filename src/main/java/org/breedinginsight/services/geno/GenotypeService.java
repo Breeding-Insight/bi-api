@@ -19,12 +19,15 @@ package org.breedinginsight.services.geno;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
+import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.GermplasmGenotype;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.model.GenotypeImportDetails;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface GenotypeService {
@@ -33,4 +36,6 @@ public interface GenotypeService {
     GermplasmGenotype retrieveGenotypeData(UUID programId, UUID germplasmId) throws DoesNotExistException, AuthorizationException, ApiException;
 
     List<GenotypeImportDetails> getGenotypeImports(UUID programId);
+
+    Optional<DownloadFile> downloadGenotypeImport(UUID programId, UUID genotypeImportId)throws IOException;
 }

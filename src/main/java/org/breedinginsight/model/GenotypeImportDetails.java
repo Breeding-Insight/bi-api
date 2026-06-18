@@ -33,6 +33,7 @@ import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.IMPORTER_IMPORT;
 import static org.breedinginsight.dao.db.Tables.SAMPLE_SUBMISSION;
+import static org.breedinginsight.dao.db.Tables.GENOTYPE_IMPORT;
 
 @Getter
 @Setter
@@ -43,6 +44,7 @@ import static org.breedinginsight.dao.db.Tables.SAMPLE_SUBMISSION;
 @Introspected
 @Jacksonized
 public class GenotypeImportDetails {
+    private UUID genotypeImportId;
     private UUID sampleSubmissionId;
     private String projectNameForSampleSubmission;
     private String sampleSubmissionCreatedBy;
@@ -54,6 +56,7 @@ public class GenotypeImportDetails {
                                                        BiUserTable sampleSubmissionCreatedByUser,
                                                        BiUserTable genotypingImportByUser) {
         return GenotypeImportDetails.builder()
+                .genotypeImportId(record.get(GENOTYPE_IMPORT.ID))
                 .sampleSubmissionId(record.get(SAMPLE_SUBMISSION.ID))
                 .projectNameForSampleSubmission(record.get(SAMPLE_SUBMISSION.NAME))
                 .sampleSubmissionCreatedBy(record.get(sampleSubmissionCreatedByUser.NAME))

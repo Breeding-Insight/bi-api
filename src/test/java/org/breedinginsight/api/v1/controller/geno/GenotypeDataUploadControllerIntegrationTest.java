@@ -21,6 +21,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.kowalski.fannypack.FannyPack;
+import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -30,6 +31,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.netty.cookies.NettyCookie;
+import io.micronaut.http.server.types.files.StreamedFile;
 import io.micronaut.test.annotation.MockBean;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.breedinginsight.DatabaseTest;
@@ -38,10 +40,7 @@ import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.GenotypeImportDetails;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramBrAPIEndpoints;
-import org.breedinginsight.model.User;
+import org.breedinginsight.model.*;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.geno.GenotypeService;
@@ -52,7 +51,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 import javax.inject.Inject;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
@@ -167,6 +168,7 @@ public class GenotypeDataUploadControllerIntegrationTest extends DatabaseTest {
         doReturn(Optional.of(program)).when(programService).getById(program.getId());
 
         GenotypeImportDetails older = GenotypeImportDetails.builder()
+                .genotypeImportId(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
                 .sampleSubmissionId(UUID.fromString("11111111-1111-1111-1111-111111111111"))
                 .projectNameForSampleSubmission("Older Submission")
                 .sampleSubmissionCreatedBy("Test User")
@@ -176,6 +178,7 @@ public class GenotypeDataUploadControllerIntegrationTest extends DatabaseTest {
                 .build();
 
         GenotypeImportDetails newer = GenotypeImportDetails.builder()
+                .genotypeImportId(UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"))
                 .sampleSubmissionId(UUID.fromString("22222222-2222-2222-2222-222222222222"))
                 .projectNameForSampleSubmission("Newer Submission")
                 .sampleSubmissionCreatedBy("Test User")
@@ -207,6 +210,7 @@ public class GenotypeDataUploadControllerIntegrationTest extends DatabaseTest {
         assertEquals(1, data.size());
 
         JsonObject firstRow = data.get(0).getAsJsonObject();
+        assertEquals("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", firstRow.get("genotypeImportId").getAsString());
         assertEquals("22222222-2222-2222-2222-222222222222", firstRow.get("sampleSubmissionId").getAsString());
         assertEquals("Newer Submission", firstRow.get("projectNameForSampleSubmission").getAsString());
         assertEquals("Test User", firstRow.get("sampleSubmissionCreatedBy").getAsString());
@@ -347,6 +351,80 @@ public class GenotypeDataUploadControllerIntegrationTest extends DatabaseTest {
         verify(programService, times(1)).getBrapiEndpoints(program.getId());
         verify(programService, times(1)).getById(program.getId());
         verify(genotypeService, times(1)).getGenotypeImports(program.getId());
+    }
+
+    @Test
+    void downloadGenotypeImportReturnsAttachmentWhenServiceReturnsFile() throws Exception {
+        UUID genotypeImportId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+
+        doReturn(getBrAPIEndpoints()).when(programService).getBrapiEndpoints(program.getId());
+        doReturn(Optional.of(program)).when(programService).getById(program.getId());
+
+        DownloadFile downloadFile = new DownloadFile(
+                "sample.vcf",
+                new StreamedFile(
+                        new ByteArrayInputStream("vcf-data".getBytes(StandardCharsets.UTF_8)),
+                        new io.micronaut.http.MediaType(io.micronaut.http.MediaType.APPLICATION_OCTET_STREAM)
+                )
+        );
+
+        doReturn(Optional.of(downloadFile)).when(genotypeService)
+                .downloadGenotypeImport(program.getId(), genotypeImportId);
+
+        HttpResponse<byte[]> response = client.exchange(
+                GET(String.format("/programs/%s/geno/imports/%s/download", program.getId(), genotypeImportId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                byte[].class
+        ).blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals("attachment;filename=sample.vcf", response.header(HttpHeaders.CONTENT_DISPOSITION));
+
+        verify(programService).getBrapiEndpoints(program.getId());
+        verify(programService).getById(program.getId());
+        verify(genotypeService, times(1)).downloadGenotypeImport(program.getId(), genotypeImportId);
+    }
+
+    @Test
+    void downloadGenotypeImportReturnsNotFoundWhenServiceReturnsEmpty() throws IOException, DoesNotExistException {
+        UUID genotypeImportId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
+
+        doReturn(getBrAPIEndpoints()).when(programService).getBrapiEndpoints(program.getId());
+        doReturn(Optional.of(program)).when(programService).getById(program.getId());
+        doReturn(Optional.empty()).when(genotypeService)
+                .downloadGenotypeImport(program.getId(), genotypeImportId);
+
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class, () -> client.exchange(
+                GET(String.format("/programs/%s/geno/imports/%s/download", program.getId(), genotypeImportId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                byte[].class
+        ).blockingFirst());
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+
+        verify(programService).getBrapiEndpoints(program.getId());
+        verify(programService).getById(program.getId());
+        verify(genotypeService, times(1)).downloadGenotypeImport(program.getId(), genotypeImportId);
+    }
+
+    @Test
+    void downloadGenotypeImportReturnsNotFoundWhenProgramLookupFails() throws DoesNotExistException {
+        UUID genotypeImportId = UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd");
+
+        doReturn(getBrAPIEndpoints()).when(programService).getBrapiEndpoints(program.getId());
+        doReturn(Optional.empty()).when(programService).getById(program.getId());
+
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class, () -> client.exchange(
+                GET(String.format("/programs/%s/geno/imports/%s/download", program.getId(), genotypeImportId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                byte[].class
+        ).blockingFirst());
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+
+        verify(programService).getBrapiEndpoints(program.getId());
+        verify(programService).getById(program.getId());
+        verifyNoInteractions(genotypeService);
     }
 
     private MultipartBody multipartBody() {

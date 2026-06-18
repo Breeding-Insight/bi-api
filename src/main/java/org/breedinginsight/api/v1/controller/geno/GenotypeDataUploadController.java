@@ -16,10 +16,13 @@
  */
 package org.breedinginsight.api.v1.controller.geno;
 
+import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.multipart.CompletedFileUpload;
+import io.micronaut.http.server.types.files.StreamedFile;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.*;
@@ -30,6 +33,7 @@ import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
+import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.GenotypeImportDetails;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
@@ -41,6 +45,7 @@ import org.breedinginsight.utilities.response.mappers.GenotypeImportQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -81,6 +86,30 @@ public class GenotypeDataUploadController {
                 searchRequest,
                 genotypeImportQuery
         );
+    }
+
+    @Get("programs/{programId}/geno/imports/{genotypeImportId}/download")
+    @ProgramSecured(roleGroups = ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES)
+    @Produces(value = {"application/octet-stream"})
+    public HttpResponse<StreamedFile> downloadGenotypeImport(@PathVariable UUID programId, @PathVariable UUID genotypeImportId) {
+        Optional<Program> program = programService.getById(programId);
+        if (program.isEmpty()) {
+            log.info("programId not found: {}", programId.toString());
+            return HttpResponse.notFound();
+        }
+
+        try {
+            Optional<DownloadFile> downloadFile = genoService.downloadGenotypeImport(programId, genotypeImportId);
+            if (downloadFile.isEmpty()) {
+                return HttpResponse.notFound();
+            }
+
+            return HttpResponse.ok(downloadFile.get().getStreamedFile())
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + downloadFile.get().getFileName());
+        } catch (IOException e) {
+            log.error("Error downloading genotype import", e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error downloading genotype import");
+        }
     }
 
     @Post("programs/{programId}/submissions/{submissionId}/geno/import")

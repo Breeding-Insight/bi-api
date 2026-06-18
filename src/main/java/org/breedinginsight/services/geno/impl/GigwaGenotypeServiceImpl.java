@@ -8,6 +8,7 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import io.micronaut.http.server.types.files.StreamedFile;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.apache.commons.lang3.tuple.Pair;
@@ -46,10 +47,7 @@ import org.breedinginsight.daos.GenotypeImportDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SampleSubmissionDAO;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.GenotypeImportDetails;
-import org.breedinginsight.model.GermplasmGenotype;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.User;
+import org.breedinginsight.model.*;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -66,6 +64,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -274,6 +273,52 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     public List<GenotypeImportDetails> getGenotypeImports(UUID programId) {
 
         return genotypeImportDAO.getGenotypeImportsByProgramId(programId);
+    }
+
+    @Override
+    public Optional<DownloadFile> downloadGenotypeImport(UUID programId, UUID genotypeImportId) {
+        Optional<GenotypeImportDownloadDetails> genotypeImportDownloadDetails = genotypeImportDAO
+                .getDownloadableGenotypeImportById(programId, genotypeImportId);
+
+        if (genotypeImportDownloadDetails.isEmpty()) {
+            return Optional.empty();
+        }
+
+        UUID submissionId = genotypeImportDownloadDetails.get().getSampleSubmissionId();
+        UUID importerImportId = genotypeImportDownloadDetails.get().getImporterImportId();
+        String originalFileName = genotypeImportDownloadDetails.get().getGenotypeFileName();
+
+        Optional<String> storedKey = findStoredGenotypeImportKey(programId, submissionId, importerImportId);
+        if (storedKey.isEmpty()) {
+            return Optional.empty();
+        }
+
+        InputStream inputStream = s3Client.getObject(GetObjectRequest.builder()
+                .bucket(storageService.getDefaultBucketName())
+                .key(storedKey.get())
+                .build());
+
+        return Optional.of(new DownloadFile(
+                originalFileName,
+                new StreamedFile(
+                        inputStream,
+                        new io.micronaut.http.MediaType(io.micronaut.http.MediaType.APPLICATION_OCTET_STREAM)
+                )
+        ));
+    }
+
+    private Optional<String> findStoredGenotypeImportKey(UUID programId, UUID submissionId, UUID importerImportId) {
+        String prefix = programId + "/" + submissionId + "/" + importerImportId;
+
+        ListObjectsV2Response response = s3Client.listObjectsV2(ListObjectsV2Request.builder()
+                .bucket(storageService.getDefaultBucketName())
+                .prefix(prefix)
+                .maxKeys(1)
+                .build());
+
+        return response.contents().stream()
+                .map(S3Object::key)
+                .findFirst();
     }
 
     private boolean validateSamples(Program program, UUID submissionId, byte[] fileContents, ImportUpload upload) throws DoesNotExistException, ApiException {

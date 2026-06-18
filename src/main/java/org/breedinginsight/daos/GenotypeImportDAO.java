@@ -21,6 +21,7 @@ import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.GenotypeImportDao;
 import org.breedinginsight.dao.db.tables.pojos.GenotypeImportEntity;
 import org.breedinginsight.model.GenotypeImportDetails;
+import org.breedinginsight.model.GenotypeImportDownloadDetails;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 
@@ -28,6 +29,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
@@ -62,6 +64,7 @@ public class GenotypeImportDAO extends GenotypeImportDao {
         BiUserTable genotypingImportByUser = BI_USER.as("genotypingImportByUser");
 
         return dsl.select(
+                        GENOTYPE_IMPORT.ID,
                         SAMPLE_SUBMISSION.ID,
                         SAMPLE_SUBMISSION.NAME,
                         sampleSubmissionCreatedByUser.NAME,
@@ -82,4 +85,19 @@ public class GenotypeImportDAO extends GenotypeImportDao {
                         .parseSqlRecord(record, sampleSubmissionCreatedByUser, genotypingImportByUser));
     }
 
+    public Optional<GenotypeImportDownloadDetails> getDownloadableGenotypeImportById(UUID programId, UUID genotypeImportId) {
+        return dsl.select(
+                        GENOTYPE_IMPORT.SAMPLE_SUBMISSION_ID,
+                        GENOTYPE_IMPORT.IMPORTER_IMPORT_ID,
+                        IMPORTER_IMPORT.UPLOAD_FILE_NAME)
+                .from(GENOTYPE_IMPORT)
+                .join(SAMPLE_SUBMISSION).on(GENOTYPE_IMPORT.SAMPLE_SUBMISSION_ID.eq(SAMPLE_SUBMISSION.ID))
+                .join(IMPORTER_IMPORT).on(GENOTYPE_IMPORT.IMPORTER_IMPORT_ID.eq(IMPORTER_IMPORT.ID))
+                .join(IMPORTER_PROGRESS).on(IMPORTER_IMPORT.IMPORTER_PROGRESS_ID.eq(IMPORTER_PROGRESS.ID))
+                .where(GENOTYPE_IMPORT.ID.eq(genotypeImportId))
+                .and(SAMPLE_SUBMISSION.PROGRAM_ID.eq(programId))
+                .and(IMPORTER_IMPORT.PROGRAM_ID.eq(programId))
+                .and(IMPORTER_PROGRESS.STATUSCODE.eq((short) HttpStatus.OK.getCode()))
+                .fetchOptional(GenotypeImportDownloadDetails::parseSqlRecord);
+    }
 }
