@@ -28,6 +28,7 @@ public enum GermplasmFileColumns {
     NAME("Germplasm Name", Column.ColumnDataType.STRING),
     BREEDING_METHOD("Breeding Method", Column.ColumnDataType.STRING),
     SOURCE("Source", Column.ColumnDataType.STRING),
+    PEDIGREE("Pedigree", Column.ColumnDataType.STRING),
     FEMALE_PARENT_GID("Female Parent GID", Column.ColumnDataType.INTEGER),
     MALE_PARENT_GID("Male Parent GID", Column.ColumnDataType.INTEGER),
     ENTRY_NO("Entry No", Column.ColumnDataType.INTEGER),
