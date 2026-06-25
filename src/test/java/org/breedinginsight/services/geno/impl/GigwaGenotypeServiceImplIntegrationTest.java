@@ -443,8 +443,11 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         UUID programId = UUID.randomUUID();
         UUID olderSubmissionId = UUID.randomUUID();
         UUID newerSubmissionId = UUID.randomUUID();
+        UUID genotypeImportId1 = UUID.randomUUID();
+        UUID genotypeImportId2 = UUID.randomUUID();
 
         GenotypeImportDetails older = GenotypeImportDetails.builder()
+                .genotypeImportId(genotypeImportId1)
                 .sampleSubmissionId(olderSubmissionId)
                 .projectNameForSampleSubmission("Submission " + olderSubmissionId)
                 .sampleSubmissionCreatedBy("system")
@@ -454,6 +457,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
                 .build();
 
         GenotypeImportDetails newer = GenotypeImportDetails.builder()
+                .genotypeImportId(genotypeImportId2)
                 .sampleSubmissionId(newerSubmissionId)
                 .projectNameForSampleSubmission("Submission " + newerSubmissionId)
                 .sampleSubmissionCreatedBy("system")
@@ -469,6 +473,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         assertNotNull(rows);
         assertEquals(2, rows.size());
 
+        assertEquals(genotypeImportId2, rows.get(0).getGenotypeImportId());
         assertEquals(newerSubmissionId, rows.get(0).getSampleSubmissionId());
         assertEquals("Submission " + newerSubmissionId, rows.get(0).getProjectNameForSampleSubmission());
         assertEquals("sample.vcf", rows.get(0).getGenotypingFileName());
@@ -476,6 +481,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         assertEquals("system", rows.get(0).getSampleSubmissionCreatedBy());
         assertEquals("system", rows.get(0).getGenotypingImportBy());
 
+        assertEquals(genotypeImportId1, rows.get(1).getGenotypeImportId());
         assertEquals(olderSubmissionId, rows.get(1).getSampleSubmissionId());
         assertEquals("Submission " + olderSubmissionId, rows.get(1).getProjectNameForSampleSubmission());
         assertEquals("sample.vcf", rows.get(1).getGenotypingFileName());
@@ -496,6 +502,47 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         assertNotNull(rows);
         assertTrue(rows.isEmpty());
         verify(genotypeImportDAO).getGenotypeImportsByProgramId(programId);
+    }
+
+    @Test
+    public void testDownloadGenotypeImportReturnsOriginalUploadedFile() throws Exception {
+        UUID programId = UUID.randomUUID();
+        String programKey = "TESTDOWNLOADGENOIMPORT";
+        UUID submissionId = UUID.randomUUID();
+        UUID importerImportId = UUID.randomUUID();
+        UUID genotypeImportId = UUID.randomUUID();
+
+        uploadGenoData(programId, programKey, submissionId, importerImportId);
+        doReturn(Optional.of(GenotypeImportDownloadDetails.builder()
+                .sampleSubmissionId(submissionId)
+                .importerImportId(importerImportId)
+                .genotypeFileName("sample.vcf")
+                .build()))
+                .when(genotypeImportDAO).getDownloadableGenotypeImportById(programId, genotypeImportId);
+
+        Optional<DownloadFile> downloadFile = gigwaGenoStorageService.downloadGenotypeImport(programId, genotypeImportId);
+
+        verify(genotypeImportDAO, times(1)).getDownloadableGenotypeImportById(programId, genotypeImportId);
+        assertTrue(downloadFile.isPresent());
+        assertEquals("sample.vcf", downloadFile.get().getFileName());
+        assertArrayEquals(
+                new TestFileUpload("src/test/resources/files/geno/sample.vcf", MediaType.of("application/vcard")).getBytes(),
+                downloadFile.get().getStreamedFile().getInputStream().readAllBytes()
+        );
+    }
+
+    @Test
+    public void testDownloadGenotypeImportReturnsEmptyWhenDaoReturnsEmpty() {
+        UUID programId = UUID.randomUUID();
+        UUID genotypeImportId = UUID.randomUUID();
+
+        doReturn(Optional.empty()).when(genotypeImportDAO)
+                .getDownloadableGenotypeImportById(programId, genotypeImportId);
+
+        Optional<DownloadFile> downloadFile = gigwaGenoStorageService.downloadGenotypeImport(programId, genotypeImportId);
+
+        assertTrue(downloadFile.isEmpty());
+        verify(genotypeImportDAO, times(1)).getDownloadableGenotypeImportById(programId, genotypeImportId);
     }
 
     @Test
