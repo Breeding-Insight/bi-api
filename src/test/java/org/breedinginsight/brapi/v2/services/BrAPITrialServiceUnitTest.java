@@ -35,6 +35,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.lock.DistributedLockService;
 import org.breedinginsight.utilities.FileUtil;
+import org.breedinginsight.utilities.Utilities;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.tablesaw.api.Table;
@@ -120,6 +121,12 @@ class BrAPITrialServiceUnitTest {
         JsonObject experimentInfo = new JsonObject();
         experimentInfo.addProperty(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE, "Phenotyping");
         experiment.setAdditionalInfo(experimentInfo);
+
+        BrAPIExternalReference externalReference = new BrAPIExternalReference();
+        externalReference.setReferenceSource(Utilities.generateReferenceSource(REFERENCE_SOURCE, ExternalReferenceSource.TRIALS));
+        externalReference.setReferenceId("11111111-1111-1111-1111-111111111111");
+
+        experiment.setExternalReferences(List.of(externalReference));
 
         study = new BrAPIStudy();
         study.setStudyDbId("study-1");

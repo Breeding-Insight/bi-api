@@ -19,22 +19,22 @@ package org.breedinginsight.brapi.v2.dao.impl;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 import okhttp3.Request;
+import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.core.TrialQueryParams;
 import org.brapi.client.v2.modules.core.TrialsApi;
-import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
+import org.brapi.v2.model.core.response.BrAPITrialListResponse;
 import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.daos.cache.ProgramCache;
-import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
@@ -45,14 +45,12 @@ import org.breedinginsight.utilities.Utilities;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Context
 @Singleton
 public class BrAPITrialDAOImpl implements BrAPITrialDAO {
-    private final ProgramCache<BrAPITrial> programExperimentCache;
     private final ProgramDAO programDAO;
     private final ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
@@ -62,15 +60,13 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
     private final boolean runScheduledTasks;
 
     @Inject
-    public BrAPITrialDAOImpl(ProgramCacheProvider programCacheProvider,
-                             ProgramDAO programDAO,
+    public BrAPITrialDAOImpl(ProgramDAO programDAO,
                              ImportDAO importDAO,
                              BrAPIDAOUtil brAPIDAOUtil,
                              ProgramService programService,
                              @Property(name = "brapi.server.reference-source") String referenceSource,
                              BrAPIEndpointProvider brAPIEndpointProvider,
                              @Property(name = "micronaut.bi.api.run-scheduled-tasks") boolean runScheduledTasks) {
-        this.programExperimentCache = programCacheProvider.getProgramCache(this::fetchProgramExperiments, BrAPITrial.class);
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
@@ -80,68 +76,73 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         this.runScheduledTasks = runScheduledTasks;
     }
 
+    /**
+     * This method requires a BI-API program.  If the BrAPIProgram inside this data model is not set,
+     * this method will retrieve it.
+     */
+    private List<BrAPITrial> getBrAPITrialsUsingBrAPIProgram(Program program) throws ApiException {
 
-    @Scheduled(initialDelay = "${startup.delay.trial}")
-    public void setup() {
-        if(!runScheduledTasks) {
-            return;
+        if (program == null || program.getId() == null) {
+            throw new InternalServerException("BI-API Program or Program ID is null");
         }
 
-        // Populate the experiment cache for all programs on startup
-        log.debug("populating experiment cache");
-        List<Program> programs = programDAO.getActive();
-        if (programs != null) {
-            programExperimentCache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
+        String brapiProgramDbId = Optional.of(program)
+                .map(Program::getBrapiProgram)
+                .map(BrAPIProgram::getProgramDbId)
+                .orElse(null);
+
+        if (brapiProgramDbId == null) {
+            brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
         }
+
+        // TODO: Configurable max amount of trials per program, or paginate.
+
+        TrialQueryParams trialQueryParams =
+                TrialQueryParams.builder()
+                        .programDbId(brapiProgramDbId)
+                        .pageSize(1000)
+                        .page(0)
+                        .build();
+
+        return getTrialsFromBrAPI(program, trialQueryParams);
     }
 
-    private Map<String, BrAPITrial> fetchProgramExperiments(UUID programId) throws ApiException {
-        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
+    private List<BrAPITrial> getTrialsFromBrAPI(Program program, TrialQueryParams trialQueryParams) throws ApiException {
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
 
-        // Get the program
-        List<Program> programs = programDAO.get(programId);
-        if (programs.size() != 1) {
-            throw new InternalServerException("Program was not found for given key");
+        ApiResponse<BrAPITrialListResponse> response;
+
+        try {
+            response = api.trialsGet(trialQueryParams);
+        } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            throw new InternalServerException("Error making BrAPI call", e);
         }
-        Program program = programs.get(0);
 
-        // Get the program experiments
-        BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
-        trialSearch.externalReferenceIDs(List.of(programId.toString()));
-        trialSearch.externalReferenceSources(
-                List.of(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS))
-        );
-        List<BrAPITrial> programExperiments = brAPIDAOUtil.search(
-                api::searchTrialsPost,
-                api::searchTrialsSearchResultsDbIdGet,
-                trialSearch
-        );
+        if (response.getBody().getMetadata().getPagination().getTotalCount() > trialQueryParams.pageSize()) {
+            throw new InternalServerException(String.format("More trials exist than requested [%s]", trialQueryParams));
+        }
 
-        return experimentById(processExperimentsForDisplay(programExperiments, program.getKey()));
+        List<BrAPITrial> trialsFromResponse = response.getBody().getResult().getData();
+
+        return processExperimentsForDisplay(trialsFromResponse, program.getKey());
     }
 
     private Map<String, BrAPITrial> experimentById(List<BrAPITrial> trials) {
         Map<String, BrAPITrial> experimentById = new HashMap<>();
         for (BrAPITrial experiment: trials) {
-            BrAPIExternalReference xref = experiment
-                    .getExternalReferences()
-                    .stream()
-                    .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.TRIALS.getName()).equals(reference.getReferenceSource()))
-                    .findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
-            experimentById.put(xref.getReferenceID(), experiment);
+            experimentById.put(experiment.getTrialDbId(), experiment);
         }
         return experimentById;
     }
 
     @Override
     public List<BrAPITrial> getTrialsByName(List<String> trialNames, Program program) throws ApiException {
-        Map<String, BrAPITrial> cache = programExperimentCache.get(program.getId());
-        List<BrAPITrial> trials = new ArrayList<>();
-        if (cache != null) {
+        List<BrAPITrial> allTrialsForProgram = getBrAPITrialsUsingBrAPIProgram(program);
 
-            // TODO: replace with more performant cache search, e.g. RediSearch
-            trials.addAll(cache
-                    .values()
+        List<BrAPITrial> trials = new ArrayList<>();
+        if (allTrialsForProgram != null) {
+            trials.addAll(allTrialsForProgram
                     .stream()
                     .filter(t -> trialNames.contains(t.getTrialName()))
                     .collect(Collectors.toList()));
@@ -150,66 +151,22 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         return trials;
     }
 
-    private List<BrAPITrial> getTrialsByExRef(String referenceSource, String referenceId, Program program) throws ApiException {
-        Map<String, BrAPITrial> cache = programExperimentCache.get(program.getId());
-        List<BrAPITrial> trials = new ArrayList<>();
-        if (cache != null) {
-            trials.addAll(cache
-                    .values()
-                    .stream()
-                    .filter(t -> {
-                        BrAPIExternalReference xref = t
-                                .getExternalReferences()
-                                .stream()
-                                .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.TRIALS)
-                                        .equalsIgnoreCase(reference.getReferenceSource()))
-                                .findFirst().orElseThrow(() -> new IllegalStateException("No BI trial external reference found"));
-                        return referenceId.equals(xref.getReferenceID());
-                    })
-                    .collect(Collectors.toList()));
-        }
-
-        return trials;
-    }
-
+    // TODO: Fix by using only code of inner callback and returning result
     @Override
-    public List<BrAPITrial> createBrAPITrials(List<BrAPITrial> brAPITrialList, UUID programId, ImportUpload upload)
-            throws ApiException {
+    public List<BrAPITrial> createBrAPITrials(List<BrAPITrial> brAPITrialList, UUID programId, ImportUpload upload) {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
-        List<BrAPITrial> createdTrials = new ArrayList<>();
         try {
-            if (!brAPITrialList.isEmpty()) {
-                Callable<Map<String, BrAPITrial>> postCallback = () -> {
-                    List<BrAPITrial> postedTrials = brAPIDAOUtil
-                            .post(brAPITrialList, upload, api::trialsPost, importDAO::update);
-                    return experimentById(postedTrials);
-                };
-                createdTrials.addAll(programExperimentCache.post(programId, postCallback));
-            }
-
-            return createdTrials;
+            return brAPIDAOUtil.post(brAPITrialList, upload, api::trialsPost, importDAO::update);
         } catch (Exception e) {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
         }
     }
-    @Override
-    public BrAPITrial updateBrAPITrial(String trialDbId, BrAPITrial trial, UUID programId) throws ApiException {
-        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
-        BrAPITrial updatedTrial = null;
-        try {
-            if (trial != null && !trialDbId.isBlank()) {
-                Callable<Map<String, BrAPITrial>> putCallback = () -> {
-                    BrAPITrial putTrial = brAPIDAOUtil.put(trialDbId, trial, api::trialsTrialDbIdPut);
-                    return experimentById(List.of(putTrial));
-                };
-                List<BrAPITrial> cachedUpdates = programExperimentCache.post(programId, putCallback);
-                if (cachedUpdates.isEmpty()) {
-                    throw new Exception();
-                }
-                updatedTrial = cachedUpdates.get(0);
-            }
 
-            return updatedTrial;
+    @Override
+    public BrAPITrial updateBrAPITrial(String trialDbId, BrAPITrial trial, UUID programId) {
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
+        try {
+            return brAPIDAOUtil.put(trialDbId, trial, api::trialsTrialDbIdPut);
         } catch (Exception e) {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
         }
@@ -217,7 +174,10 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
 
     @Override
     public List<BrAPITrial> getTrials(UUID programId) throws ApiException {
-        return new ArrayList<>(programExperimentCache.get(programId).values());
+        Program program = programDAO.get(programId).get(0);
+        program.setBrapiProgram(programDAO.getProgramBrAPI(program));
+
+        return getBrAPITrialsUsingBrAPIProgram(program);
     }
 
     //Removes program key from trial name
@@ -234,44 +194,37 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
 
     @Override
     public Optional<BrAPITrial> getTrialById(UUID programId, UUID trialId) throws ApiException, DoesNotExistException {
-        Map<String, BrAPITrial> cache = programExperimentCache.get(programId);
-        BrAPITrial trial = null;
-        if (cache != null) {
-            trial = cache.get(trialId.toString());
-        }
+        Program program = programDAO.get(programId).get(0);
 
-        return Optional.ofNullable(trial);
-    }
+        TrialQueryParams params = TrialQueryParams.builder()
+                .trialDbId(trialId.toString())
+                .pageSize(1)
+                .page(0)
+                .build();
 
-    @Override
-    public Optional<BrAPITrial> getTrialByDbId(String trialDbId, Program program) throws ApiException {
-        List<BrAPITrial> trials = getTrialsByDbIds(List.of(trialDbId), program);
-        return Utilities.getSingleOptional(trials);
+
+        return getTrialsFromBrAPI(program, params).stream().findFirst();
     }
 
     @Override
     public List<BrAPITrial> getTrialsByDbIds(Collection<String> trialDbIds, Program program) throws ApiException {
-        Map<String, BrAPITrial> cache = programExperimentCache.get(program.getId());
-        List<BrAPITrial> trials = new ArrayList<>();
-        if (cache != null) {
-            trials.addAll(cache
-                    .values()
-                    .stream()
-                    .filter(t -> trialDbIds.contains(t.getTrialDbId()))
-                    .collect(Collectors.toList()));
-        }
+        Collection<UUID> trialDbUUIDs = trialDbIds.stream().map(UUID::fromString).collect(Collectors.toList());
 
-        return trials;
+        return getTrialsByExperimentIds(trialDbUUIDs, program);
     }
+
+    // TODO: ExperimentIds will = trialDbIds once cache is updated.  Update this method to get trials on dbId directly from brapi.
     @Override
     public List<BrAPITrial> getTrialsByExperimentIds(Collection<UUID> experimentIds, Program program) throws ApiException {
         if(experimentIds.isEmpty()) {
             return Collections.emptyList();
         }
+
+        List<String> experimentIdsAsStrings = experimentIds.stream().map(UUID::toString).collect(Collectors.toList());
+
         BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
         trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
-        trialSearch.externalReferenceSources(List.of(referenceSource + "/" + ExternalReferenceSource.TRIALS.getName()));
-        trialSearch.externalReferenceIds(experimentIds.stream().map(UUID::toString).collect(Collectors.toList()));
+        trialSearch.trialDbIds(experimentIdsAsStrings);
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
         return processExperimentsForDisplay(brAPIDAOUtil.search(
                 api::searchTrialsPost,
@@ -293,11 +246,5 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
                 .build();
 
         brAPIDAOUtil.makeCall(brapiRequest);
-    }
-
-    @Override
-    public void repopulateCache(UUID programId) {
-        this.programExperimentCache.invalidate(programId);
-        this.programExperimentCache.populate(programId);
     }
 }

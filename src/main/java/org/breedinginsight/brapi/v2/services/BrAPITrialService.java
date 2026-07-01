@@ -121,6 +121,7 @@ public class BrAPITrialService {
     }
 
     public List<BrAPITrial> getExperiments(UUID programId) throws ApiException, DoesNotExistException {
+        // TODO: Edit this to filter/paginate trials
         return trialDAO.getTrials(programId);
     }
 
@@ -185,10 +186,17 @@ public class BrAPITrialService {
         // add columns for requested dataset obsvars and timestamps
         log.debug(logHash + ": fetching experiment for export");
         BrAPITrial experiment = getExperiment(program, experimentId);
+        String expExRefId = Utilities.getExternalReference(experiment.getExternalReferences(), this.referenceSource, ExternalReferenceSource.TRIALS)
+                .map(BrAPIExternalReference::getReferenceId)
+                .orElse(null);
+
+        if (expExRefId == null) {
+            throw new InternalServerException(String.format("Trials exref does not exist for experiment [%s]",  experimentId));
+        }
 
         // get requested environments for the experiment
         log.debug(logHash + ": fetching environments for export");
-        List<BrAPIStudy> expStudies = studyDAO.getStudiesByExperimentID(experimentId, program);
+        List<BrAPIStudy> expStudies = studyDAO.getStudiesByExperimentID(UUID.fromString(expExRefId), program);
         if (!requestedEnvIds.isEmpty()) {
             expStudies = expStudies
                     .stream()
@@ -788,25 +796,33 @@ public class BrAPITrialService {
         }
         BrAPITrial trial = trials.get(0);
 
+        UUID exRefId = Utilities.getExternalReference(trial.getExternalReferences(), referenceSource, ExternalReferenceSource.TRIALS)
+                .map(BrAPIExternalReference::getReferenceId)
+                .map(UUID::fromString)
+                .orElse(null);
+
+        if (exRefId == null) {
+            throw new InternalServerException(String.format("Experiment with UUID [%s] does not have TRIALS exref", experimentId));
+        }
+
         List<BrAPIObservation> existingObservations = observationDAO.getObservationsByTrialDbId(List.of(trial.getTrialDbId()), program);
         // If there are no observations or a soft delete is requested, proceed.
         if (existingObservations.isEmpty() || !hard) {
             // Make request to delete experiment.
             trialDAO.deleteBrAPITrial(program, trial, hard);
             // Get all lists for the trial.
+            // TODO: Get lists by trialDbId if trials get decoupled from datasets.
             List<BrAPIListSummary> lists = listDAO
                     .getListsByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
                             program.getId(),
                             Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS),
-                            experimentId);
+                            exRefId);
             // TODO: replace with a single call to a batch delete method if that becomes available.
             // Iterate over lists, delete each by listDbId.
             for (BrAPIListSummary list : lists) {
                 listDAO.deleteBrAPIList(list.getListDbId(), program.getId(), hard);
             }
             // TODO: if performance is poor, implement more precise invalidation, possibly using hierarchical cache keys.
-            // Invalidate and repopulate cache for Trial, Study, Observation, ObservationUnit.
-            trialDAO.repopulateCache(program.getId());
             studyDAO.repopulateCache(program.getId());
             observationDAO.repopulateCache(program.getId());
             observationUnitDAO.repopulateCache(program.getId());

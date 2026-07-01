@@ -198,9 +198,21 @@ public class PopulateExistingPendingImportObjectsStep {
         List<BrAPIStudy> existingStudies;
         Optional<PendingImportObject<BrAPITrial>> trial = getTrialPIO(experimentImportRows, trialByNameNoScope);
 
+        String expExRefId = Utilities.getExternalReference(trial.get()
+                .getBrAPIObject()
+                .getExternalReferences(), BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS)
+                .map(BrAPIExternalReference::getReferenceId)
+                .orElse(null);
+
+        if (expExRefId == null) {
+            String logMessage = "No exref found in trial to link trial to study";
+            log.error(logMessage);
+            throw new InternalServerException(logMessage);
+        }
+
         try {
             // the 'trial' variable will never be "null".
-            UUID experimentId = trial.get().getId();
+            UUID experimentId = UUID.fromString(expExRefId);
             existingStudies = brAPIStudyDAO.getStudiesByExperimentID(experimentId, program);
             for (BrAPIStudy existingStudy : existingStudies) {
                 experimentStudyService.processAndCacheStudy(existingStudy, program, BrAPIStudy::getStudyName, studyByName);

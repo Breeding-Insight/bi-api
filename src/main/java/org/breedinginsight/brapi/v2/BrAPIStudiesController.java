@@ -114,6 +114,7 @@ public class BrAPIStudiesController {
                 return ResponseUtils.getBrapiQueryResponse(authorizedStudies, studyQueryMapper, queryParams, searchRequest);
             }
 
+            // TODO: Instead of getting all studies for a program and filtering, doing the filtering on brapi side
             List<BrAPIStudy> studies = studyService.getStudies(programId)
                         .stream()
                         .peek(this::setDbIds)
@@ -169,10 +170,6 @@ public class BrAPIStudiesController {
 
     private void setDbIds(BrAPIStudy study) {
         study.studyDbId(Utilities.getExternalReference(study.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES))
-                                 .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
-                                 .getReferenceID());
-
-        study.trialDbId(Utilities.getExternalReference(study.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS))
                                  .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
                                  .getReferenceID());
 

@@ -40,13 +40,9 @@ public interface BrAPITrialDAO {
 
     Optional<BrAPITrial> getTrialById(UUID programId, UUID trialId) throws ApiException, DoesNotExistException;
 
-    Optional<BrAPITrial> getTrialByDbId(String trialDbId, Program program) throws ApiException;
-
     List<BrAPITrial> getTrialsByDbIds(Collection<String> trialDbIds, Program program) throws ApiException;
 
     List<BrAPITrial> getTrialsByExperimentIds(Collection<UUID> experimentIds, Program program) throws ApiException;
 
     void deleteBrAPITrial(Program program, BrAPITrial trial, boolean hard) throws ApiException;
-
-    void repopulateCache(UUID programId);
 }

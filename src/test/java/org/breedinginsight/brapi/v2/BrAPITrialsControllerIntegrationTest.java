@@ -28,6 +28,7 @@ import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.BrAPITest;
+import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.*;
 import org.breedinginsight.utilities.Utilities;
@@ -58,6 +59,9 @@ public class BrAPITrialsControllerIntegrationTest extends BrAPITest {
 
     @Inject
     private BrAPITestUtils brAPITestUtils;
+
+    @Inject
+    private BrAPITrialService brAPIITrialService;
 
     private final Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
                     (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
@@ -98,16 +102,17 @@ public class BrAPITrialsControllerIntegrationTest extends BrAPITest {
 
         // Check names and experimentIds (the BI-assigned UUID stored as an xref).
         List<String> expNames = new ArrayList<>();
-        List<String> expIds = new ArrayList<>();
+        List<String> trialExRefIds = new ArrayList<>();
         for (BrAPITrial trial : trials) {
             String experimentId = Utilities.getExternalReference(trial.getExternalReferences(), source).get().getReferenceId();
-            expIds.add(experimentId);
+            trialExRefIds.add(experimentId);
             expNames.add(trial.getTrialName());
         }
         assert(expNames.contains("xyz"));
         assert(expNames.contains("Test Exp"));
-        assert(expIds.contains(experiment1Id));
-        assert(expIds.contains(experiment2Id));
+        // Verify two different bi-api ex ref ids were generated for each trial
+        assertEquals(2 , trialExRefIds.size());
+        assertNotEquals(trialExRefIds.get(0), trialExRefIds.get(1));
     }
 
     /**
@@ -129,9 +134,7 @@ public class BrAPITrialsControllerIntegrationTest extends BrAPITest {
         assertEquals(1, trials.size());
         BrAPITrial trial = gson.fromJson(trials.get(0).getAsJsonObject(), BrAPITrial.class);
         assertEquals("xyz", trial.getTrialName());
-        String source = Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS);
-        String experimentId = Utilities.getExternalReference(trial.getExternalReferences(), source).get().getReferenceId();
-        assertEquals(this.experiment2Id, experimentId);
+        assertEquals(this.experiment2Id, trial.getTrialDbId());
     }
 
 }
