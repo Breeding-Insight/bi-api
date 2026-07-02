@@ -74,10 +74,9 @@ public class BrAPIObservationVariableService {
             expId = UUID.fromString(experimentId.get());
         } else {
             UUID envId = UUID.fromString(environmentId.orElseThrow(() -> new IllegalStateException("no environment id found")));
+            // TODO: Double check this (and other studyDbId bi-brapi) lookup still works with cache removal on studies [BI-2962]
             BrAPIStudy environment = trialService.getEnvironment(program.get(), envId);
-            expId = UUID.fromString(Utilities.getExternalReference(environment.getExternalReferences(),
-                    Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS))
-                    .orElseThrow(() -> new IllegalStateException("no external reference found")).getReferenceId());
+            expId = UUID.fromString(environment.getTrialDbId());
         }
 
         BrAPITrial experiment = trialService.getExperiment(program.get(), expId);
