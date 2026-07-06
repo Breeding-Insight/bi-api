@@ -212,9 +212,11 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
             return Collections.emptyList();
         }
         // First, get all ObservationUnits for the given trialDbIds.
+        // TODO: Once OUDAO removes cache, investigate utilizing observationUnit GET param to includeObservations instead of making an extra call for the observations. This should offer performance gains. [BI-2963]
         List<String> observationUnitDbIds = observationUnitDAO.getObservationUnitsForTrialDbIds(program.getId(), trialDbIds)
                 .stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
         // Finally, return all Observations for those ObservationUnits (Observations are linked to Trial through ObservationUnits).
+        // TODO: This gets all observations for the program and filters, which is extremely inefficient.  If above TODO suggestion doesn't work, another improvement would be to search on OU ids directly in BrAPI instead. [BI-2963]
         return getProgramObservations(program.getId()).values().stream()
                 .filter(o -> observationUnitDbIds.contains(o.getObservationUnitDbId()))
                 .collect(Collectors.toList());
