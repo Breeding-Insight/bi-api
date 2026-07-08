@@ -24,14 +24,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.model.queryParams.core.TrialQueryParams;
 import org.brapi.client.v2.model.queryParams.phenotype.ObservationQueryParams;
-import org.brapi.client.v2.modules.core.TrialsApi;
 import org.brapi.client.v2.modules.phenotype.ObservationsApi;
 import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIProgram;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationSearchRequest;
@@ -43,7 +40,6 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -112,11 +108,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         }
     }
 
-    /**
-     * Get all observations for a program from the cache.
-     */
     private List<BrAPIObservation> getProgramObservations(UUID programId) throws ApiException {
-
         Program program = programDAO.get(programId)
                 .stream()
                 .findFirst()
@@ -125,7 +117,6 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         return getBrAPIObservationsUsingBrAPIProgramId(program);
     }
 
-    // Note: not using cache, because unique studyName (with "[ProgramKey-ExtraInfo]") is not stored directly on Observation.
     public List<BrAPIObservation> getObservationsByStudyName(List<String> studyNames, Program program) throws ApiException {
         if(studyNames.isEmpty()) {
             return Collections.emptyList();
