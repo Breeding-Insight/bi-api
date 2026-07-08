@@ -24,9 +24,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.phenotype.ObservationQueryParams;
 import org.brapi.client.v2.modules.phenotype.ObservationsApi;
 import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationSearchRequest;
@@ -38,7 +40,6 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -67,6 +68,8 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
     private boolean runScheduledTasks;
     private final TraitService traitService;
 
+    private final int brapiMaxPageSize;
+
     @Inject
     public BrAPIObservationDAO(ProgramDAO programDAO,
                                ImportDAO importDAO,
@@ -75,6 +78,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                                BrAPIEndpointProvider brAPIEndpointProvider,
                                @Property(name = "brapi.server.reference-source") String referenceSource,
                                @Property(name = "micronaut.bi.api.run-scheduled-tasks") boolean runScheduledTasks,
+                               @Property(name = "brapi.cache.fetch-page-size")  int brapiFetchPageSize,
                                ProgramCacheProvider programCacheProvider, TraitService traitService) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
@@ -85,6 +89,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         this.runScheduledTasks = runScheduledTasks;
         this.traitService = traitService;
         this.programCache = programCacheProvider.getProgramCache(this::fetchProgramObservations, BrAPIObservation.class);
+        this.brapiMaxPageSize = brapiFetchPageSize;
     }
 
     @Scheduled(initialDelay = "${startup.delay.observation}")
@@ -162,14 +167,15 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         }
     }
 
-    /**
-     * Get all observations for a program from the cache.
-     */
-    private Map<String, BrAPIObservation> getProgramObservations(UUID programId) throws ApiException {
-        return programCache.get(programId);
+    private List<BrAPIObservation> getProgramObservations(UUID programId) throws ApiException {
+        Program program = programDAO.get(programId)
+                .stream()
+                .findFirst()
+                .orElseThrow();
+
+        return getBrAPIObservationsUsingBrAPIProgramId(program);
     }
 
-    // Note: not using cache, because unique studyName (with "[ProgramKey-ExtraInfo]") is not stored directly on Observation.
     public List<BrAPIObservation> getObservationsByStudyName(List<String> studyNames, Program program) throws ApiException {
         if(studyNames.isEmpty()) {
             return Collections.emptyList();
@@ -202,7 +208,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
 
         // Filter the observations based on the provided program ID and the provided list of dbIds
         // Collect the filtered observations into a List and return the result
-        return getProgramObservations(program.getId()).values().stream()
+        return getProgramObservations(program.getId()).stream()
                 .filter(o -> dbIds.contains(o.getObservationDbId()))
                 .collect(Collectors.toList());
     }
@@ -212,10 +218,12 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
             return Collections.emptyList();
         }
         // First, get all ObservationUnits for the given trialDbIds.
+        // TODO: Once OUDAO removes cache, investigate utilizing observationUnit GET param to includeObservations instead of making an extra call for the observations. This should offer performance gains. [BI-2963]
         List<String> observationUnitDbIds = observationUnitDAO.getObservationUnitsForTrialDbIds(program.getId(), trialDbIds)
                 .stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
         // Finally, return all Observations for those ObservationUnits (Observations are linked to Trial through ObservationUnits).
-        return getProgramObservations(program.getId()).values().stream()
+        // TODO: This gets all observations for the program and filters, which is extremely inefficient.  If above TODO suggestion doesn't work, another improvement would be to search on OU ids directly in BrAPI instead. [BI-2963]
+        return getProgramObservations(program.getId()).stream()
                 .filter(o -> observationUnitDbIds.contains(o.getObservationUnitDbId()))
                 .collect(Collectors.toList());
     }
@@ -224,26 +232,19 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         if(ouDbIds.isEmpty() || variableDbIds.isEmpty()) {
             return Collections.emptyList();
         }
-        return getProgramObservations(program.getId()).values().stream()
+        // TODO: Once OUDAO removes cache, change to BrAPI Observation search request on program, observation var ids, and ouDbId [BI-2963]
+        return getProgramObservations(program.getId()).stream()
                 .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()) && variableDbIds.contains(o.getObservationVariableDbId()))
                 .collect(Collectors.toList());
     }
 
     public List<BrAPIObservation> getObservationsByObservationUnits(Collection<String> ouDbIds, Program program) throws ApiException {
+        // TODO: Once OUDAO removes cache, change to BrAPI Observation search request on program and ouDbIds [BI-2963]
         if(ouDbIds.isEmpty()) {
             return Collections.emptyList();
         }
-        return getProgramObservations(program.getId()).values().stream()
+        return getProgramObservations(program.getId()).stream()
                 .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()))
-                .collect(Collectors.toList());
-    }
-
-    public List<BrAPIObservation> getObservationsByObservationUnitsAndStudies(Collection<String> ouDbIds, Collection<String> studyDbIds, Program program) throws ApiException {
-        if(ouDbIds.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return getProgramObservations(program.getId()).values().stream()
-                .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()) && studyDbIds.contains(o.getStudyDbId()))
                 .collect(Collectors.toList());
     }
 
@@ -255,7 +256,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         String observationSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATIONS);
 
         // Get all observations for the program.
-        Collection<BrAPIObservation> observations = getProgramObservations(program.getId()).values();
+        Collection<BrAPIObservation> observations = getProgramObservations(program.getId());
         // Build a hashmap of traits for fast lookup. The key is ObservationVariableDbId, the value is the Trait Id.
         HashMap<String, String> traitIdsByObservationVariableDbId = traitService.getIdsByObservationVariableDbIds(program.getId(), observations.stream().map(BrAPIObservation::getObservationVariableDbId).collect(Collectors.toList()));
 
@@ -267,6 +268,7 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                     Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(o.getExternalReferences(), studySource);
                     return xref.filter(brAPIExternalReference -> studyDbId.equals(brAPIExternalReference.getReferenceId())).isPresent();
                 })
+                // Try to figure out why/how this translation is used.
                 .peek(o -> {
                     // Translate ObservationVariableDbId.
                     o.setObservationVariableDbId(traitIdsByObservationVariableDbId.get(o.getObservationVariableDbId()));
@@ -306,33 +308,35 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         }
     }
 
-    public BrAPIObservation updateBrAPIObservation(String dbId, BrAPIObservation observation, UUID programId) throws ApiException {
-        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
-        var program = programDAO.fetchOneById(programId);
-        try {
-            Callable<Map<String, BrAPIObservation>> postFunction = () -> {
-                ApiResponse<BrAPIObservationSingleResponse> response = api.observationsObservationDbIdPut(dbId, observation);
-                    if (response == null)
-                    {
-                        throw new ApiException("Response is null", 0, null, null);
-                    }
-                    BrAPIObservationSingleResponse body = response.getBody();
-                    if (body == null) {
-                        throw new ApiException("Response is missing body", 0, response.getHeaders(), null);
-                    }
-                    BrAPIObservation updatedObservation = body.getResult();
-                    if (updatedObservation == null) {
-                        throw new ApiException("Response body is missing result", 0, response.getHeaders(), response.getBody().toString());
-                    }
-                    return processObservationsForCache(List.of(updatedObservation), program.getKey());
-            };
-            return programCache.post(programId, postFunction).get(0);
-        } catch (ApiException e) {
-            log.error(Utilities.generateApiExceptionLogMessage(e));
-            throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
-        } catch (Exception e) {
-            throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
+    private List<BrAPIObservation> getBrAPIObservationsUsingBrAPIProgramId(Program program) throws ApiException {
+
+        if (program == null || program.getId() == null) {
+            throw new InternalServerException("BI-API Program or Program ID is null");
         }
+
+        String brapiProgramDbId = Optional.of(program)
+                .map(Program::getBrapiProgram)
+                .map(BrAPIProgram::getProgramDbId)
+                .orElse(null);
+
+        if (brapiProgramDbId == null) {
+            brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
+        }
+
+        ObservationQueryParams observationQueryParams =
+                ObservationQueryParams.builder()
+                        .programDbId(brapiProgramDbId)
+                        .pageSize(brapiMaxPageSize)
+                        .page(0)
+                        .build();
+
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
+
+        List<BrAPIObservation> result = brAPIDAOUtil.get(api::observationsGet, observationQueryParams);
+
+        processObservations(program.getKey(), result);
+
+        return result;
     }
 
     // This method overloads updateBrAPIObservation(String dbId, BrAPIObservation observation, UUID programId)
