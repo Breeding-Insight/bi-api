@@ -161,7 +161,7 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
     /**
      * Get all observation units for a program from the cache.
      */
-    private List<BrAPIObservationUnit> getProgramObservationUnits(UUID programId) throws ApiException {
+    public List<BrAPIObservationUnit> getProgramObservationUnits(UUID programId) throws ApiException {
         Program program = programDAO.get(programId)
                 .stream()
                 .findFirst()
@@ -199,16 +199,6 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         processObservationUnits(program, result, true);
 
         return result;
-    }
-
-    // TODO: Remove this method and associated usages
-    public List<BrAPIObservationUnit> getObservationUnitByName(List<String> observationUnitNames, Program program) throws ApiException {
-        if(observationUnitNames.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return getProgramObservationUnits(program.getId()).stream()
-                .filter(ou -> observationUnitNames.contains(ou.getObservationUnitName()))
-                .collect(Collectors.toList());
     }
 
     /**
