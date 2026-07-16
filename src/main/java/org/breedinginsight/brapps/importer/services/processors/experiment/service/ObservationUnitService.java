@@ -115,31 +115,6 @@ public class ObservationUnitService {
     }
 
     /**
-     * Maps pending observation units by their reference IDs.
-     * This function takes a list of pending import objects representing BrAPI observation units
-     * and constructs a map where the key is the external reference ID of the observation unit
-     * and the value is the pending import object itself.
-     *
-     * @param pios List of pending import objects for BrAPI observation units
-     * @return A map of pending observation units keyed by their external reference ID
-     */
-    public Map<String, PendingImportObject<BrAPIObservationUnit>> mapPendingUnitById(List<PendingImportObject<BrAPIObservationUnit>> pios) {
-        Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitById = new HashMap<>();
-
-        // Construct the DeltaBreed observation unit source for external references
-        String deltaBreedOUSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
-
-        for (PendingImportObject<BrAPIObservationUnit> pio : pios) {
-
-            // Get external reference for the Observation Unit
-            Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(pio.getBrAPIObject().getExternalReferences(), deltaBreedOUSource);
-            pendingUnitById.put(xref.get().getReferenceId(),pio);
-        }
-
-        return pendingUnitById;
-    }
-
-    /**
      * This method takes a list of PendingImportObject<BrAPIObservationUnit> objects and a Program object as input
      * and maps the PendingImportObject<BrAPIObservationUnit> objects by their observation unit name without the program scope.
      *

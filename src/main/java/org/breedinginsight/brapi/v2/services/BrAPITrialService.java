@@ -198,6 +198,7 @@ public class BrAPITrialService {
         // add columns for requested dataset obsvars and timestamps
         log.debug(logHash + ": fetching experiment for export");
         BrAPITrial experiment = getExperiment(program, experimentId);
+        // TODO: Replace this lookup and usages others with the brapiTrialDbId [BI-2933]
         String expExRefId = Utilities.getExternalReference(experiment.getExternalReferences(), this.referenceSource, ExternalReferenceSource.TRIALS)
                 .map(BrAPIExternalReference::getReferenceId)
                 .orElse(null);
@@ -293,7 +294,7 @@ public class BrAPITrialService {
         // make export rows for OUs without observations
         if (rowByOUId.size() < ous.size()) {
             for (BrAPIObservationUnit ou: ous) {
-                String ouId = getOUId(ou);
+                String ouId = ou.getObservationUnitDbId();
                 // Map Observation Unit to the Study it belongs to.
                 studyDbIdByOUId.put(ouId, ou.getStudyDbId());
                 if (!rowByOUId.containsKey(ouId)) {
@@ -712,7 +713,7 @@ public class BrAPITrialService {
 
             // get observation unit for observation
             BrAPIObservationUnit ou = ouByOUDbId.get(obs.getObservationUnitDbId());
-            String ouId = getOUId(ou);
+            String ouId = ou.getObservationUnitDbId();
 
             // get observation variable for BrAPI observation
             Trait var = varByDbId.get(obs.getObservationVariableDbId());
@@ -731,14 +732,6 @@ public class BrAPITrialService {
             // Map Observation Unit to the Study it belongs to.
             studyDbIdByOUId.put(ouId, ou.getStudyDbId());
         }
-    }
-
-    private String getOUId(BrAPIObservationUnit ou) {
-        BrAPIExternalReference ouXref = Utilities.getExternalReference(
-                        ou.getExternalReferences(),
-                        String.format("%s/%s", referenceSource, ExternalReferenceSource.OBSERVATION_UNITS.getName()))
-                .orElseThrow(() -> new RuntimeException("observation unit id not found"));
-        return ouXref.getReferenceID();
     }
 
     private String getStudyId(BrAPIStudy study) {
@@ -865,12 +858,7 @@ public class BrAPITrialService {
             boolean isSubEntity) throws ApiException, DoesNotExistException {
         HashMap<String, Object> row = new HashMap<>();
 
-        // get OU id, germplasm, and study
-        BrAPIExternalReference ouXref = Utilities.getExternalReference(
-                        ou.getExternalReferences(),
-                        String.format("%s/%s", referenceSource, ExternalReferenceSource.OBSERVATION_UNITS.getName()))
-                .orElseThrow(() -> new RuntimeException("observation unit id not found"));
-        String ouId = ouXref.getReferenceID();
+        String ouId = ou.getObservationUnitDbId();
         BrAPIGermplasm germplasm = Optional.ofNullable(programGermplasmByDbId.get(ou.getGermplasmDbId()))
                 .orElseThrow(() -> new DoesNotExistException("Germplasm not returned from BrAPI service"));
         BrAPIStudy study = Optional.ofNullable(studyByDbId.get(ou.getStudyDbId()))

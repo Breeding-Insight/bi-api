@@ -45,7 +45,6 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.*;
-import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.imports.sample.SampleSubmissionImport.Columns;
@@ -231,8 +230,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
 
         BrAPITrial trial = brAPITrialDAO.getTrialById(program.getId(), UUID.fromString(experimentId)).get();
 
-        List<BrAPIObservationUnit> ous = ouDAO.getObservationUnitsForTrialDbId(program.getId(), trial.getTrialDbId());
-        BrAPIExternalReference obsUnitId = Utilities.getExternalReference(ous.get(0).getExternalReferences(), Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS)).get();
+        BrAPIObservationUnit ou = ouDAO.getObservationUnitsForTrialDbId(program.getId(), trial.getTrialDbId()).get(0);
 
         List<Map<String, Object>> validFile = new ArrayList<>();
 
@@ -244,7 +242,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
         validRow.put(Columns.SPECIES, "TEST");
         validRow.put(Columns.GERMPLASM_NAME, "");
         validRow.put(Columns.GERMPLASM_GID, "");
-        validRow.put(Columns.OBS_UNIT_ID, obsUnitId.getReferenceId());
+        validRow.put(Columns.OBS_UNIT_ID, ou.getObservationUnitDbId());
         validRow.put(Columns.TISSUE, "TEST");
         validRow.put(Columns.COMMENTS, "Test sample");
         validFile.add(validRow);

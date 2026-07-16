@@ -577,6 +577,14 @@ public class BrAPIDAOUtil {
      * - Pagination
      */
     public <T extends BrAPISearchRequestParametersPaging, U extends BrapiQuery> void setGenericSearchParameters(T brapiSearchRequest, U biSearchQuery) {
+
+        if (biSearchQuery == null) {
+            // If the search query is not available, assume maximum size fetch is required and break out of this method.
+            brapiSearchRequest.setPage(0);
+            brapiSearchRequest.setPageSize(brapiFetchPageSize);
+            return;
+        }
+
         // Set SortBy
         List<BrAPISortBy> brAPISortBy = new ArrayList<>();
 

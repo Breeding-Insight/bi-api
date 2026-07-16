@@ -107,11 +107,8 @@ public class SampleSubmissionProcessor implements Processor {
 
         List<BrAPIObservationUnit> observationUnits = observationUnitDAO.getObservationUnitsById(obsUnitIds, program);
         Set<String> germDbIds = new HashSet<>();
-        String ouRefSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATION_UNITS);
         observationUnits.forEach(ou -> {
-            observationUnitsById.put(Utilities.getExternalReference(ou.getExternalReferences(), ouRefSource)
-                                              .get()
-                                              .getReferenceId(), ou);
+            observationUnitsById.put(ou.getObservationUnitDbId(), ou);
             germDbIds.add(ou.getGermplasmDbId());
         });
         germplasm.stream()
