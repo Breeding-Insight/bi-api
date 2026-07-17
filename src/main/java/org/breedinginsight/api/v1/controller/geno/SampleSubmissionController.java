@@ -54,6 +54,11 @@ import java.util.UUID;
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class SampleSubmissionController {
 
+    public static final String DELETE_STATUS_NOT_ALLOWED_ERROR_MESSAGE =
+            "Sample submission cannot be deleted because status is submitted or completed";
+    public static final String DELETE_GENOTYPE_DATA_NOT_ALLOWED_ERROR_MESSAGE =
+            "Sample submission cannot be deleted because associated genotype data exists";
+
     private final boolean brapiSubmissionEnabled;
     private final SampleSubmissionService sampleSubmissionService;
     private final ProgramService programService;
@@ -309,10 +314,10 @@ public class SampleSubmissionController {
                 return HttpResponse.notFound();
             case STATUS_NOT_ALLOWED:
                 return HttpResponse.notAllowed()
-                        .body("Sample submission cannot be deleted because of its submission status");
+                        .body(DELETE_STATUS_NOT_ALLOWED_ERROR_MESSAGE);
             case GENOTYPE_DATA_NOT_ALLOWED:
                 return HttpResponse.notAllowed()
-                        .body("Sample submission cannot be deleted because associated genotype data exists");
+                        .body(DELETE_GENOTYPE_DATA_NOT_ALLOWED_ERROR_MESSAGE);
             case DELETED:
             default:
                 return HttpResponse.ok();

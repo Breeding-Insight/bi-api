@@ -63,6 +63,8 @@ import java.io.*;
 import java.util.*;
 
 import static io.micronaut.http.HttpRequest.*;
+import static org.breedinginsight.api.v1.controller.geno.SampleSubmissionController.DELETE_GENOTYPE_DATA_NOT_ALLOWED_ERROR_MESSAGE;
+import static org.breedinginsight.api.v1.controller.geno.SampleSubmissionController.DELETE_STATUS_NOT_ALLOWED_ERROR_MESSAGE;
 import static org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields.SUBMISSION_NAME;
 import static org.breedinginsight.dao.db.Tables.GENOTYPE_IMPORT;
 import static org.breedinginsight.dao.db.Tables.IMPORTER_IMPORT;
@@ -363,7 +365,7 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
         ).blockingFirst());
         assertEquals(HttpStatus.METHOD_NOT_ALLOWED, statusError.getStatus());
         assertEquals(
-                "Sample submission cannot be deleted because of its submission status",
+                DELETE_STATUS_NOT_ALLOWED_ERROR_MESSAGE,
                 statusError.getResponse().getBody(String.class).orElse(null)
         );
 
@@ -385,7 +387,7 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
         ).blockingFirst());
         assertEquals(HttpStatus.METHOD_NOT_ALLOWED, genotypeError.getStatus());
         assertEquals(
-                "Sample submission cannot be deleted because genotype data exists",
+                DELETE_GENOTYPE_DATA_NOT_ALLOWED_ERROR_MESSAGE,
                 genotypeError.getResponse().getBody(String.class).orElse(null)
         );
 
