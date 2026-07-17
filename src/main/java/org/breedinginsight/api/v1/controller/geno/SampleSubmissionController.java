@@ -303,20 +303,20 @@ public class SampleSubmissionController {
             return HttpResponse.notFound();
         }
 
-        // sample status validation
-        Optional<SampleSubmission> submissionOpt = sampleSubmissionService.getSampleSubmission(program.get(), submissionId, false);
-
-        if(submissionOpt.isEmpty()) {
-            return HttpResponse.notFound();
+        SampleSubmissionService.DeleteResult result = sampleSubmissionService.deleteSampleSubmission(program.get(), submissionId);
+        switch (result) {
+            case NOT_FOUND:
+                return HttpResponse.notFound();
+            case STATUS_NOT_ALLOWED:
+                return HttpResponse.notAllowed()
+                        .body("Sample submission cannot be deleted because of its submission status");
+            case GENOTYPE_DATA_NOT_ALLOWED:
+                return HttpResponse.notAllowed()
+                        .body("Sample submission cannot be deleted because associated genotype data exists");
+            case DELETED:
+            default:
+                return HttpResponse.ok();
         }
-        SampleSubmission submission = submissionOpt.get();
-        if (!submission.isDeletable()) {
-            return HttpResponse.notAllowed();
-        }
-
-        sampleSubmissionService.deleteSampleSubmission(program.get(), submissionId);
-
-        return HttpResponse.ok();
     }
 
 }
