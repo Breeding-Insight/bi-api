@@ -110,6 +110,10 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         testReference.setReferenceSource(referenceSource);
         testReference.setReferenceID(parentUuid);
         externalRef.add(testReference);
+        BrAPIExternalReference externalUidReference = new BrAPIExternalReference();
+        externalUidReference.setReferenceSource("External UID");
+        externalUidReference.setReferenceID("UID-1");
+        externalRef.add(externalUidReference);
         testGermplasm.setExternalReferences(externalRef);
         germplasm.add(testGermplasm);
 
@@ -129,6 +133,10 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         testReference.setReferenceID(UUID.randomUUID().toString());
         externalRef = new ArrayList<>();
         externalRef.add(testReference);
+        BrAPIExternalReference externalUidReference2 = new BrAPIExternalReference();
+        externalUidReference2.setReferenceSource("External UID");
+        externalUidReference2.setReferenceID("UID-2");
+        externalRef.add(externalUidReference2);
         testGermplasm.setExternalReferences(externalRef);
         germplasm.add(testGermplasm);
 
@@ -176,6 +184,9 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         //Assert "Pedigree" column contains properly formatted data
         assertEquals(resultTable.get(0, 4), "", "Incorrect data exported");
         assertEquals(resultTable.get(1, 4), "Germplasm A", "Incorrect data exported");
+        //Asserting new External UID data
+        assertEquals("UID-1", resultTable.get(0, 10), "Incorrect data exported");
+        assertEquals("UID-2", resultTable.get(1, 10), "Incorrect data exported");
     }
 
     @Test

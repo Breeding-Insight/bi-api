@@ -780,6 +780,25 @@ public class GermplasmFileImportTest extends BrAPITest {
         assertEquals(breedingMethod.getId().toString(), additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID).getAsString());
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    @SneakyThrows
+    public void externalUidCanonicalReferenceSource(boolean commit) {
+        String pathname = "src/test/resources/files/germplasm_import/external_uid_reference_source.csv";
+        Table fileData = Table.read().file(pathname);
+        String listName = "ExternalUidCanonicalReferenceSource";
+        String listDescription = "External UID should use canonical reference source";
+
+        JsonObject result = importGermplasm(pathname, listName, listDescription, commit);
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        for (int i = 0; i < previewRows.size(); i++) {
+            JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            checkBasicResponse(germplasm, fileData, i);
+        }
+    }
+
     @Test
     @SneakyThrows
     public void headerCaseInsensitive() {
@@ -1123,23 +1142,42 @@ public class GermplasmFileImportTest extends BrAPITest {
         assertEquals(breedingMethod.getId().toString(), additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID).getAsString(), "Wrong Breeding Method ID");
         assertEquals(breedingMethod.getName(), additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString(), "Wrong Breeding Method name");
         // Seed source
-        assertEquals(fileData.getString(i, "Source"), germplasm.get("seedSource").getAsString(), "Wrong seed source");
-        // External Reference (user specified)
-        // External Reference program
+        String source = fileData.getString(i, "Source");
+        if (isNotBlank(source)) {
+            assertEquals(source, germplasm.get("seedSource").getAsString(), "Wrong seed source");
+        } else {
+            assertTrue(!germplasm.has("seedSource")
+                    || germplasm.get("seedSource").isJsonNull()
+                    || germplasm.get("seedSource").getAsString().isBlank(), "Wrong seed source");
+        }
+
+        // External Reference program (user specified)
         JsonArray externalReferences = germplasm.getAsJsonArray("externalReferences");
         Map<String, String> expectedReferences = new HashMap<>();
         expectedReferences.put(Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.PROGRAMS), validProgram.getId().toString());
-        expectedReferences.put(fileData.getString(i, "Source"), fileData.getString(i, "External UID"));
+
+        String externalUid = fileData.getString(i, "External UID");
+        if (isNotBlank(externalUid)) {
+            expectedReferences.put("External UID", externalUid);
+        }
+
         Integer referencesFound = 0;
-        for (JsonElement reference: externalReferences) {
+        boolean foundExternalUidReference = false;
+        for (JsonElement reference : externalReferences) {
             String referenceSource = reference.getAsJsonObject().get("referenceSource").getAsString();
             String referenceID = reference.getAsJsonObject().get("referenceID").getAsString();
+            if ("External UID".equals(referenceSource)) {
+                foundExternalUidReference = true;
+            }
             if (expectedReferences.containsKey(referenceSource)) {
                 assertEquals(expectedReferences.get(referenceSource), referenceID);
                 referencesFound += 1;
             }
         }
         assertEquals(expectedReferences.size(), referencesFound, "Not all expected references were returned");
+        if (!isNotBlank(externalUid)) {
+            assertFalse(foundExternalUidReference, "External UID reference should not be created");
+        }
     }
 
     public void checkGermplasmList(String listName, String listDescription, List<String> germplasmNames) {
