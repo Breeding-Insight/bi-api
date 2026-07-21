@@ -65,10 +65,9 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
                 Map.entry("externalUID", (germplasm) ->{
                     String externalUID = null;
                     if (germplasm.getExternalReferences() != null) {
-                        String source = germplasm.getSeedSource();
                         List<BrAPIExternalReference> externalReferences = germplasm.getExternalReferences();
                         for (BrAPIExternalReference reference : externalReferences) {
-                            if (reference.getReferenceSource().equals(source)) {
+                            if ("External UID".equals(reference.getReferenceSource())) {
                                 externalUID = reference.getReferenceID();
                                 break;
                             }

@@ -135,11 +135,12 @@ public class BrAPIGermplasmService {
 
             String source = germplasmEntry.getSeedSource();
             if (source != null) {
-                row.put("Source", source);
-                //If germplasm was imported with an external UID, it will be stored in external reference with same source as seed source
-                List<BrAPIExternalReference> externalReferences = germplasmEntry.getExternalReferences();
+                row.put("Source", source);}
+
+            List<BrAPIExternalReference> externalReferences = germplasmEntry.getExternalReferences();
+            if (externalReferences != null) {
                 for (BrAPIExternalReference reference : externalReferences) {
-                    if (reference.getReferenceSource().equals(source)) {
+                    if ("External UID".equals(reference.getReferenceSource())) {
                         row.put("External UID", reference.getReferenceID());
                         break;
                     }

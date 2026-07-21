@@ -59,6 +59,14 @@ public class GenotypeImportDAO extends GenotypeImportDao {
                 .build());
     }
 
+    public boolean existsBySampleSubmissionId(UUID submissionId) {
+        return dsl.fetchExists(
+                dsl.selectOne()
+                        .from(GENOTYPE_IMPORT)
+                        .where(GENOTYPE_IMPORT.SAMPLE_SUBMISSION_ID.eq(submissionId))
+        );
+    }
+
     public List<GenotypeImportDetails> getGenotypeImportsByProgramId(UUID programId) {
         BiUserTable sampleSubmissionCreatedByUser = BI_USER.as("sampleSubmissionCreatedByUser");
         BiUserTable genotypingImportByUser = BI_USER.as("genotypingImportByUser");
