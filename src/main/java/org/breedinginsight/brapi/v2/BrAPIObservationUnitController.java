@@ -149,7 +149,7 @@ public class BrAPIObservationUnitController {
     @Get("/observationunits/{observationUnitDbId}")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIObservationUnitSingleResponse> observationunitsObservationUnitDbIdGet(@PathVariable("programId") UUID programId, @PathVariable("observationUnitDbId") String observationUnitDbId) {
-        log.debug("observationunitsObservationUnitDbIdGet: fetching ou by externalReferenceId: " + observationUnitDbId);
+        log.debug("observationunitsObservationUnitDbIdGet: fetching ou by dbId: " + observationUnitDbId);
         Optional<Program> program = programService.getById(programId);
         if(program.isEmpty()) {
             log.warn("Program id: " + programId + " not found");
@@ -158,7 +158,7 @@ public class BrAPIObservationUnitController {
         try {
             List<BrAPIObservationUnit> ous = observationUnitDAO.getObservationUnitsById(List.of(observationUnitDbId), program.get());
             if(ous.size() != 1) {
-                log.warn("did not find a single ou with externalReferenceId: " + observationUnitDbId);
+                log.warn("did not find a single ou with dbId: " + observationUnitDbId);
                 return HttpResponse.notFound();
             }
             setDbIds(ous.get(0));
