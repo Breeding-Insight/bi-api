@@ -681,8 +681,7 @@ public class BrAPITrialService {
         // ObservationLevelRelationships for top-level Exp Unit linking.
         BrAPIObservationUnitLevelRelationship expUnitLevel = new BrAPIObservationUnitLevelRelationship();
         expUnitLevel.setLevelNameDbId(expUnit.getObservationUnitPosition().getObservationLevel().getLevelNameDbId());
-        String expUnitUUID = Utilities.getExternalReference(expUnit.getExternalReferences(), referenceSource, ExternalReferenceSource.OBSERVATION_UNITS).orElseThrow().getReferenceId();
-        expUnitLevel.setLevelCode(Utilities.appendProgramKey(expUnitUUID, program.getKey(), seqVal));
+        expUnitLevel.setLevelCode(Utilities.appendProgramKey(expUnit.getObservationUnitDbId(), program.getKey(), seqVal));
         levelRelationships.add(expUnitLevel);
         position.setObservationLevelRelationships(levelRelationships);
 

@@ -364,8 +364,7 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         BrAPIObservationUnitLevelRelationship relationship = new BrAPIObservationUnitLevelRelationship();
         AtomicBoolean relationshipFilter = new AtomicBoolean(false);
 
-        // TODO: Use observationUnitSearchRequest.setObservationUnitDbIds() instead of xrefs [BI-2914]
-        observationUnitId.ifPresent(ouId -> addXRefFilter(ouId, ExternalReferenceSource.OBSERVATION_UNITS, xrefIds, xrefSources));
+        observationUnitId.ifPresent(dbid -> observationUnitSearchRequest.setObservationUnitDbIds(List.of(dbid)));
         observationUnitName.ifPresent(name -> observationUnitSearchRequest.setObservationUnitNames(List.of(Utilities.appendProgramKey(name, program.getKey()))));
         locationDbId.ifPresent(dbid -> observationUnitSearchRequest.setLocationDbIds(List.of(dbid)));
         seasonDbId.ifPresent(dbid -> observationUnitSearchRequest.setSeasonDbIds(List.of(dbid)));
@@ -388,12 +387,8 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         }
 
         return searchObservationUnitsAndProcess(observationUnitSearchRequest, program, true).stream().filter(ou -> {
-            //xref search does an OR, so we need to convert the searching for ouId/expId/envId to be an AND
-            boolean matches = observationUnitId.map(id -> id.equals(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATION_UNITS))
-                                                                                 .get()
-                                                                                 .getReferenceId()))
-                                                   .orElse(true);
-            matches = matches && environmentId.map(id -> id.equals(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES))
+            //xref search does an OR, so we need to convert the searching for expId/envId to be an AND
+            boolean matches = environmentId.map(id -> id.equals(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES))
                                                                              .get()
                                                                              .getReferenceId()))
                                                .orElse(true);
