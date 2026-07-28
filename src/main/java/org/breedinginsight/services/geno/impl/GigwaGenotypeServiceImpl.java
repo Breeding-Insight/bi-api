@@ -65,12 +65,14 @@ import javax.inject.Singleton;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -81,6 +83,10 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     private static final String BEARER = "Bearer ";
     private static final String GIGWA_REST_BASE_PATH = "gigwa/rest";
     private static final String GIGWA_BRAPI_BASE_PATH = GIGWA_REST_BASE_PATH + BrapiVersion.BRAPI_V2;
+    private static final String INVALID_REF_ALT_MESSAGE = "VCF validation failed: the file contains unsupported REF or ALT values. Use '.' for missing data, do not use '-' or 'NA', and ensure ALT values follow the supported VCF allele format.";
+    private static final String DUPLICATE_POSITIONAL_KEY_MESSAGE = "VCF validation failed: the file contains duplicate chromosome-position values. Each variant must have a unique chromosome-position combination before import.";
+    private static final Pattern REF_PATTERN = Pattern.compile("[ACGTN.]");
+    private static final Pattern ALT_PATTERN = Pattern.compile("[ACGT.]");
 
     private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json");
 
@@ -211,7 +217,8 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
         try {
             byte[] fileContents = uploadedFile.getBytes();
-            if(validateSamples(program, submissionId, fileContents, upload)) {
+            if (validateSamples(program, submissionId, fileContents, upload)
+                    && validateVariantRecords(fileContents, upload)) {
                 executor.execute(() -> {
                     try {
                         processSubmission(gigwaAuthToken, program, submissionId, fileContents, uploadedFile.getFilename(), upload, progress);
@@ -388,6 +395,63 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         }
 
         log.debug("VCF samples are valid!");
+        return true;
+    }
+
+
+    private boolean validateVariantRecords(byte[] fileContents, ImportUpload upload) {
+        Set<String> positionalKeys = new HashSet<>();
+        boolean foundHeader = false;
+
+        Scanner sc = new Scanner(new ByteArrayInputStream(fileContents), StandardCharsets.UTF_8);
+        while (sc.hasNextLine()) {
+            String line = sc.nextLine();
+
+            if (!foundHeader) {
+                foundHeader = line.startsWith("#CHROM");
+                continue;
+            }
+
+            if (line.isBlank() || line.startsWith("#")) {
+                continue;
+            }
+
+            String[] recordParts = line.split("\t", -1);
+            if (recordParts.length < 8) {
+                upload.getProgress().setStatuscode((short) HttpStatus.BAD_REQUEST.getCode());
+                upload.getProgress().setMessage("VCF validation failed: variant rows are missing required columns");
+                importDAO.updateProgress(upload.getProgress());
+                return false;
+            }
+
+            String chrom = recordParts[0].trim();
+            String pos = recordParts[1].trim();
+            String ref = recordParts[3].trim();
+            String alt = recordParts[4].trim();
+
+            if (!REF_PATTERN.matcher(ref).matches()) {
+                upload.getProgress().setStatuscode((short) HttpStatus.BAD_REQUEST.getCode());
+                upload.getProgress().setMessage(INVALID_REF_ALT_MESSAGE);
+                importDAO.updateProgress(upload.getProgress());
+                return false;
+            }
+
+            if (!ALT_PATTERN.matcher(alt).matches()) {
+                upload.getProgress().setStatuscode((short) HttpStatus.BAD_REQUEST.getCode());
+                upload.getProgress().setMessage(INVALID_REF_ALT_MESSAGE);
+                importDAO.updateProgress(upload.getProgress());
+                return false;
+            }
+
+            String positionalKey = chrom + ":" + pos;
+            if (!positionalKeys.add(positionalKey)) {
+                upload.getProgress().setStatuscode((short) HttpStatus.BAD_REQUEST.getCode());
+                upload.getProgress().setMessage(DUPLICATE_POSITIONAL_KEY_MESSAGE);
+                importDAO.updateProgress(upload.getProgress());
+                return false;
+            }
+        }
+
         return true;
     }
 

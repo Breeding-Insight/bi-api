@@ -579,6 +579,77 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         assertEquals("There are samples that are not linked to the selected submission", response.getProgress().getMessage());
     }
 
+    @Test
+    public void testSubmitDuplicatePositionalKeysShowsSingleMessage() throws Exception {
+        UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
+        String programKey = "TESTDUPKEY";
+        UUID submissionId = UUID.randomUUID();
+
+        setupMocksForSubmitGenoData(programId, submissionId, buildSamplesFromVcf("sample_duplicate_positional_key.vcf"));
+
+        AtomicReference<ImportResponse> importResponse = new AtomicReference<>();
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, submissionId, "sample_duplicate_positional_key.vcf")), "Upload did not complete within the time period");
+
+        ImportResponse response = importResponse.get();
+        assertNotNull(response);
+        assertNotNull(response.getProgress());
+        assertEquals((short) HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
+        assertEquals("VCF validation failed: the file contains duplicate chromosome-position values. Each variant must have a unique chromosome-position combination before import.", response.getProgress().getMessage());
+    }
+
+    @Test
+    public void testSubmitInvalidRefShowsSingleMessage() throws Exception {
+        UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
+        String programKey = "TESTBADREF";
+        UUID submissionId = UUID.randomUUID();
+
+        setupMocksForSubmitGenoData(programId, submissionId, buildSamplesFromVcf("sample_invalid_ref.vcf"));
+
+        AtomicReference<ImportResponse> importResponse = new AtomicReference<>();
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, submissionId, "sample_invalid_ref.vcf")), "Upload did not complete within the time period");
+
+        ImportResponse response = importResponse.get();
+        assertNotNull(response);
+        assertNotNull(response.getProgress());
+        assertEquals((short) HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
+        assertEquals("VCF validation failed: the file contains unsupported REF or ALT values. Use '.' for missing data, do not use '-' or 'NA', and ensure ALT values follow the supported VCF allele format.", response.getProgress().getMessage());
+    }
+
+    @Test
+    public void testSubmitInvalidAltShowsSingleMessage() throws Exception {
+        UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
+        String programKey = "TESTBADALT";
+        UUID submissionId = UUID.randomUUID();
+
+        setupMocksForSubmitGenoData(programId, submissionId, buildSamplesFromVcf("sample_invalid_alt.vcf"));
+
+        AtomicReference<ImportResponse> importResponse = new AtomicReference<>();
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, submissionId, "sample_invalid_alt.vcf")), "Upload did not complete within the time period");
+
+        ImportResponse response = importResponse.get();
+        assertNotNull(response);
+        assertNotNull(response.getProgress());
+        assertEquals((short) HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
+        assertEquals("VCF validation failed: the file contains unsupported REF or ALT values. Use '.' for missing data, do not use '-' or 'NA', and ensure ALT values follow the supported VCF allele format.", response.getProgress().getMessage());
+    }
+
+    @Test
+    public void testSubmitMissingRefAndAltDotAccepted() throws Exception {
+        UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
+        String programKey = "TESTDOTREFALT";
+        UUID submissionId = UUID.randomUUID();
+
+        setupMocksForSubmitGenoData(programId, submissionId, buildSamplesFromVcf("sample_valid_missing_ref_alt.vcf"));
+
+        AtomicReference<ImportResponse> importResponse = new AtomicReference<>();
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, submissionId, "sample_valid_missing_ref_alt.vcf")), "Upload did not complete within the time period");
+
+        ImportResponse response = importResponse.get();
+        assertNotNull(response);
+        assertNotNull(response.getProgress());
+        assertEquals((short) HttpStatus.ACCEPTED.getCode(), response.getProgress().getStatuscode(), "Error importing geno file: " + response.getProgress().getMessage());
+    }
+
     private void setupMocksForSubmitGenoData(UUID programId, UUID submissionId, List<BrAPISample> samples) throws ApiException {
         SampleSubmission submission = new SampleSubmission();
         submission.setId(submissionId);
@@ -685,7 +756,11 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     }
 
     private List<BrAPISample> buildSamplesFromValidVcf() throws IOException {
-        try (Scanner sc = new Scanner(new FileInputStream("src/test/resources/files/geno/sample.vcf"), "UTF-8")) {
+        return buildSamplesFromVcf("sample.vcf");
+    }
+
+    private List<BrAPISample> buildSamplesFromVcf(String fileName) throws IOException {
+        try (Scanner sc = new Scanner(new FileInputStream("src/test/resources/files/geno/" + fileName), "UTF-8")) {
             String[] headerParts = null;
             boolean foundHeader = false;
             while (sc.hasNextLine() && !foundHeader) {
@@ -696,7 +771,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
                 }
             }
 
-            assertTrue(foundHeader, "Could not find sample.vcf header file");
+            assertTrue(foundHeader, "Could not find " + fileName + " header file");
 
             List<BrAPISample> samples = new ArrayList<>();
             for (int i = 9; i < headerParts.length; i++) {
