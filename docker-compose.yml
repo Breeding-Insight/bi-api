@@ -176,6 +176,9 @@ services:
           - localstack
     environment:
       - LOCALSTACK_HOST=localstack
+      - PERSISTENCE=1
+    volumes:
+      - localstack_data:/var/lib/localstack
 
 networks:
   backend:
@@ -187,3 +190,5 @@ volumes:
     name: ${GIGWA_CONTAINER_NAME:-gigwa}_data
   gigwa_mongo_data:
     name: ${GIGWA_CONTAINER_NAME:-gigwa}_mongo_data
+  localstack_data:
+    name: localstack_data
