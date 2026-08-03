@@ -594,7 +594,32 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         assertNotNull(response);
         assertNotNull(response.getProgress());
         assertEquals((short) HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
-        assertEquals("VCF validation failed: the file contains duplicate chromosome-position values. Each variant must have a unique chromosome-position combination before import.", response.getProgress().getMessage());
+        assertEquals("Duplicate chromosomal position(s) detected. CHROM:POS key must be unique for variant type.", response.getProgress().getMessage());
+    }
+
+    @Test
+    public void testSubmitSameChromPosDifferentVariantTypesAccepted() throws Exception {
+        UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
+        String programKey = "TESTSAMEPOSDIFFTYPE";
+        UUID submissionId = UUID.randomUUID();
+
+        setupMocksForSubmitGenoData(programId, submissionId, buildSamplesFromVcf("sample_same_pos_different_variant_type.vcf"));
+
+        AtomicReference<ImportResponse> importResponse = new AtomicReference<>();
+        assertTimeout(
+                Duration.of(2, ChronoUnit.MINUTES),
+                () -> importResponse.set(submitGenoData(programId, programKey, submissionId, "sample_same_pos_different_variant_type.vcf")),
+                "Upload did not complete within the time period"
+        );
+
+        ImportResponse response = importResponse.get();
+        assertNotNull(response);
+        assertNotNull(response.getProgress());
+        assertEquals(
+                (short) HttpStatus.ACCEPTED.getCode(),
+                response.getProgress().getStatuscode(),
+                "Error importing geno file: " + response.getProgress().getMessage()
+        );
     }
 
     @Test
@@ -612,7 +637,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         assertNotNull(response);
         assertNotNull(response.getProgress());
         assertEquals((short) HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
-        assertEquals("VCF validation failed: the file contains unsupported REF or ALT values. Use '.' for missing data, do not use '-' or 'NA', and ensure ALT values follow the supported VCF allele format.", response.getProgress().getMessage());
+        assertEquals("The file is not a valid VCF or contains unsupported REF/ALT allele values.", response.getProgress().getMessage());
     }
 
     @Test
@@ -630,19 +655,37 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         assertNotNull(response);
         assertNotNull(response.getProgress());
         assertEquals((short) HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
-        assertEquals("VCF validation failed: the file contains unsupported REF or ALT values. Use '.' for missing data, do not use '-' or 'NA', and ensure ALT values follow the supported VCF allele format.", response.getProgress().getMessage());
+        assertEquals("The file is not a valid VCF or contains unsupported REF/ALT allele values.", response.getProgress().getMessage());
     }
 
     @Test
-    public void testSubmitMissingRefAndAltDotAccepted() throws Exception {
+    public void testSubmitRefDotShowsSingleMessage() throws Exception {
         UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
-        String programKey = "TESTDOTREFALT";
+        String programKey = "TESTDOTREF";
         UUID submissionId = UUID.randomUUID();
 
-        setupMocksForSubmitGenoData(programId, submissionId, buildSamplesFromVcf("sample_valid_missing_ref_alt.vcf"));
+        setupMocksForSubmitGenoData(programId, submissionId, buildSamplesFromVcf("sample_invalid_ref_dot.vcf"));
 
         AtomicReference<ImportResponse> importResponse = new AtomicReference<>();
-        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, submissionId, "sample_valid_missing_ref_alt.vcf")), "Upload did not complete within the time period");
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, submissionId, "sample_invalid_ref_dot.vcf")), "Upload did not complete within the time period");
+
+        ImportResponse response = importResponse.get();
+        assertNotNull(response);
+        assertNotNull(response.getProgress());
+        assertEquals((short) HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
+        assertEquals("The file is not a valid VCF or contains unsupported REF/ALT allele values.", response.getProgress().getMessage());
+    }
+
+    @Test
+    public void testSubmitMultiAllelicAltAccepted() throws Exception {
+        UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
+        String programKey = "TESTMULTIALT";
+        UUID submissionId = UUID.randomUUID();
+
+        setupMocksForSubmitGenoData(programId, submissionId, buildSamplesFromVcf("sample_valid_multi_alt.vcf"));
+
+        AtomicReference<ImportResponse> importResponse = new AtomicReference<>();
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, submissionId, "sample_valid_multi_alt.vcf")), "Upload did not complete within the time period");
 
         ImportResponse response = importResponse.get();
         assertNotNull(response);
