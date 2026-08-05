@@ -1,9 +1,30 @@
+/*
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.breedinginsight.services.geno.impl;
 
 import com.agorapulse.micronaut.amazon.awssdk.s3.SimpleStorageService;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import htsjdk.samtools.util.CloseableIterator;
+import htsjdk.tribble.TribbleException;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.VCFFileReader;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.multipart.CompletedFileUpload;
@@ -65,6 +86,8 @@ import javax.inject.Singleton;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -81,6 +104,8 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     private static final String BEARER = "Bearer ";
     private static final String GIGWA_REST_BASE_PATH = "gigwa/rest";
     private static final String GIGWA_BRAPI_BASE_PATH = GIGWA_REST_BASE_PATH + BrapiVersion.BRAPI_V2;
+    private static final String INVALID_REF_ALT_MESSAGE = "The file is not a valid VCF or contains unsupported REF/ALT allele values.";
+    private static final String DUPLICATE_POSITIONAL_KEY_MESSAGE = "Duplicate chromosomal position(s) detected. CHROM:POS key must be unique for variant type.";
 
     private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json");
 
@@ -211,7 +236,8 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
         try {
             byte[] fileContents = uploadedFile.getBytes();
-            if(validateSamples(program, submissionId, fileContents, upload)) {
+            if (validateSamples(program, submissionId, fileContents, upload)
+                    && validateVariantRecords(fileContents, uploadedFile.getFilename(), upload)) {
                 executor.execute(() -> {
                     try {
                         processSubmission(gigwaAuthToken, program, submissionId, fileContents, uploadedFile.getFilename(), upload, progress);
@@ -388,6 +414,70 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         }
 
         log.debug("VCF samples are valid!");
+        return true;
+    }
+
+    private boolean validateVariantRecords(byte[] fileContents, String filename, ImportUpload upload) {
+        Set<String> positionalKeys = new HashSet<>();
+        Path tempVcfFile = null;
+        int parsedVariantCount = 0;
+
+        try {
+            tempVcfFile = Files.createTempFile("bi-vcf-validation-", ".vcf");
+            Files.write(tempVcfFile, fileContents);
+
+            try (VCFFileReader reader = new VCFFileReader(tempVcfFile.toFile(), false);
+                 CloseableIterator<VariantContext> variants = reader.iterator()) {
+
+                while (variants.hasNext()) {
+                    VariantContext variant = variants.next();
+                    parsedVariantCount++;
+
+                    String positionalKey =
+                            variant.getType() + ":" +
+                                    variant.getContig() + ":" +
+                                    variant.getStart();
+
+                    if (!positionalKeys.add(positionalKey)) {
+                        log.error("Duplicate Gigwa positional key detected during VCF validation for file '{}'. Parsed records: {}. Key: {}",
+                                filename, parsedVariantCount, positionalKey);
+
+                        upload.getProgress().setStatuscode((short) HttpStatus.BAD_REQUEST.getCode());
+                        upload.getProgress().setMessage(DUPLICATE_POSITIONAL_KEY_MESSAGE);
+                        importDAO.updateProgress(upload.getProgress());
+                        return false;
+                    }
+                }
+            }
+
+            log.info("Completed HTSJDK VCF validation for file '{}'. Parsed {} variant record(s) with no validation errors",
+                    filename, parsedVariantCount);
+        } catch (TribbleException | IllegalArgumentException e) {
+            log.error("HTSJDK VCF validation failed for file '{}'. Parsed {} variant record(s) before failure. Error: {}",
+                    filename, parsedVariantCount, e.getMessage(), e);
+
+            upload.getProgress().setStatuscode((short) HttpStatus.BAD_REQUEST.getCode());
+            upload.getProgress().setMessage(INVALID_REF_ALT_MESSAGE);
+            importDAO.updateProgress(upload.getProgress());
+            return false;
+        } catch (IOException e) {
+            log.error("I/O failure during VCF validation setup for file '{}'. Parsed {} variant record(s) before failure. Error: {}",
+                    filename, parsedVariantCount, e.getMessage(), e);
+
+            upload.getProgress().setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
+            upload.getProgress().setMessage("An error occurred while trying to validate VCF variant information");
+            importDAO.updateProgress(upload.getProgress());
+            return false;
+        } finally {
+            if (tempVcfFile != null) {
+                try {
+                    Files.deleteIfExists(tempVcfFile);
+                } catch (IOException e) {
+                    log.warn("Unable to delete temporary VCF validation file {}", tempVcfFile, e);
+                }
+            }
+        }
+
         return true;
     }
 
