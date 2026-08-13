@@ -47,6 +47,11 @@ public class ServiceBuilder extends ArrayList<BrAPIService>{
 		return this;
 	}
 
+	public ServiceBuilder DELETE() {
+		methods.add(MethodsEnum.DELETE);
+		return this;
+	}
+
 	public ServiceBuilder GET() {
 		methods.add(MethodsEnum.GET);
 		return this;
