@@ -25,8 +25,10 @@ import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.germplasm.GermplasmQueryParams;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
@@ -72,13 +74,21 @@ public class BrAPIGermplasmDAO {
 
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
+    private final int brapiMaxPageSize;
+
     @Inject
-    public BrAPIGermplasmDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, ProgramCacheProvider programCacheProvider, BrAPIEndpointProvider brAPIEndpointProvider) {
+    public BrAPIGermplasmDAO(ProgramDAO programDAO,
+                             ImportDAO importDAO,
+                             BrAPIDAOUtil brAPIDAOUtil,
+                             ProgramCacheProvider programCacheProvider,
+                             BrAPIEndpointProvider brAPIEndpointProvider,
+                             @Property(name = "brapi.cache.fetch-page-size") int brapiFetchPageSize) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.programGermplasmCache = programCacheProvider.getProgramCache(this::fetchProgramGermplasm, BrAPIGermplasm.class);
         this.brAPIEndpointProvider = brAPIEndpointProvider;
+        this.brapiMaxPageSize = brapiFetchPageSize;
     }
 
     @Scheduled(initialDelay = "${startup.delay.germplasm}")
@@ -101,7 +111,29 @@ public class BrAPIGermplasmDAO {
      * @throws ApiException
      */
     public List<BrAPIGermplasm> getGermplasm(UUID programId) throws ApiException {
-        return new ArrayList<>(programGermplasmCache.get(programId).values());
+        Program program = programDAO.get(programId)
+                .stream()
+                .findFirst()
+                .orElseThrow();
+
+        if (program.getId() == null) {
+            throw new InternalServerException("BI-API Program or Program ID is null");
+        }
+
+        String brapiProgramDbId = Optional.of(program)
+                .map(Program::getBrapiProgram)
+                .map(BrAPIProgram::getProgramDbId)
+                .orElse(null);
+
+        if (brapiProgramDbId == null) {
+            brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
+        }
+
+        GermplasmQueryParams germplasmQueryParams = GermplasmQueryParams.builder()
+                .programDbId(brapiProgramDbId)
+                .build();
+
+        return getBrAPIGermplasmUsingBrAPIProgramId(germplasmQueryParams, program);
     }
 
     /**
@@ -279,6 +311,29 @@ public class BrAPIGermplasmDAO {
         }
 
         return programGermplasmMap;
+    }
+
+    /**
+     * This method requires a BI-API program.  If the BrAPIProgram inside this data model is not set,
+     * this method will retrieve it.
+     */
+    private List<BrAPIGermplasm> getBrAPIGermplasmUsingBrAPIProgramId(GermplasmQueryParams germplasmQueryParams, Program program) throws ApiException {
+
+
+        if (germplasmQueryParams.page() == null) {
+            germplasmQueryParams.setPage(0);
+        }
+
+        if (germplasmQueryParams.pageSize() == null) {
+            germplasmQueryParams.setPageSize(brapiMaxPageSize);
+        }
+
+        GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), GermplasmApi.class);
+
+        List<BrAPIGermplasm> result = brAPIDAOUtil.get(api::germplasmGet, germplasmQueryParams);
+
+        // TODO: Once cache is removed for this class, fix processGermplasmForDisplay to return List<BrAPIGermplasm> [BI-2906]
+        return new ArrayList<>(processGermplasmForDisplay(result, program.getKey()).values());
     }
 
     // TODO: hack for now, probably should update breedbase

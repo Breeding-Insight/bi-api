@@ -41,6 +41,7 @@ import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
@@ -87,6 +88,8 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
     private OntologyService ontologyService;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
+    @Inject
+    private ProgramDAO programDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -127,6 +130,7 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
                 .key("TEST")
                 .build();
         program = TestUtils.insertAndFetchTestProgram(gson, client, programRequest);
+        String brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), program.getId());
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
@@ -154,7 +158,7 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
         }
 
         // Add germplasm to program
-        List<BrAPIGermplasm> germplasm = createGermplasm(1);
+        List<BrAPIGermplasm> germplasm = createGermplasm(1, brapiProgramDbId);
         BrAPIExternalReference newReference = new BrAPIExternalReference();
         newReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
         newReference.setReferenceID(program.getId().toString());
@@ -255,7 +259,7 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
                 .get("referenceId").getAsString();
     }
 
-    private List<BrAPIGermplasm> createGermplasm(int numToCreate) {
+    private List<BrAPIGermplasm> createGermplasm(int numToCreate, String brapiProgramDbId) {
         List<BrAPIGermplasm> germplasm = new ArrayList<>();
         for (int i = 0; i < numToCreate; i++) {
             String gid = ""+(i+1);
@@ -274,6 +278,7 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
             testReference.setReferenceID(UUID.randomUUID().toString());
             externalRef.add(testReference);
             testGermplasm.setExternalReferences(externalRef);
+            testGermplasm.setProgramDbId(brapiProgramDbId);
             germplasm.add(testGermplasm);
         }
 

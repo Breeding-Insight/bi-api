@@ -365,12 +365,20 @@ public class Germplasm implements BrAPIObject {
         }
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(Program program, ProgramBreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal, UUID listId) {
+    public BrAPIGermplasm constructBrAPIGermplasm(Program program,
+                                                  ProgramBreedingMethodEntity breedingMethod,
+                                                  User user,
+                                                  boolean commit,
+                                                  String referenceSource,
+                                                  Supplier<BigInteger> nextVal,
+                                                  UUID listId,
+                                                  String brapiProgramDbId) {
         BrAPIGermplasm germplasm = constructBrAPIGermplasm(breedingMethod, user, listId);
         if (commit) {
             setBrAPIGermplasmCommitFields(germplasm, program.getKey(), referenceSource, nextVal);
         }
         germplasm.setCommonCropName(program.getBrapiProgram().getCommonCropName());
+        germplasm.setProgramDbId(brapiProgramDbId);
 
         // Set program id in external references
         BrAPIExternalReference newReference = new BrAPIExternalReference();
