@@ -186,16 +186,6 @@ public class BrAPIStudyDAO extends BrAPICachedDAO<BrAPIStudy> {
         );
     }
 
-    public List<BrAPIStudy> getStudiesByEnvironmentIds(@NotNull Collection<UUID> environmentIds, Program program) throws ApiException {
-        String refSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
-
-        return getBrAPIStudiesUsingBrAPIProgramId(program).stream()
-                .filter(study -> Utilities.getExternalReference(study.getExternalReferences(), refSource)
-                        .map(ref -> environmentIds.contains(UUID.fromString(ref.getReferenceId())))
-                        .orElse(false))
-                .collect(Collectors.toList());
-    }
-
     /**
      * Get a list of studies by a list of BI-assigned experiment UUIDs within a program.
      * @param experimentIds a list of BI-assigned experiment UUIDs.
@@ -270,13 +260,6 @@ public class BrAPIStudyDAO extends BrAPICachedDAO<BrAPIStudy> {
 
         return Utilities.getSingleOptional(studies);
     }
-
-    public Optional<BrAPIStudy> getStudyByEnvironmentId(UUID environmentId, Program program) throws ApiException {
-        List<BrAPIStudy> studies = getStudiesByEnvironmentIds(List.of(environmentId), program);
-
-        return Utilities.getSingleOptional(studies);
-    }
-
 
     /**
      * Process study into a format for display
