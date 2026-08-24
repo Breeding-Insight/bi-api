@@ -24,6 +24,7 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
@@ -204,7 +205,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 mappingId,
                 newExperimentWorkflowId);
 
-        BrAPITrial trial = brAPITrialService.getExperiments(program.getId()).get(0);
+        BrAPITrial trial = brAPITrialService.getTrialsByProgramId(program.getId()).get(0);
 
         experimentId = trial.getTrialDbId();
 
@@ -244,7 +245,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 mappingId,
                 newExperimentWorkflowId);
 
-        BrAPITrial trial = brAPITrialService.getExperiments(targetProgram.getId())
+        BrAPITrial trial = brAPITrialService.getTrialsByProgramId(targetProgram.getId())
                 .stream()
                 .filter(t -> t.getTrialName().equals(title))
                 .findFirst()
@@ -939,7 +940,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 mappingId,
                 newExperimentWorkflowId);
 
-        BrAPITrial trial = brAPITrialService.getExperiments(targetProgram.getId())
+        BrAPITrial trial = brAPITrialService.getTrialsByProgramId(targetProgram.getId())
                 .stream()
                 .filter(t -> t.getTrialName().equals(title))
                 .findFirst()

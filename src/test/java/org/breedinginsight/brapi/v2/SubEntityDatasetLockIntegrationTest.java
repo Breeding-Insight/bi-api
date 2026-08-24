@@ -1,7 +1,6 @@
 package org.breedinginsight.brapi.v2;
 
 import com.google.gson.*;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -12,6 +11,7 @@ import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.BrAPITest;
+import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.model.Program;
 import org.junit.jupiter.api.*;
@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -51,7 +50,7 @@ public class SubEntityDatasetLockIntegrationTest extends BrAPITest {
     void setup() throws Exception {
         var setup = brAPITestUtils.setupTestProgram(super.getBrapiDsl(), gson);
         program = setup.getV1();
-        experimentId = brAPIITrialService.getExperiments(program.getId()).stream()
+        experimentId = brAPIITrialService.getTrialsByProgramId(program.getId()).stream()
                 .map(BrAPITrial::getTrialDbId)
                 .findFirst()
                 .orElseThrow();

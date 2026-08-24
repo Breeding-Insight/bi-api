@@ -114,7 +114,7 @@ public class BrAPIStudiesController {
                 return ResponseUtils.getBrapiQueryResponse(authorizedStudies, studyQueryMapper, queryParams, searchRequest);
             }
 
-            // TODO: Instead of getting all studies for a program and filtering, doing the filtering on brapi side
+            // TODO: Instead of getting all studies for a program and filtering, doing the filtering on brapi side [BI-2922]
             List<BrAPIStudy> studies = studyService.getStudies(programId)
                         .stream()
                         .peek(this::setDbIds)

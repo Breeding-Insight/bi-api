@@ -45,8 +45,8 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.*;
+import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
-import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.imports.sample.SampleSubmissionImport.Columns;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
@@ -585,7 +585,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
 
         try {
             // Assumes only one trial/experiment exists
-            BrAPITrial trial = brAPITrialService.getExperiments(program.getId())
+            BrAPITrial trial = brAPITrialService.getTrialsByProgramId(program.getId())
                     .stream()
                     .findFirst()
                     .orElseThrow();

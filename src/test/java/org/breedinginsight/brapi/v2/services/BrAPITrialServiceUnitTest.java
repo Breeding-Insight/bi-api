@@ -171,7 +171,7 @@ class BrAPITrialServiceUnitTest {
 
         when(trialDAO.getTrialsByExperimentIds(eq(List.of(UUID.fromString("11111111-1111-1111-1111-111111111111"))), eq(program)))
                 .thenReturn(List.of(experiment));
-        when(studyDAO.getStudiesByExperimentID(eq(UUID.fromString("11111111-1111-1111-1111-111111111111")), eq(program)))
+        when(studyDAO.getStudiesByBrAPITrialExRefId(eq(UUID.fromString("11111111-1111-1111-1111-111111111111")), eq(program)))
                 .thenReturn(List.of(study, secondStudy));
         when(seasonDAO.getSeasonById("season-1", program.getId())).thenReturn(season);
         when(seasonDAO.getSeasonById("season-2", program.getId())).thenReturn(secondSeason);

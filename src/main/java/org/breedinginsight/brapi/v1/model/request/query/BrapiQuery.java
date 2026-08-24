@@ -42,7 +42,7 @@ public class BrapiQuery implements PaginationParams {
     private Integer page;
 
     private String sortField;
-    private SortOrder sortOrder;
+    private SortOrder sortOrder = SortOrder.ASC;
 
     public Integer getDefaultPage() {
         return DEFAULT_PAGE;

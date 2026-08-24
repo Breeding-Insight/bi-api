@@ -38,6 +38,7 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
@@ -200,7 +201,7 @@ public class BrAPITestUtils {
                 mappingId,
                 newExperimentWorkflowId);
 
-        List<BrAPITrial> trials = brAPITrialService.getExperiments(program.getId())
+        List<BrAPITrial> trials = brAPITrialService.getTrialsByProgramId(program.getId())
                 .stream()
                 // Ensure trial with title xyz is always second
                 .sorted(Comparator.comparing(BrAPITrial::getTrialName))

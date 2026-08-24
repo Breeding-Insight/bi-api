@@ -26,8 +26,8 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.core.response.BrAPITrialListResponse;
 import org.brapi.v2.model.core.response.BrAPITrialSingleResponse;
 import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -43,8 +43,6 @@ import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.services.ExperimentalCollaboratorService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
-import org.breedinginsight.model.ProgramUser;
-import org.breedinginsight.model.Role;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.ResponseUtils;
@@ -65,7 +63,6 @@ public class BrAPITrialsController {
 
     private final String referenceSource;
     private final BrAPITrialService experimentService;
-    private final ExperimentQueryMapper experimentQueryMapper;
     private final SecurityService securityService;
     private final ProgramUserService programUserService;
     private final ExperimentalCollaboratorService experimentalCollaboratorService;
@@ -73,14 +70,12 @@ public class BrAPITrialsController {
 
     @Inject
     public BrAPITrialsController(BrAPITrialService experimentService,
-                                 ExperimentQueryMapper experimentQueryMapper,
                                  @Property(name = "brapi.server.reference-source") String referenceSource,
                                  SecurityService securityService,
                                  ProgramUserService programUserService,
                                  ExperimentalCollaboratorService experimentalCollaboratorService,
                                  ProgramService programService) {
         this.experimentService = experimentService;
-        this.experimentQueryMapper = experimentQueryMapper;
         this.referenceSource = referenceSource;
         this.securityService = securityService;
         this.programUserService = programUserService;
@@ -92,7 +87,7 @@ public class BrAPITrialsController {
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN
             ,ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR })
-    public HttpResponse<Response<DataResponse<List<BrAPITrial>>>> getExperiments(
+    public HttpResponse<Response<DataResponse<BrAPITrial>>> getExperiments(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = ExperimentQueryMapper.class) @Valid ExperimentQuery queryParams) {
         try {
@@ -105,13 +100,27 @@ public class BrAPITrialsController {
             // If the program user is an experimental collaborator, filter results for only authorized experiments.
             Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
             if (experimentalCollaborator.isPresent()) {
-                List<UUID> experimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
-                List<BrAPITrial> authorizedExperiments = experimentService.getTrialsByExperimentIds(program.get(), experimentIds).stream().peek(this::setDbIds).collect(Collectors.toList());
-                return ResponseUtils.getBrapiQueryResponse(authorizedExperiments, experimentQueryMapper, queryParams, searchRequest);
+                List<UUID> authorizedExperimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
+
+                if (authorizedExperimentIds.isEmpty()) {
+                    // User is not authorized for any experiments, return empty response.
+                    return ResponseUtils.getEmptyBrapiQueryResponse();
+                } else {
+                    // User is authorized. Grab the experiment data from BrAPI.
+                    BrAPITrialListResponse brapiResponse = experimentService.searchTrials(program.get(), authorizedExperimentIds, queryParams);
+
+                    List<BrAPITrial> foundTrials = brapiResponse.getResult().getData();
+                    foundTrials.forEach(this::setDbIds);
+
+                    return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse);
+                }
             }
 
-            List<BrAPITrial> experiments = experimentService.getExperiments(programId).stream().peek(this::setDbIds).collect(Collectors.toList());
-            return ResponseUtils.getBrapiQueryResponse(experiments, experimentQueryMapper, queryParams, searchRequest);
+            BrAPITrialListResponse brapiResponse = experimentService.searchTrials(program.get(), queryParams);
+
+            List<BrAPITrial> foundTrials = brapiResponse.getResult().getData();
+            foundTrials.forEach(this::setDbIds);
+            return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse);
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving experiments");
@@ -159,7 +168,7 @@ public class BrAPITrialsController {
         return HttpResponse.notFound();
     }
 
-    // TODO: Remove for trialDbId once cache is removed for that entity
+    // TODO: Verify that the programDbId does not need to be reset and that the BrAPI programDbId can be used instead [BI-2931]
     private void setDbIds(BrAPITrial trial) {
         trial.programDbId(Utilities.getExternalReference(trial.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS))
                                  .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
