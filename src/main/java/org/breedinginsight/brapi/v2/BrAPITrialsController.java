@@ -106,14 +106,14 @@ public class BrAPITrialsController {
                 List<BrAPITrial> foundTrials = brapiResponse.getResult().getData();
                 foundTrials.forEach(this::setDbIds);
 
-                return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse, queryParams);
+                return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse);
             }
 
             BrAPITrialListResponse brapiResponse = experimentService.searchTrials(program.get(), queryParams);
 
             List<BrAPITrial> foundTrials = brapiResponse.getResult().getData();
             foundTrials.forEach(this::setDbIds);
-            return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse, queryParams);
+            return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse);
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving experiments");
