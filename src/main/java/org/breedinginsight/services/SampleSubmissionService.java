@@ -214,7 +214,11 @@ public class SampleSubmissionService {
         columns.add(Column.builder().value(SampleSubmissionImport.Columns.TISSUE).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(SampleSubmissionImport.Columns.COMMENTS).dataType(Column.ColumnDataType.STRING).build());
 
-        //TODO sort the samples first
+        //Sort samples first. May be updated to use BrAPI server sorting after cache removal changes are merged
+        submission.get().getSamples().sort(Comparator.comparing(BrAPISample::getPlateName)
+                .thenComparing(BrAPISample::getColumn)
+                .thenComparing(BrAPISample::getRow));
+
         List<Map<String, Object>> rows = new ArrayList<>();
         submission.get().getSamples().forEach(sample -> {
             Map<String, Object> row = new HashMap<>();
