@@ -149,6 +149,21 @@ public class ResponseUtils {
         return HttpResponse.ok(new Response<>(metadata, new DataResponse<>(data)));
     }
 
+    public static <T> HttpResponse<Response<DataResponse<T>>> getEmptyBrapiQueryResponse() {
+        Pagination pagination = new Pagination();
+        Metadata metadata;
+
+        // Caller expects empty BrAPI response set. Set with empty defaults
+        pagination.setTotalCount(0);
+        pagination.setCurrentPage(0);
+        pagination.setPageSize(0);
+        pagination.setTotalPages(0);
+
+        metadata = constructMetadata(new Metadata(), pagination);
+
+        return HttpResponse.ok(new Response<>(metadata, new DataResponse<>(new ArrayList<>())));
+    }
+
     private static <T> HttpResponse<Response<ProgramUpload>> processUploadSearchResponse(
             ProgramUpload upload, SearchRequest searchRequest, QueryParams queryParams, AbstractQueryMapper mapper, Metadata metadata) {
 
