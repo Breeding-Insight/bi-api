@@ -144,8 +144,8 @@ public class BrAPIGermplasmDAO {
      */
     public List<BrAPIGermplasm> getRawGermplasm(UUID programId) throws ApiException {
         Program program = new Program(programDAO.fetchOneById(programId));
-        List<BrAPIGermplasm> cacheList = new ArrayList<>(programGermplasmCache.get(programId).values());
-        return cacheList.stream().map(germplasm -> {
+        List<BrAPIGermplasm> programGermplasm = getGermplasm(programId);
+        return programGermplasm.stream().map(germplasm -> {
             germplasm.setGermplasmName(Utilities.appendProgramKey(germplasm.getDefaultDisplayName(), program.getKey(), germplasm.getAccessionNumber()));
             if(germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE)
                     && !(germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE).isJsonNull())) {
@@ -318,8 +318,6 @@ public class BrAPIGermplasmDAO {
      * this method will retrieve it.
      */
     private List<BrAPIGermplasm> getBrAPIGermplasmUsingBrAPIProgramId(GermplasmQueryParams germplasmQueryParams, Program program) throws ApiException {
-
-
         if (germplasmQueryParams.page() == null) {
             germplasmQueryParams.setPage(0);
         }
