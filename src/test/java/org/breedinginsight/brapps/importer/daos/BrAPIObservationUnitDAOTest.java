@@ -143,7 +143,7 @@ public class BrAPIObservationUnitDAOTest extends BrAPITest {
     @SneakyThrows
     @Order(2)
     public void testGetObservationUnitAdditionalInfoSingleTreatmentFactor() {
-        List<BrAPIObservationUnit> createdOus = obsUnitDAO.getObservationUnitByName(List.of("test1"), validProgram);
+        List<BrAPIObservationUnit> createdOus = obsUnitDAO.getProgramObservationUnits(validProgram.getId());
         singleTreatmentAsserts(createdOus, testTreatment);
     }
 

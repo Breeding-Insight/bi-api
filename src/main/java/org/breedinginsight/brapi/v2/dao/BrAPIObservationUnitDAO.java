@@ -18,7 +18,6 @@
 package org.breedinginsight.brapi.v2.dao;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import io.micronaut.context.annotation.Property;
@@ -28,9 +27,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.phenotype.ObservationQueryParams;
+import org.brapi.client.v2.model.queryParams.phenotype.ObservationUnitQueryParams;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
+import org.brapi.client.v2.modules.phenotype.ObservationsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationTreatment;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationUnitLevelRelationship;
@@ -74,6 +78,8 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
     private final Gson gson = new JSON().getGson();
     private final Type treatmentlistType = new TypeToken<ArrayList<BrAPIObservationTreatment>>(){}.getType();
 
+    private final int brapiMaxPageSize;
+
     @Inject
     public BrAPIObservationUnitDAO(ProgramDAO programDAO,
                                    ImportDAO importDAO,
@@ -83,7 +89,8 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
                                    ProgramService programService,
                                    @Property(name = "brapi.server.reference-source") String referenceSource,
                                    @Property(name = "micronaut.bi.api.run-scheduled-tasks") boolean runScheduledTasks,
-                                   ProgramCacheProvider programCacheProvider) {
+                                   ProgramCacheProvider programCacheProvider,
+                                   @Property(name = "brapi.cache.fetch-page-size") int brapiFetchPageSize) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
@@ -93,6 +100,7 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         this.programService = programService;
         this.germplasmService = germplasmService;
         this.programCache = programCacheProvider.getProgramCache(this::fetchProgramObservationUnits, BrAPIObservationUnit.class);
+        this.brapiMaxPageSize = brapiFetchPageSize;
     }
 
     @Scheduled(initialDelay = "${startup.delay.observation_unit}")
@@ -153,17 +161,44 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
     /**
      * Get all observation units for a program from the cache.
      */
-    private Map<String, BrAPIObservationUnit> getProgramObservationUnits(UUID programId) throws ApiException {
-        return programCache.get(programId);
+    public List<BrAPIObservationUnit> getProgramObservationUnits(UUID programId) throws ApiException {
+        Program program = programDAO.get(programId)
+                .stream()
+                .findFirst()
+                .orElseThrow();
+
+        return getBrAPIObservationUnitsUsingBrAPIProgramId(program);
     }
 
-    public List<BrAPIObservationUnit> getObservationUnitByName(List<String> observationUnitNames, Program program) throws ApiException {
-        if(observationUnitNames.isEmpty()) {
-            return Collections.emptyList();
+    private List<BrAPIObservationUnit> getBrAPIObservationUnitsUsingBrAPIProgramId(Program program) throws ApiException {
+
+        if (program == null || program.getId() == null) {
+            throw new InternalServerException("BI-API Program or Program ID is null");
         }
-        return getProgramObservationUnits(program.getId()).values().stream()
-                .filter(ou -> observationUnitNames.contains(ou.getObservationUnitName()))
-                .collect(Collectors.toList());
+
+        String brapiProgramDbId = Optional.of(program)
+                .map(Program::getBrapiProgram)
+                .map(BrAPIProgram::getProgramDbId)
+                .orElse(null);
+
+        if (brapiProgramDbId == null) {
+            brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
+        }
+
+        ObservationUnitQueryParams observationUnitQueryParams =
+                ObservationUnitQueryParams.builder()
+                        .programDbId(brapiProgramDbId)
+                        .pageSize(brapiMaxPageSize)
+                        .page(0)
+                        .build();
+
+        ObservationUnitsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationUnitsApi.class);
+
+        List<BrAPIObservationUnit> result = brAPIDAOUtil.get(api::observationunitsGet, observationUnitQueryParams);
+
+        processObservationUnits(program, result, true);
+
+        return result;
     }
 
     /**
@@ -208,18 +243,27 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         }
     }
 
+    // TODO: Swap exrefs for dbIds [BI-2914]
     public List<BrAPIObservationUnit> getObservationUnitsById(Collection<String> observationUnitExternalIds, Program program) throws ApiException {
         if(observationUnitExternalIds.isEmpty()) {
             return Collections.emptyList();
         }
-        return getProgramObservationUnits(program.getId()).entrySet().stream()
-                .filter(entry -> observationUnitExternalIds.contains(entry.getKey()))
-                .map(Map.Entry::getValue)
-                .collect(Collectors.toList());
+        return getProgramObservationUnits(program.getId()).stream()
+                .filter(ou -> {
+                    var ouExRef = Utilities.getExternalReference(ou.getExternalReferences(), referenceSource, ExternalReferenceSource.OBSERVATION_UNITS).orElse(null);
+
+                    if (ouExRef == null) {
+                        return false;
+                    } else {
+                        return observationUnitExternalIds.contains(ouExRef.getReferenceId());
+                    }
+
+                }).collect(Collectors.toList());
     }
 
     public List<BrAPIObservationUnit> getObservationUnitsForStudyDbId(@NotNull String studyDbId, Program program) throws ApiException {
-        return getProgramObservationUnits(program.getId()).values().stream()
+        // TODO: Optimize and change this to search/get on studyDbId once cache is removed for studies [BI-2979]
+        return getProgramObservationUnits(program.getId()).stream()
                 .filter(ou -> ou.getStudyDbId().equals(studyDbId))
                 .collect(Collectors.toList());
     }
@@ -228,20 +272,24 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         if (trialDbIds.isEmpty()) {
             return Collections.emptyList();
         }
-        return getProgramObservationUnits(programId).values().stream()
+
+        // TODO: Optimize and change this to search on trialDbIds [BI-2979]
+        return getProgramObservationUnits(programId).stream()
                 .filter(ou -> trialDbIds.contains(ou.getTrialDbId()))
                 .collect(Collectors.toList());
     }
 
     public List<BrAPIObservationUnit> getObservationUnitsForTrialDbId(@NotNull UUID programId, @NotNull String trialDbId) throws ApiException {
-        return getProgramObservationUnits(programId).values().stream()
+        return getProgramObservationUnits(programId).stream()
+                // TODO: Optimize and change this to search/get on trialDbId [BI-2979]
                 .filter(ou -> ou.getTrialDbId().equals(trialDbId))
                 .collect(Collectors.toList());
     }
 
     public List<BrAPIObservationUnit> getObservationUnitsForDataset(@NotNull String datasetId, @NotNull Program program) throws ApiException {
         String datasetReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.DATASET);
-        return getProgramObservationUnits(program.getId()).values().stream()
+        // TODO: Optimize and change this to search/get on dataset id once a solution is in place to relate ous to datasets [BI-2961]
+        return getProgramObservationUnits(program.getId()).stream()
                 .filter(ou -> {
                     Optional<BrAPIExternalReference> exRef = Utilities.getExternalReference(ou.getExternalReferences(), datasetReferenceSource);
                     return exRef.map(brAPIExternalReference -> brAPIExternalReference.getReferenceId().equals(datasetId)).orElse(false);
@@ -252,7 +300,8 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
     public List<BrAPIObservationUnit> getObservationUnitsForDatasetAndEnvs(@NotNull String datasetId, Collection<String> envIds, @NotNull Program program) throws ApiException {
         String datasetReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.DATASET);
         String studyReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
-        return getProgramObservationUnits(program.getId()).values().stream()
+        // TODO: Optimize and change this to search/get on both dataset id and studyDbId once a solution is in place to relate ous to datasets and study cache is removed [BI-2961]
+        return getProgramObservationUnits(program.getId()).stream()
                 .filter(ou -> {
                     Optional<BrAPIExternalReference> datasetExRef = Utilities.getExternalReference(ou.getExternalReferences(), datasetReferenceSource);
                     Optional<BrAPIExternalReference> studyExRef = Utilities.getExternalReference(ou.getExternalReferences(), studyReferenceSource);
@@ -299,14 +348,17 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         BrAPIObservationUnitLevelRelationship relationship = new BrAPIObservationUnitLevelRelationship();
         AtomicBoolean relationshipFilter = new AtomicBoolean(false);
 
+        // TODO: Use observationUnitSearchRequest.setObservationUnitDbIds() instead of xrefs [BI-2914]
         observationUnitId.ifPresent(ouId -> addXRefFilter(ouId, ExternalReferenceSource.OBSERVATION_UNITS, xrefIds, xrefSources));
         observationUnitName.ifPresent(name -> observationUnitSearchRequest.setObservationUnitNames(List.of(Utilities.appendProgramKey(name, program.getKey()))));
         locationDbId.ifPresent(dbid -> observationUnitSearchRequest.setLocationDbIds(List.of(dbid)));
         seasonDbId.ifPresent(dbid -> observationUnitSearchRequest.setSeasonDbIds(List.of(dbid)));
         experimentId.ifPresent(dbId -> observationUnitSearchRequest.setTrialDbIds(List.of(dbId)));
         includeObservations.ifPresent(observationUnitSearchRequest::includeObservations);
+        // TODO: Are level filters being used here at all?  Should they be?
         addLevelFilter(observationUnitLevelName, observationUnitLevelOrder, observationUnitLevelCode, level, levelFilter);
         addLevelFilter(observationUnitLevelRelationshipName, observationUnitLevelRelationshipOrder, observationUnitLevelRelationshipCode, relationship, relationshipFilter);
+        // TODO: Use observationUnitSearchRequest.setStudyDbIds() instead of xrefs [BI-2919]
         environmentId.ifPresent(envId -> addXRefFilter(envId, ExternalReferenceSource.STUDIES, xrefIds, xrefSources));
 //        germplasmId.ifPresent(germId -> {
 //            xrefIds.add(germId);
@@ -331,6 +383,7 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
                                                .orElse(true);
 
             //adding filter for germplasmDbId because we can't easily search that in the stored data object
+            // TODO: Add search on accessionNumber once it's been added to prod server and brapi client [BI-2978]
             return matches && germplasmId.map(id -> id.equals(ou.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_UUID).getAsString())).orElse(true);
         }).collect(Collectors.toList());
     }
@@ -375,8 +428,7 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
 
     	HashMap<String, BrAPIGermplasm> germplasmByDbId = new HashMap<>();
     	if( withGID ){
-            // Load germplasm for program into map.
-            // TODO: if we use redis search, that may be more efficient than loading all germplasm for the program.
+            // TODO: Optimize this to use germplasm information directly in BrAPIObservationUnit by adding accession num/GID there via the prodserver/client [BI-2978]
             this.germplasmService.getGermplasm(program.getId()).forEach((germplasm -> germplasmByDbId.put(germplasm.getGermplasmDbId(), germplasm)));
         }
 
