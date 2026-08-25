@@ -32,8 +32,10 @@ import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmSingleResponse;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
+import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
@@ -403,16 +405,60 @@ public class BrAPIGermplasmDAO {
                 .collect(Collectors.toList());
     }
 
+    public List<BrAPIGermplasm> brapiGermplasmSearchReturnList(Program program,
+                                                               List<UUID> brapiGermplasmIds) throws ApiException {
+        return brapiGermplasmSearchReturnResponse(program, brapiGermplasmIds, null).getResult().getData();
+    }
+
+    public BrAPIGermplasmListResponse brapiGermplasmSearchReturnResponse(Program program,
+                                                                         List<UUID> brapiGermplasmIds,
+                                                                         GermplasmQuery germplasmQuery) throws ApiException {
+
+        GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), GermplasmApi.class);
+
+        BrAPIGermplasmSearchRequest brAPIGermplasmSearchRequest = buildSearchRequest(program, brapiGermplasmIds, germplasmQuery);
+
+        BrAPIGermplasmListResponse brAPIResponse =
+                brAPIDAOUtil.simpleSearch(
+                        api::searchGermplasmPost,
+                        brAPIGermplasmSearchRequest
+                );
+
+        // TODO: Once cache is removed for this class, fix processGermplasmForDisplay to return List<BrAPIGermplasm> [BI-2906]
+        List<BrAPIGermplasm> processedGermplasm =
+                new ArrayList<>(processGermplasmForDisplay(brAPIDAOUtil.getListResult(brAPIResponse), program.getKey()).values());
+
+        brAPIResponse.getResult().setData(processedGermplasm);
+
+        return brAPIResponse;
+    }
+
+    private BrAPIGermplasmSearchRequest buildSearchRequest(Program program, List<UUID> brapiGermplasmIds, GermplasmQuery germplasmQuery) throws ApiException {
+        BrAPIGermplasmSearchRequest searchRequest = new BrAPIGermplasmSearchRequest();
+
+        searchRequest.programDbIds(List.of(brAPIDAOUtil.getBrAPIProgramDbId(program.getId())));
+
+        if (brapiGermplasmIds != null && !brapiGermplasmIds.isEmpty()) {
+            searchRequest.setTrialDbIds(brapiGermplasmIds.stream().map(UUID::toString).collect(Collectors.toList()));
+        }
+
+        brAPIDAOUtil.setGenericSearchParameters(searchRequest, germplasmQuery);
+
+        return searchRequest;
+    }
+
     public BrAPIGermplasm getGermplasmByUUID(String germplasmId, UUID programId) throws ApiException, DoesNotExistException {
-        Map<String, BrAPIGermplasm> cache = programGermplasmCache.get(programId);
-        BrAPIGermplasm germplasm = null;
-        if (cache != null) {
-            germplasm = cache.get(germplasmId);
+        Program program = new Program(programDAO.fetchOneById(programId));
+
+        List<BrAPIGermplasm> result = brapiGermplasmSearchReturnList(program, List.of(UUID.fromString(germplasmId)));
+
+        if (result.size() > 1) {
+            throw new ApiException(String.format("Multiple germplasms found for germplasm with ID: [%s]", germplasmId));
+        } else if (result.isEmpty()) {
+            throw new DoesNotExistException(String.format("Germplasm with ID: [%s] does not exist", germplasmId));
         }
-        if (germplasm == null) {
-            throw new DoesNotExistException("UUID for this germplasm does not exist");
-        }
-        return germplasm;
+
+        return result.get(0);
     }
 
     public List<String> getGermplasmDbIdsForUUIDs(List<String> germplasmUUIDs, UUID programId) throws ApiException, DoesNotExistException {
