@@ -38,14 +38,30 @@ jobs:
         shell: bash
         run: npm install --global "@openai/codex@0.149.1"
 
-      - name: Install Codex Linux sandbox prerequisite
+      - name: Configure Codex Linux sandbox
         shell: bash
         run: |
           set -euo pipefail
 
           sudo apt-get update
-          sudo apt-get install --yes bubblewrap
+          sudo apt-get install --yes \
+            apparmor-profiles \
+            apparmor-utils \
+            bubblewrap
+          sudo install -m 0644 \
+            /usr/share/apparmor/extra-profiles/bwrap-userns-restrict \
+            /etc/apparmor.d/bwrap-userns-restrict
+          sudo apparmor_parser -r /etc/apparmor.d/bwrap-userns-restrict
+
           bwrap --version
+          bwrap \
+            --unshare-user \
+            --unshare-pid \
+            --unshare-net \
+            --ro-bind / / \
+            --dev /dev \
+            --proc /proc \
+            /usr/bin/true
 
       - name: Check out exact PR head
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
