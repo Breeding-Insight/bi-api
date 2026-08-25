@@ -836,7 +836,6 @@ public class BrAPITrialService {
             }
             // TODO: if performance is poor, implement more precise invalidation, possibly using hierarchical cache keys.
             studyDAO.repopulateCache(program.getId());
-            observationDAO.repopulateCache(program.getId());
             observationUnitDAO.repopulateCache(program.getId());
         }
 

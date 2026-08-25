@@ -18,7 +18,6 @@ package org.breedinginsight.brapi.v2.dao;
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -33,12 +32,10 @@ import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
-import org.brapi.v2.model.pheno.response.BrAPIObservationSingleResponse;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
@@ -50,14 +47,13 @@ import org.jetbrains.annotations.NotNull;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
 @Singleton
 @Slf4j
-public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
+public class BrAPIObservationDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
@@ -65,7 +61,6 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
     private final String referenceSource;
-    private boolean runScheduledTasks;
     private final TraitService traitService;
 
     private final int brapiMaxPageSize;
@@ -77,75 +72,16 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                                BrAPIDAOUtil brAPIDAOUtil,
                                BrAPIEndpointProvider brAPIEndpointProvider,
                                @Property(name = "brapi.server.reference-source") String referenceSource,
-                               @Property(name = "micronaut.bi.api.run-scheduled-tasks") boolean runScheduledTasks,
                                @Property(name = "brapi.cache.fetch-page-size")  int brapiFetchPageSize,
-                               ProgramCacheProvider programCacheProvider, TraitService traitService) {
+                               TraitService traitService) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.observationUnitDAO = observationUnitDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.referenceSource = referenceSource;
-        this.runScheduledTasks = runScheduledTasks;
         this.traitService = traitService;
-        this.programCache = programCacheProvider.getProgramCache(this::fetchProgramObservations, BrAPIObservation.class);
         this.brapiMaxPageSize = brapiFetchPageSize;
-    }
-
-    @Scheduled(initialDelay = "${startup.delay.observation}")
-    public void setup() {
-        if(!runScheduledTasks) {
-            return;
-        }
-        // Populate the observation cache for all programs on startup.
-        log.debug("populating observation cache");
-        List<Program> programs = programDAO.getActive();
-        if (programs != null) {
-            programCache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
-        }
-    }
-
-    /**
-     * Fetch formatted observations for this program.
-     */
-    private Map<String, BrAPIObservation> fetchProgramObservations(UUID programId) throws ApiException {
-        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
-        // Get the program.
-        List<Program> programs = programDAO.get(programId);
-        if (programs.size() != 1) {
-            throw new InternalServerException("Program was not found for given id");
-        }
-        Program program = programs.get(0);
-
-        // Set query params and make call.
-        BrAPIObservationSearchRequest observationSearch = new BrAPIObservationSearchRequest();
-        observationSearch.externalReferenceIds(List.of(programId.toString()));
-        observationSearch.externalReferenceSources(List.of(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS)));
-        return processObservationsForCache(brAPIDAOUtil.search(
-                api::searchObservationsPost,
-                api::searchObservationsSearchResultsDbIdGet,
-                observationSearch
-        ), program.getKey());
-    }
-
-    /**
-     * Process a list of observations for insertion into the cache.
-     */
-    private Map<String, BrAPIObservation> processObservationsForCache(List<BrAPIObservation> programObservations, String programKey) {
-        // Process programObservations in place (strip program key, etc.).
-        processObservations(programKey, programObservations);
-        // Build map.
-        Map<String, BrAPIObservation> programObservationsMap = new HashMap<>();
-        log.trace("processing observationUnits for cache: " + programObservations);
-        for (BrAPIObservation observation: programObservations) {
-            BrAPIExternalReference xref = observation
-                    .getExternalReferences()
-                    .stream()
-                    .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.OBSERVATIONS.getName()).equals(reference.getReferenceSource()))
-                    .findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
-            programObservationsMap.put(xref.getReferenceId(), observation);
-        }
-        return programObservationsMap;
     }
 
     /**
@@ -296,11 +232,9 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         var program = programDAO.fetchOneById(programId);
         try {
             if (!brAPIObservationList.isEmpty()) {
-                Callable<Map<String, BrAPIObservation>> postFunction = () -> {
                     List<BrAPIObservation> postResponse = brAPIDAOUtil.post(brAPIObservationList, upload, api::observationsPost, importDAO::update);
-                    return processObservationsForCache(postResponse, program.getKey());
-                };
-                return programCache.post(programId, postFunction);
+                    processObservations(program.getKey(), postResponse);
+                    return postResponse;
             }
             return new ArrayList<>();
         } catch (Exception e) {
@@ -339,15 +273,13 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
         return result;
     }
 
-    // This method overloads updateBrAPIObservation(String dbId, BrAPIObservation observation, UUID programId)
-    // It was added to increase efficiency.  It insures that ProgramCache<BrAPIObservation>.populate() is called only once
-    // not once per observation.
     public List<BrAPIObservation> updateBrAPIObservation(Map<String, BrAPIObservation> mutatedObservationByDbId, UUID programId) throws ApiException {
         ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
         var program = programDAO.fetchOneById(programId);
 
         List <BrAPIObservation> updatedObservations = new ArrayList<>();
         try {
+            // TODO: Instead of a for loop, utilize BrAPI Observations put to do all updates in one request. [BI-2969]
             for (Map.Entry<String, BrAPIObservation> entry : mutatedObservationByDbId.entrySet()) {
                 String dbId = entry.getKey();
                 BrAPIObservation observation = entry.getValue();
@@ -355,22 +287,12 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                     throw new Exception("Null observation");
                 }
 
-                ApiResponse<BrAPIObservationSingleResponse> response = null;
+                BrAPIObservation updatedObservation;
+
                 try {
-                    response = api.observationsObservationDbIdPut(dbId, observation);
+                     updatedObservation = brAPIDAOUtil.put(dbId, observation, api::observationsObservationDbIdPut);
                 } catch (ApiException e) {
                     throw new RuntimeException(e);
-                }
-                if (response == null) {
-                    throw new ApiException("Response is null", 0, null, null);
-                }
-                BrAPIObservationSingleResponse body = response.getBody();
-                if (body == null) {
-                    throw new ApiException("Response is missing body", 0, response.getHeaders(), null);
-                }
-                BrAPIObservation updatedObservation = body.getResult();
-                if (updatedObservation == null) {
-                    throw new ApiException("Response body is missing result", 0, response.getHeaders(), response.getBody().toString());
                 }
                 updatedObservations.add(updatedObservation);
 
@@ -385,8 +307,8 @@ public class BrAPIObservationDAO extends BrAPICachedDAO<BrAPIObservation> {
                     throw new Exception(message);
                 }
             }
-            Map<String, BrAPIObservation> processedObservations = processObservationsForCache(updatedObservations, program.getKey());
-            return programCache.postThese(programId,processedObservations);
+            processObservations(program.getKey(), updatedObservations);
+            return updatedObservations;
         } catch (ApiException e) {
             log.error("Error updating observation: " + Utilities.generateApiExceptionLogMessage(e), e);
             throw e;
