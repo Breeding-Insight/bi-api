@@ -27,7 +27,6 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.core.TrialQueryParams;
 import org.brapi.client.v2.modules.core.TrialsApi;
 import org.brapi.v2.model.BrAPIFilterBy;
-import org.brapi.v2.model.BrAPIResponse;
 import org.brapi.v2.model.BrAPISortBy;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPITrial;
@@ -83,7 +82,6 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
      * This method requires a BI-API program.  If the BrAPIProgram inside this data model is not set,
      * this method will retrieve it.
      */
-    // TODO: Generalize Code for General Get By Program for BrAPI Entities [BI-2932]
     private List<BrAPITrial> getBrAPITrialsUsingBrAPIProgramId(Program program) throws ApiException {
 
         if (program == null || program.getId() == null) {
@@ -99,37 +97,16 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
             brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
         }
 
-        // TODO: Configurable max amount of trials per program, or paginate [BI-2932]
-
         TrialQueryParams trialQueryParams =
                 TrialQueryParams.builder()
                         .programDbId(brapiProgramDbId)
-                        .pageSize(1000)
-                        .page(0)
                         .build();
 
-        return getTrialsFromBrAPI(program, trialQueryParams);
-    }
-
-    private List<BrAPITrial> getTrialsFromBrAPI(Program program, TrialQueryParams trialQueryParams) throws ApiException {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
 
-        ApiResponse<BrAPITrialListResponse> response;
+        List<BrAPITrial> result = brAPIDAOUtil.get(api::trialsGet, trialQueryParams);
 
-        try {
-            response = api.trialsGet(trialQueryParams);
-        } catch (ApiException e) {
-            log.warn(Utilities.generateApiExceptionLogMessage(e));
-            throw new InternalServerException("Error making BrAPI call", e);
-        }
-
-        if (response.getBody().getMetadata().getPagination().getTotalCount() > trialQueryParams.pageSize()) {
-            throw new InternalServerException(String.format("More trials exist than requested [%s]", trialQueryParams));
-        }
-
-        List<BrAPITrial> trialsFromResponse = response.getBody().getResult().getData();
-
-        return processExperimentsForDisplay(trialsFromResponse, program.getKey());
+        return processExperimentsForDisplay(result, program.getKey());
     }
 
     @Override
@@ -193,12 +170,21 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
 
         TrialQueryParams params = TrialQueryParams.builder()
                 .trialDbId(trialId.toString())
-                .pageSize(1)
-                .page(0)
                 .build();
 
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
 
-        return getTrialsFromBrAPI(program, params).stream().findFirst();
+        List<BrAPITrial> result = brAPIDAOUtil.get(api::trialsGet, params);
+
+        if (result.isEmpty()) {
+            throw new DoesNotExistException(String.format("Trial with ID [%s] does not exist", trialId));
+        } else if (result.size() > 1) {
+            throw new InternalServerException(String.format("Trial with ID [%s] found multiple times in database. This should not be possible.", trialId));
+        }
+
+        processExperimentsForDisplay(result, program.getKey());
+
+        return result.stream().findFirst();
     }
 
     @Override
@@ -284,40 +270,8 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
             searchRequest.setTrialDbIds(brapiTrialIds.stream().map(UUID::toString).collect(Collectors.toList()));
         }
 
-        // Set FilterBy
-        List<BrAPIFilterBy> brAPIFilterBy = new ArrayList<>();
-
-        if (StringUtils.isNotBlank(experimentQuery.getName())) {
-            brAPIFilterBy.add(brAPIDAOUtil.constructFilterBy(brAPITrialsMapper.getBrAPIName(BI_FILTER_COLUMN_NAME), experimentQuery.getName()));
-        }
-        if (StringUtils.isNotBlank(experimentQuery.getActive())) {
-            brAPIFilterBy.add(brAPIDAOUtil.constructFilterBy(brAPITrialsMapper.getBrAPIName(BI_FILTER_COLUMN_ACTIVE), experimentQuery.getActive()));
-        }
-        if (StringUtils.isNotBlank(experimentQuery.getCreatedBy())) {
-            brAPIFilterBy.add(brAPIDAOUtil.constructFilterBy(brAPITrialsMapper.getBrAPIName(BI_FILTER_COLUMN_CREATED_BY), experimentQuery.getCreatedBy()));
-        }
-        if (StringUtils.isNotBlank(experimentQuery.getCreatedDate())) {
-            brAPIFilterBy.add(brAPIDAOUtil.constructFilterBy(brAPITrialsMapper.getBrAPIName(BI_FILTER_COLUMN_CREATED_DATE), experimentQuery.getCreatedDate()));
-        }
-
-        if (!brAPIFilterBy.isEmpty()) {
-            searchRequest.setFilterBy(brAPIFilterBy);
-        }
-
-        // Set SortBy
-        List<BrAPISortBy> brAPISortBy = new ArrayList<>();
-
-        if (StringUtils.isNotBlank(experimentQuery.getSortField()) && brAPITrialsMapper.exists(experimentQuery.getSortField())) {
-            brAPISortBy.add(brAPIDAOUtil.constructSortBy(brAPITrialsMapper.getBrAPIName(experimentQuery.getSortField()), experimentQuery.getSortOrder().toString()));
-        }
-
-        if (!brAPISortBy.isEmpty()) {
-            searchRequest.setSortBy(brAPISortBy);
-        }
-
-        brAPIDAOUtil.setPagination(searchRequest, experimentQuery);
+        brAPIDAOUtil.setGenericSearchParameters(searchRequest, experimentQuery);
 
         return searchRequest;
-
     }
 }
