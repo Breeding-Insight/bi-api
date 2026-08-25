@@ -61,18 +61,31 @@ jobs:
       - name: Run built-in Codex review
         shell: bash
         env:
-          CODEX_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CODEX_HOME: ${{ runner.temp }}/codex-home
           BASE_REF: ${{ github.event.pull_request.base.ref }}
+          NAVIGATOR_MODEL: ${{ vars.NAVIGATOR_MODEL }}
+          NAVIGATOR_TOOLKIT_API_KEY: ${{ secrets.NAVIGATOR_TOOLKIT_API_KEY }}
+          NAVIGATOR_TOOLKIT_BASE_URL: https://api.ai.it.ufl.edu/v1
         run: |
           set -euo pipefail
 
           install -d -m 700 "$CODEX_HOME"
 
+          if [[ -z "$NAVIGATOR_MODEL" ]]; then
+            echo "::error::Set the NAVIGATOR_MODEL variable in the codex-review environment"
+            exit 1
+          fi
+
           codex \
-            --model gpt-5.6-sol \
+            --model "$NAVIGATOR_MODEL" \
             --sandbox read-only \
             --ask-for-approval never \
+            --config 'model_provider="navigator_toolkit"' \
+            --config 'model_providers.navigator_toolkit.name="UF NaviGator Toolkit"' \
+            --config "model_providers.navigator_toolkit.base_url=\"$NAVIGATOR_TOOLKIT_BASE_URL\"" \
+            --config 'model_providers.navigator_toolkit.env_key="NAVIGATOR_TOOLKIT_API_KEY"' \
+            --config 'model_providers.navigator_toolkit.supports_websockets=false' \
+            --config 'model_providers.navigator_toolkit.wire_api="responses"' \
             --config 'model_reasoning_effort="high"' \
             --config 'web_search="disabled"' \
             --config 'allow_login_shell=false' \
