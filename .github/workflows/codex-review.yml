@@ -67,6 +67,8 @@ jobs:
         run: |
           set -euo pipefail
 
+          install -d -m 700 "$CODEX_HOME"
+
           codex \
             --model gpt-5.6-sol \
             --sandbox read-only \
