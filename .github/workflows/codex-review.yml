@@ -1,0 +1,131 @@
+name: Codex PR review
+
+on:
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+
+permissions: {}
+
+jobs:
+  review:
+    name: Review PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: codex-review
+
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(
+        fromJSON('["OWNER","MEMBER","COLLABORATOR"]'),
+        github.event.pull_request.author_association
+      )
+
+    permissions:
+      contents: read
+
+# action versions are pinned using SHAs to lock the versions
+    steps:
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Install pinned Codex CLI
+        working-directory: ${{ runner.temp }}
+        shell: bash
+        run: npm install --global "@openai/codex@0.149.1"
+
+      - name: Check out exact PR head
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          clean: true
+
+      - name: Verify checked-out refs
+        shell: bash
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git show-ref --verify --quiet "refs/remotes/origin/$BASE_REF"
+          git merge-base "origin/$BASE_REF" HEAD >/dev/null
+
+      - name: Run built-in Codex review
+        shell: bash
+        env:
+          CODEX_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CODEX_HOME: ${{ runner.temp }}/codex-home
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+
+          codex \
+            --model gpt-5.6-sol \
+            --sandbox read-only \
+            --ask-for-approval never \
+            --config 'model_reasoning_effort="high"' \
+            --config 'web_search="disabled"' \
+            --config 'allow_login_shell=false' \
+            --config 'shell_environment_policy.inherit="core"' \
+            --config 'shell_environment_policy.ignore_default_excludes=false' \
+            review \
+            --base "origin/$BASE_REF" \
+            > "$RUNNER_TEMP/codex-review.md"
+
+      - name: Validate review output
+        shell: bash
+        run: test -s "$RUNNER_TEMP/codex-review.md"
+
+      - name: Upload review
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: codex-review
+          path: ${{ runner.temp }}/codex-review.md
+          if-no-files-found: error
+          retention-days: 1
+
+  post-review:
+    name: Post review
+    needs: review
+    if: needs.review.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Download review
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: codex-review
+          path: review-output
+
+      - name: Post PR comment
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          {
+            echo "## Codex review"
+            echo
+            cat review-output/codex-review.md
+          } > "$RUNNER_TEMP/pr-comment.md"
+
+          gh pr comment "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --body-file "$RUNNER_TEMP/pr-comment.md"
