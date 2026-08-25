@@ -143,6 +143,7 @@ public class BrAPIGermplasmDAO {
      * @throws ApiException
      */
     public List<BrAPIGermplasm> getRawGermplasm(UUID programId) throws ApiException {
+        // TODO: This method is used for checking if germplasm already exist in the system. Once a generalized BrAPI exists check is made, we should update this method [BI-2938]
         Program program = new Program(programDAO.fetchOneById(programId));
         List<BrAPIGermplasm> programGermplasm = getGermplasm(programId);
         return programGermplasm.stream().map(germplasm -> {
@@ -394,6 +395,7 @@ public class BrAPIGermplasmDAO {
     }
 
     public List<BrAPIGermplasm> getGermplasmByRawName(List<String> germplasmNames, UUID programId) throws ApiException {
+        // TODO: Optimize this method by utilizing a BrAPIGermplasmSearchRequest [BI-3028]
         Program program = new Program(programDAO.fetchOneById(programId));
         return getGermplasm(programId)
                 .stream()
@@ -430,6 +432,7 @@ public class BrAPIGermplasmDAO {
     }
 
     public Optional<BrAPIGermplasm> getGermplasmByDBID(String germplasmDbId, UUID programId) throws ApiException {
+        // TODO: Optimize by utilizing a BrAPIGermplasmSearchRequest [BI-3028]
         Map<String, BrAPIGermplasm> cache = programGermplasmCache.get(programId);
         //key is UUID, want to filter by DBID
         BrAPIGermplasm germplasm = null;
@@ -440,6 +443,7 @@ public class BrAPIGermplasmDAO {
     }
 
     public List<BrAPIGermplasm> getGermplasmsByDBID(Collection<String> germplasmDbIds, UUID programId) throws ApiException {
+        // TODO: Optimize by utilizing a BrAPIGermplasmSearchRequest [BI-3028]
         Map<String, BrAPIGermplasm> cache = programGermplasmCache.get(programId);
         //key is UUID, want to filter by DBID
         List<BrAPIGermplasm> germplasm = new ArrayList<>();
