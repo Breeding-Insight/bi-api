@@ -828,7 +828,6 @@ public class BrAPITrialService {
             }
             // TODO: if performance is poor, implement more precise invalidation, possibly using hierarchical cache keys.
             studyDAO.repopulateCache(program.getId());
-            observationUnitDAO.repopulateCache(program.getId());
         }
 
         // Successful or not, return the number of observations in this experiment.
