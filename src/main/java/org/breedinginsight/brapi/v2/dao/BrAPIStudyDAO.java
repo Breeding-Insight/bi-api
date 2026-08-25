@@ -151,11 +151,6 @@ public class BrAPIStudyDAO extends BrAPICachedDAO<BrAPIStudy> {
         return new ArrayList<>(processStudyForDisplay(result, program.getKey()).values());
     }
 
-    public Optional<BrAPIStudy> getStudyByName(String studyName, Program program) throws ApiException {
-        List<BrAPIStudy> studies = getStudiesByName(List.of(studyName), program);
-        return Utilities.getSingleOptional(studies);
-    }
-
     public List<BrAPIStudy> getStudiesByName(List<String> studyNames, Program program) throws ApiException {
         if(studyNames.isEmpty()) {
             return Collections.emptyList();
@@ -187,6 +182,7 @@ public class BrAPIStudyDAO extends BrAPICachedDAO<BrAPIStudy> {
     }
 
     public List<BrAPIStudy> getStudiesByEnvironmentIds(@NotNull Collection<UUID> environmentIds, Program program) throws ApiException {
+        // TODO: Optimize and change to a BrAPI search or get on external reference IDs [BI-3029]
         String refSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
 
         return getBrAPIStudiesUsingBrAPIProgramId(program).stream()
