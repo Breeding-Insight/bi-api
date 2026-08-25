@@ -288,7 +288,7 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
         observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram()
                                                                  .getProgramDbId()));
-        //TODO add pagination support
+        //TODO add pagination support: This should be easy to implement with BrAPIDAOUtil.simpleSearch()
 //                                    .page(page)
 //                                    .pageSize(pageSize);
 
@@ -303,16 +303,15 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
         observationUnitName.ifPresent(name -> observationUnitSearchRequest.setObservationUnitNames(List.of(Utilities.appendProgramKey(name, program.getKey()))));
         locationDbId.ifPresent(dbid -> observationUnitSearchRequest.setLocationDbIds(List.of(dbid)));
         seasonDbId.ifPresent(dbid -> observationUnitSearchRequest.setSeasonDbIds(List.of(dbid)));
+        experimentId.ifPresent(dbId -> observationUnitSearchRequest.setTrialDbIds(List.of(dbId)));
         includeObservations.ifPresent(observationUnitSearchRequest::includeObservations);
         addLevelFilter(observationUnitLevelName, observationUnitLevelOrder, observationUnitLevelCode, level, levelFilter);
         addLevelFilter(observationUnitLevelRelationshipName, observationUnitLevelRelationshipOrder, observationUnitLevelRelationshipCode, relationship, relationshipFilter);
-        experimentId.ifPresent(expId -> addXRefFilter(expId, ExternalReferenceSource.TRIALS, xrefIds, xrefSources));
         environmentId.ifPresent(envId -> addXRefFilter(envId, ExternalReferenceSource.STUDIES, xrefIds, xrefSources));
 //        germplasmId.ifPresent(germId -> {
 //            xrefIds.add(germId);
 //            xrefSources.add(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.));
 //        });
-
         if(!xrefIds.isEmpty()) {
             observationUnitSearchRequest.externalReferenceIDs(xrefIds);
         }
@@ -326,10 +325,6 @@ public class BrAPIObservationUnitDAO extends BrAPICachedDAO<BrAPIObservationUnit
                                                                                  .get()
                                                                                  .getReferenceId()))
                                                    .orElse(true);
-            matches = matches && experimentId.map(id -> id.equals(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS))
-                                                                                   .get()
-                                                                                   .getReferenceId()))
-                                                     .orElse(true);
             matches = matches && environmentId.map(id -> id.equals(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES))
                                                                              .get()
                                                                              .getReferenceId()))

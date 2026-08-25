@@ -148,6 +148,7 @@ public class BrAPIObservationsController {
             }
 
             // Get a filtered list of observations.
+            // TODO: Handle filtering and pagination of this request entirely on BrAPI side once study and ou cache is removed: [BI-2964]
             List<BrAPIObservation> observations = observationDAO.getObservationsByFilters(program.get(), studyDbId);
 
             // If page is not provided, set it to the default value 0.
