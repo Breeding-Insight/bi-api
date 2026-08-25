@@ -213,8 +213,9 @@ public class PendingObservationUnit implements ExperimentImportEntity<BrAPIObser
         // Construct pending import objects from the units
         List<PendingImportObject<BrAPIObservationUnit>> pendingUnits = members.stream().map(u -> (BrAPIObservationUnit) u).map(observationUnitService::constructPIOFromBrapiUnit).collect(Collectors.toList());
 
-        // Construct a hashmap to look up the pending unit by ID
-        Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitById = observationUnitService.mapPendingUnitById(new ArrayList<>(pendingUnits));
+        // Construct a hashmap to look up the pending unit by brapiOUDbId
+        Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitById = pendingUnits.stream()
+                .collect(Collectors.toMap(pio -> pio.getBrAPIObject().getObservationUnitDbId(), pio -> pio));
 
         // Construct a hashmap to look up the pending unit by Study+Unit names with program keys removed
         Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitByNameNoScope = observationUnitService.mapPendingUnitByNameNoScope(new ArrayList<>(pendingUnits), importContext.getProgram());

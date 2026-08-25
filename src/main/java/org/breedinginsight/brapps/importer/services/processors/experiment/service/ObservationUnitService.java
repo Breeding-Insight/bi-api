@@ -70,12 +70,7 @@ public class ObservationUnitService {
             Set<String> missingIds = new HashSet<>(obsUnitIds);
 
             // Calculate missing IDs based on retrieved BrAPI units
-            //missingIds.removeAll(brapiUnits.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toSet()));
-            missingIds.removeAll(brapiUnits.stream()
-                    .map(unit -> Utilities.getExternalReference(unit.getExternalReferences(), BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .map(BrAPIExternalReference::getReferenceId).collect(Collectors.toSet()));
+            missingIds.removeAll(brapiUnits.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toSet()));
 
             // Throw exception with missing IDs information
             throw new EntityNotFoundException(missingIds);
@@ -115,31 +110,6 @@ public class ObservationUnitService {
     }
 
     /**
-     * Maps pending observation units by their reference IDs.
-     * This function takes a list of pending import objects representing BrAPI observation units
-     * and constructs a map where the key is the external reference ID of the observation unit
-     * and the value is the pending import object itself.
-     *
-     * @param pios List of pending import objects for BrAPI observation units
-     * @return A map of pending observation units keyed by their external reference ID
-     */
-    public Map<String, PendingImportObject<BrAPIObservationUnit>> mapPendingUnitById(List<PendingImportObject<BrAPIObservationUnit>> pios) {
-        Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitById = new HashMap<>();
-
-        // Construct the DeltaBreed observation unit source for external references
-        String deltaBreedOUSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
-
-        for (PendingImportObject<BrAPIObservationUnit> pio : pios) {
-
-            // Get external reference for the Observation Unit
-            Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(pio.getBrAPIObject().getExternalReferences(), deltaBreedOUSource);
-            pendingUnitById.put(xref.get().getReferenceId(),pio);
-        }
-
-        return pendingUnitById;
-    }
-
-    /**
      * This method takes a list of PendingImportObject<BrAPIObservationUnit> objects and a Program object as input
      * and maps the PendingImportObject<BrAPIObservationUnit> objects by their observation unit name without the program scope.
      *
@@ -166,31 +136,5 @@ public class ObservationUnitService {
         }
 
         return pendingUnitByNameNoScope;
-    }
-
-    /**
-     * Collects missing Observation Unit IDs from a set of reference IDs and a list of existing Observation Units.
-     *
-     * This function takes a Set of reference IDs and a List of existing Observation Units, filters out the Observation Units
-     * that have external references matching a specific source, and returns a List of missing Observation Unit IDs that are
-     * present in the reference IDs but not found in the existing Observation Units.
-     *
-     * @param referenceIds The Set of reference IDs representing all possible Observation Unit IDs to match against.
-     * @param existingUnits The List of existing Observation Units to compare against the reference IDs.
-     * @return A List of Observation Unit IDs that are missing from the existing Observation Units but present in the reference IDs.
-     */
-    public List<String> collectMissingOUIds(Set<String> referenceIds, List<BrAPIObservationUnit> existingUnits) {
-        List<String> missingIds = new ArrayList<>(referenceIds);
-
-        // Construct the DeltaBreed observation unit source for external references
-        String deltaBreedOUSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
-
-        Set<String> fetchedIds = existingUnits.stream()
-                .filter(unit ->Utilities.getExternalReference(unit.getExternalReferences(), deltaBreedOUSource).isPresent())
-                .map(unit->Utilities.getExternalReference(unit.getExternalReferences(), deltaBreedOUSource).get().getReferenceId())
-                .collect(Collectors.toSet());
-        missingIds.removeAll(fetchedIds);
-
-        return missingIds;
     }
 }

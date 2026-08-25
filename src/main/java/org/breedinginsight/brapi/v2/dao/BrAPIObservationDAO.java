@@ -188,8 +188,6 @@ public class BrAPIObservationDAO {
     public List<BrAPIObservation> getObservationsByFilters(Program program, String studyDbId) throws ApiException, DoesNotExistException {
 
         String studySource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
-        String observationUnitSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATION_UNITS);
-        String observationSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATIONS);
 
         // Get all observations for the program.
         Collection<BrAPIObservation> observations = getProgramObservations(program.getId());
@@ -204,16 +202,9 @@ public class BrAPIObservationDAO {
                     Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(o.getExternalReferences(), studySource);
                     return xref.filter(brAPIExternalReference -> studyDbId.equals(brAPIExternalReference.getReferenceId())).isPresent();
                 })
-                // Try to figure out why/how this translation is used.
                 .peek(o -> {
                     // Translate ObservationVariableDbId.
                     o.setObservationVariableDbId(traitIdsByObservationVariableDbId.get(o.getObservationVariableDbId()));
-                    // Translate ObservationUnitDbId.
-                    o.setObservationUnitDbId(Utilities.getExternalReference(o.getExternalReferences(), observationUnitSource)
-                            .orElseThrow(() -> new RuntimeException("observationUnit xref not found on observation")).getReferenceId());
-                    // Translate ObservationId.
-                    o.setObservationDbId(Utilities.getExternalReference(o.getExternalReferences(), observationSource)
-                            .orElseThrow(() -> new RuntimeException("observation xref not found on observation")).getReferenceId());
                     // Translate StudyDbId.
                     o.setStudyDbId(Utilities.getExternalReference(o.getExternalReferences(), studySource)
                             .orElseThrow(() -> new RuntimeException("study xref not found on observation")).getReferenceId());

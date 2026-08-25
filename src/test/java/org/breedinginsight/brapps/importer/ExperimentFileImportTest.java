@@ -929,8 +929,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByBrAPITrialExRefId(UUID.fromString(trialIdXref.get().getReferenceId()), program).get(0);
 
         BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
-        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
-        assertTrue(ouIdXref.isPresent());
 
         Map<String, Object> newObsVar = new HashMap<>();
         newObsVar.put(Columns.GERMPLASM_GID, "1");
@@ -946,7 +944,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObsVar.put(Columns.BLOCK_NUM, "1");
         newObsVar.put(Columns.ROW, "1");
         newObsVar.put(Columns.COLUMN, "1");
-        newObsVar.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
+        newObsVar.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ou.getObservationUnitDbId());
         newObsVar.put(traits.get(1).getObservationVariableName(), null);
 
         JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObsVar), traits, true, false, null), null, true, client, program, mappingId, appendOverwriteWorkflowId);
@@ -995,11 +993,9 @@ public class ExperimentFileImportTest extends BrAPITest {
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByBrAPITrialExRefId(UUID.fromString(trialIdXref.get().getReferenceId()), program).get(0);
 
         BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
-        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
-        assertTrue(ouIdXref.isPresent());
 
         Map<String, Object> newObsVar = new HashMap<>();
-        newObsVar.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
+        newObsVar.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ou.getObservationUnitDbId());
         newObsVar.put(traits.get(1).getObservationVariableName(), null);
 
         JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObsVar), traits, true, false, null), null, true, client, program, mappingId, appendOverwriteWorkflowId);
@@ -1049,8 +1045,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByBrAPITrialExRefId(UUID.fromString(trialIdXref.get().getReferenceId()), program).get(0);
 
         BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
-        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
-        assertTrue(ouIdXref.isPresent());
 
         Map<String, Object> newObsVar = new HashMap<>();
         newObsVar.put(Columns.GERMPLASM_GID, "1");
@@ -1066,7 +1060,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObsVar.put(Columns.BLOCK_NUM, "1");
         newObsVar.put(Columns.ROW, "1");
         newObsVar.put(Columns.COLUMN, "1");
-        newObsVar.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
+        newObsVar.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ou.getObservationUnitDbId());
         newObsVar.put(traits.get(0).getObservationVariableName(), "1");
 
         JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObsVar), traits, true, false, null), null, commit, client, program, mappingId, appendOverwriteWorkflowId);
@@ -1125,8 +1119,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertTrue(trialIdXref.isPresent());
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByBrAPITrialExRefId(UUID.fromString(trialIdXref.get().getReferenceId()), program).get(0);
         BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
-        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
-        assertTrue(ouIdXref.isPresent());
 
         assertRowSaved(newExp, program, traits);
 
@@ -1144,7 +1136,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObsVar.put(Columns.BLOCK_NUM, "1");
         newObsVar.put(Columns.ROW, "1");
         newObsVar.put(Columns.COLUMN, "1");
-        newObsVar.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());  // Indicates this is an overwrite.
+        newObsVar.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ou.getObservationUnitDbId());  // Indicates this is an overwrite.
         newObsVar.put(traits.get(0).getObservationVariableName(), "");  // Empty string should be no op.
 
         Map<String, String> requestBody = new HashMap<>();
@@ -1195,8 +1187,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByBrAPITrialExRefId(UUID.fromString(trialIdXref.get().getReferenceId()), program).get(0);
 
         BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
-        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
-        assertTrue(ouIdXref.isPresent());
 
         Map<String, Object> newObservation = new HashMap<>();
         newObservation.put(Columns.GERMPLASM_GID, "1");
@@ -1212,7 +1202,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.BLOCK_NUM, "1");
         newObservation.put(Columns.ROW, "1");
         newObservation.put(Columns.COLUMN, "1");
-        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
+        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ou.getObservationUnitDbId());
         newObservation.put(traits.get(0).getObservationVariableName(), "1");
 
         JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits, true, false, null), null, commit, client, program, mappingId, appendOverwriteWorkflowId);
@@ -1263,8 +1253,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByBrAPITrialExRefId(UUID.fromString(trialIdXref.get().getReferenceId()), program).get(0);
 
         BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
-        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
-        assertTrue(ouIdXref.isPresent());
 
         Map<String, Object> newObservation = new HashMap<>();
         newObservation.put(Columns.GERMPLASM_GID, "1");
@@ -1280,7 +1268,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.BLOCK_NUM, "1");
         newObservation.put(Columns.ROW, "1");
         newObservation.put(Columns.COLUMN, "1");
-        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
+        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ou.getObservationUnitDbId());
         newObservation.put(traits.get(0).getObservationVariableName(), "2");
         
         uploadAndVerifyWorkflowFailureNonTabular(program, importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits, true, false, null), traits.get(0).getObservationVariableName(), commit, newExperimentWorkflowId);
@@ -1392,8 +1380,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByBrAPITrialExRefId(UUID.fromString(trialIdXref.get().getReferenceId()), program).get(0);
 
         BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
-        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
-        assertTrue(ouIdXref.isPresent());
 
         Map<String, Object> newObservation = new HashMap<>();
         newObservation.put(Columns.GERMPLASM_GID, "1");
@@ -1409,7 +1395,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.BLOCK_NUM, "1");
         newObservation.put(Columns.ROW, "1");
         newObservation.put(Columns.COLUMN, "1");
-        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
+        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ou.getObservationUnitDbId());
         newObservation.put(traits.get(0).getObservationVariableName(), "1");
         newObservation.put(traits.get(1).getObservationVariableName(), "2");
 
@@ -1469,8 +1455,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByBrAPITrialExRefId(UUID.fromString(trialIdXref.get().getReferenceId()), program).get(0);
 
         BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
-        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
-        assertTrue(ouIdXref.isPresent());
 
         Map<String, Object> newObservation = new HashMap<>();
         newObservation.put(Columns.GERMPLASM_GID, "1");
@@ -1486,7 +1470,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.BLOCK_NUM, "1");
         newObservation.put(Columns.ROW, "1");
         newObservation.put(Columns.COLUMN, "1");
-        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
+        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ou.getObservationUnitDbId());
         newObservation.put(traits.get(0).getObservationVariableName(), "1");
         newObservation.put(traits.get(1).getObservationVariableName(), "1");
 
@@ -1545,8 +1529,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByBrAPITrialExRefId(UUID.fromString(trialIdXref.get().getReferenceId()), program).get(0);
 
         BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
-        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
-        assertTrue(ouIdXref.isPresent());
 
         assertRowSaved(newExp, program, traits);
 
@@ -1564,7 +1546,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.BLOCK_NUM, "1");
         newObservation.put(Columns.ROW, "1");
         newObservation.put(Columns.COLUMN, "1");
-        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ouIdXref.get().getReferenceId());
+        newObservation.put("Plot "+OBSERVATION_UNIT_ID_SUFFIX, ou.getObservationUnitDbId());
         newObservation.put(traits.get(0).getObservationVariableName(), "");    // This blank value should not overwrite.
         newObservation.put(traits.get(1).getObservationVariableName(), "3");   // This valid value should overwrite.
         newObservation.put(traits.get(2).getObservationVariableName(), "4");   // This valid new observation should be appended.
