@@ -20,6 +20,8 @@ package org.breedinginsight.brapi.v2;
 import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.HttpMethod;
+import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -44,6 +46,8 @@ import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.User;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import javax.inject.Inject;
 import java.time.OffsetDateTime;
@@ -251,6 +255,21 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
             HttpResponse<String> response = postCall.blockingFirst();
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = HttpMethod.class, names = {"GET", "POST", "PUT"})
+    public void testCatchallRequiresSystemAdmin(HttpMethod method) {
+        String path = String.format("%s/programs/%s/brapi/v2/unsupported", biApiVersion, validProgram.getId());
+        HttpRequest<?> request = HttpRequest.create(method, path)
+                                            .contentType(MediaType.APPLICATION_JSON)
+                                            .bearerAuth("other-registered-user");
+
+        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
+                                                                          () -> biClient.exchange(request, String.class)
+                                                                                        .blockingFirst());
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
     }
 
 
