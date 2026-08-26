@@ -17,12 +17,14 @@
 package org.breedinginsight.brapi.v2.dao;
 
 import io.reactivex.functions.Function;
+import io.reactivex.functions.Function3;
 import lombok.SneakyThrows;
 import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.model.queryParams.core.StudyQueryParams;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
@@ -39,9 +41,11 @@ import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -120,49 +124,38 @@ public class BrAPIStudyDAOUnitTest {
 
     @Test
     @SneakyThrows
-    void getStudiesByEnvironmentIdsUsesDirectBrAPIGetInsteadOfProgramCache() {
-        BrAPIStudy matchingStudy = study(environmentId, "Env1 [TEST-1]");
-        BrAPIStudy otherStudy = study(UUID.randomUUID(), "Env2 [TEST-2]");
+    void getStudiesByStudyDbIdUsesDirectBrAPISearch() {
+        String studyDbId = UUID.randomUUID().toString();
+        BrAPIStudy study = new BrAPIStudy().studyDbId(studyDbId).studyName("Env1");
 
-        when(brAPIDAOUtil.get(any(Function.class), any(StudyQueryParams.class)))
-                .thenReturn(List.of(matchingStudy, otherStudy));
-
-        List<BrAPIStudy> result = studyDAO.getStudiesByEnvironmentIds(List.of(environmentId), program);
-
-        assertEquals(1, result.size());
-        assertEquals("Env1", result.get(0).getStudyName());
-        ArgumentCaptor<StudyQueryParams> queryParamsCaptor = ArgumentCaptor.forClass(StudyQueryParams.class);
-        verify(brAPIDAOUtil).get(any(Function.class), queryParamsCaptor.capture());
-        assertEquals("brapi-program-1", queryParamsCaptor.getValue().programDbId());
-        assertEquals(0, queryParamsCaptor.getValue().page());
-        assertEquals(1000, queryParamsCaptor.getValue().pageSize());
-        verify(programCache, never()).get(any(UUID.class));
-    }
-
-    @Test
-    @SneakyThrows
-    void getStudiesByEnvironmentIdsReturnsEmptyListWhenStudyIsNotFoundInBrAPI() {
-        when(brAPIDAOUtil.get(any(Function.class), any(StudyQueryParams.class)))
-                .thenReturn(List.of());
-
-        List<BrAPIStudy> result = studyDAO.getStudiesByEnvironmentIds(List.of(environmentId), program);
-
-        assertEquals(0, result.size());
-        verify(programCache, never()).get(any(UUID.class));
-    }
-
-    @Test
-    @SneakyThrows
-    void getStudiesByEnvironmentIdsReturnsEmptyListWhenNoStudyExternalReferenceMatches() {
-        BrAPIStudy study = study(UUID.randomUUID(), "Env2 [TEST-2]");
-
-        when(brAPIDAOUtil.get(any(Function.class), any(StudyQueryParams.class)))
+        when(brAPIDAOUtil.search(any(Function.class), any(Function3.class), any(BrAPIStudySearchRequest.class)))
                 .thenReturn(List.of(study));
 
-        List<BrAPIStudy> result = studyDAO.getStudiesByEnvironmentIds(List.of(environmentId), program);
+        List<BrAPIStudy> result = studyDAO.getStudiesByStudyDbId(
+                        List.of(studyDbId), program);
 
-        assertEquals(0, result.size());
+        assertEquals(1, result.size());
+        assertEquals(studyDbId, result.get(0).getStudyDbId());
+
+        ArgumentCaptor<BrAPIStudySearchRequest> requestCaptor = ArgumentCaptor.forClass(BrAPIStudySearchRequest.class);
+
+        verify(brAPIDAOUtil).search(any(Function.class), any(Function3.class), requestCaptor.capture());
+
+        assertEquals(List.of("brapi-program-1"), requestCaptor.getValue().getProgramDbIds());
+        assertEquals(List.of(studyDbId), requestCaptor.getValue().getStudyDbIds());
+
         verify(programCache, never()).get(any(UUID.class));
+    }
+
+    @Test
+    @SneakyThrows
+    void getStudyByDbIdReturnsEmptyWhenBrAPIDoesNotFindStudy() {
+        when(brAPIDAOUtil.search(any(Function.class), any(Function3.class), any(BrAPIStudySearchRequest.class)))
+                .thenReturn(List.of());
+
+        Optional<BrAPIStudy> result = studyDAO.getStudyByDbId(UUID.randomUUID().toString(), program);
+
+        assertTrue(result.isEmpty());
     }
 
     private BrAPIStudy study(UUID environmentId, String studyName) {
