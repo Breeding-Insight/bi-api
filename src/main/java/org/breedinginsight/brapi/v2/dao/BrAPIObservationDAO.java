@@ -60,7 +60,6 @@ public class BrAPIObservationDAO {
     private BrAPIObservationUnitDAO observationUnitDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
-    private final String referenceSource;
     private final TraitService traitService;
 
     private final int brapiMaxPageSize;
@@ -71,7 +70,6 @@ public class BrAPIObservationDAO {
                                BrAPIObservationUnitDAO observationUnitDAO,
                                BrAPIDAOUtil brAPIDAOUtil,
                                BrAPIEndpointProvider brAPIEndpointProvider,
-                               @Property(name = "brapi.server.reference-source") String referenceSource,
                                @Property(name = "micronaut.bi.api.run-scheduled-tasks") boolean runScheduledTasks,
                                @Property(name = "brapi.cache.fetch-page-size")  int brapiFetchPageSize,
                                TraitService traitService) {
@@ -80,7 +78,6 @@ public class BrAPIObservationDAO {
         this.observationUnitDAO = observationUnitDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
-        this.referenceSource = referenceSource;
         this.traitService = traitService;
         this.brapiMaxPageSize = brapiFetchPageSize;
     }
@@ -185,32 +182,21 @@ public class BrAPIObservationDAO {
                 .collect(Collectors.toList());
     }
 
-    // TODO: implement other filters in BI-2506.
     public List<BrAPIObservation> getObservationsByFilters(Program program, String studyDbId) throws ApiException, DoesNotExistException {
-
-        String studySource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
-
-        // Get all observations for the program.
         Collection<BrAPIObservation> observations = getProgramObservations(program.getId());
-        // Build a hashmap of traits for fast lookup. The key is ObservationVariableDbId, the value is the Trait Id.
-        HashMap<String, String> traitIdsByObservationVariableDbId = traitService.getIdsByObservationVariableDbIds(program.getId(), observations.stream().map(BrAPIObservation::getObservationVariableDbId).collect(Collectors.toList()));
 
-        // Lookup studyDbId.
+        HashMap<String, String> traitIdsByObservationVariableDbId =
+                traitService.getIdsByObservationVariableDbIds(
+                        program.getId(),
+                        observations.stream()
+                                .map(BrAPIObservation::getObservationVariableDbId)
+                                .collect(Collectors.toList()));
+
         return observations.stream()
-                .filter(o -> {
-                    // Short circuit if filter is null.
-                    if (studyDbId == null) return true;
-                    Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(o.getExternalReferences(), studySource);
-                    return xref.filter(brAPIExternalReference -> studyDbId.equals(brAPIExternalReference.getReferenceId())).isPresent();
-                })
-                .peek(o -> {
-                    // Translate ObservationVariableDbId.
-                    o.setObservationVariableDbId(traitIdsByObservationVariableDbId.get(o.getObservationVariableDbId()));
-                    // Translate StudyDbId.
-                    o.setStudyDbId(Utilities.getExternalReference(o.getExternalReferences(), studySource)
-                            .orElseThrow(() -> new RuntimeException("study xref not found on observation")).getReferenceId());
-                    // TODO: consider translating germplasmDbId in BI-2506.
-                }).collect(Collectors.toList());
+                .filter(o -> studyDbId == null || studyDbId.equals(o.getStudyDbId()))
+                .peek(o ->
+                        o.setObservationVariableDbId(traitIdsByObservationVariableDbId.get(o.getObservationVariableDbId())))
+                .collect(Collectors.toList());
     }
 
     @NotNull

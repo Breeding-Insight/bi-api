@@ -31,7 +31,6 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
-import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
 import org.brapi.v2.model.pheno.response.BrAPIObservationLevelListResponse;
@@ -39,7 +38,6 @@ import org.brapi.v2.model.pheno.response.BrAPIObservationLevelListResponseResult
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
-import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.BrAPIConstants;
@@ -65,15 +63,13 @@ public class BrAPIObservationLevelsController {
     private final ProgramDAO programDAO;
     private final ProgramService programService;
     private final BrAPITrialDAO trialDAO;
-    private final BrAPIStudyDAO studyDAO;
 
     @Inject
-    public BrAPIObservationLevelsController(BrAPIEndpointProvider brAPIEndpointProvider, ProgramDAO programDAO, ProgramService programService, BrAPITrialDAO trialDAO, BrAPIStudyDAO studyDAO) {
+    public BrAPIObservationLevelsController(BrAPIEndpointProvider brAPIEndpointProvider, ProgramDAO programDAO, ProgramService programService, BrAPITrialDAO trialDAO) {
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.programDAO = programDAO;
         this.programService = programService;
         this.trialDAO = trialDAO;
-        this.studyDAO = studyDAO;
     }
 
     @Get("/observationlevels")
@@ -93,25 +89,13 @@ public class BrAPIObservationLevelsController {
         }
 
         String programDbId = program.get().getBrapiProgram().getProgramDbId();
-        String studyDbId = null;
+        String studyDbId = environmentId;
         String trialDbId = null;
 
-        if(environmentId != null) {
-            try {
-                Optional<BrAPIStudy> study = studyDAO.getStudyByEnvironmentId(UUID.fromString(environmentId), program.get());
-                if(study.isPresent()) {
-                    studyDbId = study.get().getStudyDbId();
-                } else {
-                    studyDbId = environmentId;
-                }
-            } catch (ApiException e) {
-                log.error(Utilities.generateApiExceptionLogMessage(e), "Error fetching environment");
-                return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error finding observation levels");
-            }
-        } else if(experimentId != null) {
+        if(environmentId == null && experimentId != null) {
             try {
                 List<BrAPITrial> trial = trialDAO.getTrialsByExperimentIds(List.of(UUID.fromString(experimentId)), program.get());
-                if(trial.size() == 1) {
+                if (trial.size() == 1) {
                     trialDbId = trial.get(0).getTrialDbId();
                 } else {
                     trialDbId = experimentId;

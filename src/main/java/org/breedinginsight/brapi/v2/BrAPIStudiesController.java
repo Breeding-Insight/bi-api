@@ -25,6 +25,8 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIMetadata;
+import org.brapi.v2.model.BrAPIStatus;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.response.BrAPIStudySingleResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
@@ -43,6 +45,7 @@ import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.services.ExperimentalCollaboratorService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
+import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.StudyQueryMapper;
 
@@ -146,7 +149,12 @@ public class BrAPIStudiesController {
                 return HttpResponse.notFound();
             }
         } catch (ApiException e) {
-            // Existing exception handling remains unchanged.
+            log.error(Utilities.generateApiExceptionLogMessage(e), e);
+            return HttpResponse.serverError(new BrAPIStudySingleResponse()
+                    .metadata(new BrAPIMetadata()
+                            .addStatusItem(new BrAPIStatus()
+                                .message("Error fetching study")
+                                .messageType(BrAPIStatus.MessageTypeEnum.ERROR))));
         }
     }
 
