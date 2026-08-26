@@ -22,8 +22,10 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.core.StudyQueryParams;
 import org.brapi.client.v2.modules.core.StudiesApi;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
@@ -50,6 +52,8 @@ public class BrAPIStudyDAO extends BrAPICachedDAO<BrAPIStudy> {
     private String referenceSource;
     @Property(name = "micronaut.bi.api.run-scheduled-tasks")
     private boolean runScheduledTasks;
+    @Property(name = "brapi.cache.fetch-page-size")
+    private int brapiMaxPageSize;
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
@@ -112,12 +116,39 @@ public class BrAPIStudyDAO extends BrAPICachedDAO<BrAPIStudy> {
      * @throws ApiException
      */
     public List<BrAPIStudy> getStudies(UUID programId) throws ApiException {
-        return new ArrayList<>(programCache.get(programId).values());
+        Program program = programDAO.get(programId)
+                .stream()
+                .findFirst()
+                .orElseThrow();
+
+        return getBrAPIStudiesUsingBrAPIProgramId(program);
     }
 
-    public Optional<BrAPIStudy> getStudyByName(String studyName, Program program) throws ApiException {
-        List<BrAPIStudy> studies = getStudiesByName(List.of(studyName), program);
-        return Utilities.getSingleOptional(studies);
+    private List<BrAPIStudy> getBrAPIStudiesUsingBrAPIProgramId(Program program) throws ApiException {
+        if (program == null || program.getId() == null) {
+            throw new InternalServerException("BI-API Program or Program ID is null");
+        }
+
+        String brapiProgramDbId = Optional.of(program)
+                .map(Program::getBrapiProgram)
+                .map(BrAPIProgram::getProgramDbId)
+                .orElse(null);
+
+        if (brapiProgramDbId == null) {
+            brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
+        }
+
+        StudyQueryParams studyQueryParams = StudyQueryParams.builder()
+                .programDbId(brapiProgramDbId)
+                .page(0)
+                .pageSize(brapiMaxPageSize)
+                .build();
+
+        StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), StudiesApi.class);
+
+        List<BrAPIStudy> result = brAPIDAOUtil.get(api::studiesGet, studyQueryParams);
+
+        return new ArrayList<>(processStudyForDisplay(result, program.getKey()).values());
     }
 
     public List<BrAPIStudy> getStudiesByName(List<String> studyNames, Program program) throws ApiException {
@@ -151,12 +182,14 @@ public class BrAPIStudyDAO extends BrAPICachedDAO<BrAPIStudy> {
     }
 
     public List<BrAPIStudy> getStudiesByEnvironmentIds(@NotNull Collection<UUID> environmentIds, Program program) throws ApiException {
-        return programCache.get(program.getId())
-                                .entrySet()
-                                .stream()
-                                .filter(entry -> environmentIds.contains(UUID.fromString(entry.getKey())))
-                                .map(Map.Entry::getValue)
-                                .collect(Collectors.toList());
+        // TODO: Optimize and change to a BrAPI search or get on external reference IDs [BI-3029]
+        String refSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
+
+        return getBrAPIStudiesUsingBrAPIProgramId(program).stream()
+                .filter(study -> Utilities.getExternalReference(study.getExternalReferences(), refSource)
+                        .map(ref -> environmentIds.contains(UUID.fromString(ref.getReferenceId())))
+                        .orElse(false))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -275,7 +308,7 @@ public class BrAPIStudyDAO extends BrAPICachedDAO<BrAPIStudy> {
             BrAPIExternalReference extRef = study.getExternalReferences().stream()
                     .filter(reference -> reference.getReferenceSource().equals(refSource))
                     .findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
-            String studyId = extRef.getReferenceID();
+            String studyId = extRef.getReferenceId();
             programStudyMap.put(studyId, study);
         }
 
