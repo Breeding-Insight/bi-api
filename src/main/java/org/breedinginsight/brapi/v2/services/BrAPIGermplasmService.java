@@ -4,7 +4,10 @@ import com.google.gson.Gson;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.http.server.types.files.StreamedFile;
+import org.apache.commons.lang3.tuple.Pair;
+import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIExternalReference;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
@@ -12,6 +15,8 @@ import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
+import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
@@ -65,14 +70,6 @@ public class BrAPIGermplasmService {
     public BrAPIGermplasm getGermplasmByUUID(UUID programId, String germplasmId) throws DoesNotExistException {
         try {
             return germplasmDAO.getGermplasmByUUID(germplasmId, programId);
-        } catch (ApiException e) {
-            throw new InternalServerException(e.getMessage(), e);
-        }
-    }
-
-    public List<String> getGermplasmDbIdsForUUIDs(UUID programId, List<String> germplasmUUIDs) throws DoesNotExistException {
-        try {
-            return germplasmDAO.getGermplasmDbIdsForUUIDs(germplasmUUIDs, programId);
         } catch (ApiException e) {
             throw new InternalServerException(e.getMessage(), e);
         }

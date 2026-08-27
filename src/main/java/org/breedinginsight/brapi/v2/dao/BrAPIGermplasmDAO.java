@@ -23,10 +23,12 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.germplasm.GermplasmQueryParams;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
+import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
@@ -459,22 +461,6 @@ public class BrAPIGermplasmDAO {
         }
 
         return result.get(0);
-    }
-
-    public List<String> getGermplasmDbIdsForUUIDs(List<String> germplasmUUIDs, UUID programId) throws ApiException, DoesNotExistException {
-        Map<String, BrAPIGermplasm> cache = programGermplasmCache.get(programId);
-        List<String> germplasmList = new ArrayList<>();
-        if (cache != null) {
-            // not using streams because want to throw checked exception
-            for (String germplasmUUID : germplasmUUIDs) {
-                BrAPIGermplasm germplasm = cache.get(germplasmUUID);
-                if (germplasm == null) {
-                    throw new DoesNotExistException("UUID for this germplasm does not exist: " + germplasmUUID);
-                }
-                germplasmList.add(germplasm.getGermplasmDbId());
-            }
-        }
-        return germplasmList;
     }
 
     public Optional<BrAPIGermplasm> getGermplasmByDBID(String germplasmDbId, UUID programId) throws ApiException {
