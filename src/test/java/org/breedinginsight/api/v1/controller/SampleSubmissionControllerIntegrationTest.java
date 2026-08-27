@@ -326,6 +326,48 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
         assertEquals("Genotype", lookupTable.column(5).name());
         assertEquals(Columns.TISSUE, lookupTable.column(6).name());
         assertEquals(Columns.COMMENTS, lookupTable.column(7).name());
+
+        //Check sorting
+        assertEquals("valid_1", lookupTable.column(0).get(1));
+        assertEquals("A1", lookupTable.column(1).get(1));
+        assertEquals(0, lookupTable.column(2).get(1));
+    }
+
+    @Test
+    public void testExportSampleSubmission() throws IOException, InterruptedException, ParsingException {
+        Pair<SampleSubmission, List<Map<String, Object>>> uploadedSubmission = createSubmission(program);
+
+        Flowable<HttpResponse<byte[]>> call = client.exchange(
+                GET(String.format("/programs/%s/submissions/%s/export",
+                        program.getId().toString(), uploadedSubmission.getLeft().getId()))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
+        );
+        HttpResponse<byte[]> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        ByteArrayInputStream bodyStream = new ByteArrayInputStream(Objects.requireNonNull(response.body()));
+        Table lookupTable = FileUtil.parseTableFromCsv(bodyStream);
+        assertEquals(11, lookupTable.columnCount());
+
+        //Check columns correct
+        assertEquals(Columns.GERMPLASM_NAME, lookupTable.column(0).name());
+        assertEquals(Columns.GERMPLASM_GID, lookupTable.column(1).name());
+        assertEquals(Columns.OBS_UNIT_ID, lookupTable.column(2).name());
+        assertEquals("Sample Name", lookupTable.column(3).name());
+        assertEquals(Columns.PLATE_ID, lookupTable.column(4).name());
+        assertEquals(Columns.ROW, lookupTable.column(5).name());
+        assertEquals(Columns.COLUMN, lookupTable.column(6).name());
+        assertEquals(Columns.ORGANISM, lookupTable.column(7).name());
+        assertEquals(Columns.SPECIES, lookupTable.column(8).name());
+        assertEquals(Columns.TISSUE, lookupTable.column(9).name());
+        assertEquals(Columns.COMMENTS, lookupTable.column(10).name());
+
+        //Check sorting
+        assertEquals(2, lookupTable.column(1).get(1));
+        assertEquals("valid_1", lookupTable.column(4).get(1));
+        assertEquals("A1", lookupTable.column(5).get(1));
+        assertEquals(0, lookupTable.column(6).get(1));
     }
 
     @Test
