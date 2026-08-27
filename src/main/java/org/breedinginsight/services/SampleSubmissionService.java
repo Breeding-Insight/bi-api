@@ -273,7 +273,7 @@ public class SampleSubmissionService {
             Map<String, Object> row = new HashMap<>();
             row.put(SampleSubmissionImport.Columns.GERMPLASM_NAME, sample.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_NAME).getAsString());
             row.put(SampleSubmissionImport.Columns.GERMPLASM_GID, sample.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GID).getAsString());
-            row.put(SampleSubmissionImport.Columns.OBS_UNIT_ID, sample.getObservationUnitDbId()); //todo need to upload with this filled and check it works
+            row.put(SampleSubmissionImport.Columns.OBS_UNIT_ID, sample.getObservationUnitDbId());
             row.put(COLUMN_SAMPLE_NAME, sample.getSampleName());
             row.put(SampleSubmissionImport.Columns.PLATE_ID, sample.getPlateName());
             row.put(SampleSubmissionImport.Columns.ROW, sample.getRow());

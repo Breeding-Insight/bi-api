@@ -197,7 +197,7 @@ public class SampleSubmissionController {
             if(program.isEmpty()) {
                 return HttpResponse.notFound();
             }
-            Optional<DownloadFile> downloadFile = sampleSubmissionService.exportSubmission(program.get(), submissionId); //todo here
+            Optional<DownloadFile> downloadFile = sampleSubmissionService.exportSubmission(program.get(), submissionId);
             if(downloadFile.isEmpty()) {
                 return HttpResponse.notFound();
             }
