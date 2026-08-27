@@ -24,7 +24,6 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
-import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
@@ -34,6 +33,7 @@ import org.breedinginsight.dao.db.tables.daos.RoleDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramUserRoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
@@ -107,6 +107,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private final Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
+    @Inject
+    private ProgramDAO programDAO;
 
     @BeforeAll
     void setup() throws Exception {
@@ -166,8 +168,10 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             throw e;
         }
 
+        String brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
+
         // Add germplasm to program
-        List<BrAPIGermplasm> germplasm = createGermplasm(1);
+        List<BrAPIGermplasm> germplasm = createGermplasm(1, brapiProgramDbId);
         BrAPIExternalReference newReference = new BrAPIExternalReference();
         newReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
         newReference.setReferenceID(program.getId().toString());
@@ -1043,7 +1047,9 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         AuthenticatedUser user = new AuthenticatedUser(testUser.getName(), new ArrayList<>(), testUser.getId(), new ArrayList<>());
         ontologyService.createTraits(seededProgram.getId(), createTraits(2), user, false);
 
-        List<BrAPIGermplasm> germplasm = createGermplasm(1);
+        String brapiProgramDbId = programDAO.getProgramBrAPI(seededProgram).getProgramDbId();
+
+        List<BrAPIGermplasm> germplasm = createGermplasm(1, brapiProgramDbId);
         BrAPIExternalReference newReference = new BrAPIExternalReference();
         newReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
         newReference.setReferenceID(seededProgram.getId().toString());
@@ -1109,7 +1115,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         return traits;
     }
 
-    private List<BrAPIGermplasm> createGermplasm(int numToCreate) {
+    private List<BrAPIGermplasm> createGermplasm(int numToCreate, String brapiProgramDbId) {
         List<BrAPIGermplasm> germplasm = new ArrayList<>();
         for (int i = 0; i < numToCreate; i++) {
             String gid = ""+(i+1);
@@ -1128,6 +1134,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             testReference.setReferenceID(UUID.randomUUID().toString());
             externalRef.add(testReference);
             testGermplasm.setExternalReferences(externalRef);
+            testGermplasm.setProgramDbId(brapiProgramDbId);
             germplasm.add(testGermplasm);
         }
 

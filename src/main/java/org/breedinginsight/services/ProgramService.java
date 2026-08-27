@@ -19,6 +19,7 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
@@ -314,6 +315,22 @@ public class ProgramService {
             keyErrors.add("Key must use only alphabetic characters.");
         }
         return keyErrors;
+    }
+
+    public String getBrAPIProgramDbId(UUID biProgramId) throws ApiException {
+        Optional<Program> programOpt = getById(biProgramId);
+
+        if (programOpt.isEmpty()) {
+            throw new ApiException("Program does not exist");
+        }
+
+        Program program = programOpt.get();
+
+        if (program.getBrapiProgram() == null) {
+            throw new ApiException("Program does not exist in BrAPI");
+        }
+
+        return program.getBrapiProgram().getProgramDbId();
     }
 
 
