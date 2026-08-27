@@ -441,7 +441,7 @@ public class BrAPIGermplasmDAO {
         searchRequest.programDbIds(List.of(brAPIDAOUtil.getBrAPIProgramDbId(program.getId())));
 
         if (brapiGermplasmIds != null && !brapiGermplasmIds.isEmpty()) {
-            searchRequest.setTrialDbIds(brapiGermplasmIds.stream().map(UUID::toString).collect(Collectors.toList()));
+            searchRequest.setGermplasmDbIds(brapiGermplasmIds.stream().map(UUID::toString).collect(Collectors.toList()));
         }
 
         brAPIDAOUtil.setGenericSearchParameters(searchRequest, germplasmQuery);
@@ -461,17 +461,6 @@ public class BrAPIGermplasmDAO {
         }
 
         return result.get(0);
-    }
-
-    public Optional<BrAPIGermplasm> getGermplasmByDBID(String germplasmDbId, UUID programId) throws ApiException {
-        // TODO: Optimize by utilizing a BrAPIGermplasmSearchRequest [BI-3028]
-        Map<String, BrAPIGermplasm> cache = programGermplasmCache.get(programId);
-        //key is UUID, want to filter by DBID
-        BrAPIGermplasm germplasm = null;
-        if (cache != null) {
-            germplasm = cache.values().stream().filter(x -> x.getGermplasmDbId().equals(germplasmDbId)).collect(Collectors.toList()).get(0);
-        }
-        return Optional.ofNullable(germplasm);
     }
 
     public List<BrAPIGermplasm> getGermplasmsByDBID(Collection<String> germplasmDbIds, UUID programId) throws ApiException {

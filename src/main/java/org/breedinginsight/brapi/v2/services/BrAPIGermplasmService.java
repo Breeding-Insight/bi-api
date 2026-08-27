@@ -75,10 +75,6 @@ public class BrAPIGermplasmService {
         }
     }
 
-    public Optional<BrAPIGermplasm> getGermplasmByDBID(UUID programId, String germplasmId) throws ApiException {
-        return germplasmDAO.getGermplasmByDBID(germplasmId, programId);
-    }
-
     public List<Map<String, Object>> processListData(List<BrAPIGermplasm> germplasm, List<String> listData, Program program){
         Map<String, BrAPIGermplasm> germplasmByName = new HashMap<>();
         for (BrAPIGermplasm g: germplasm) {

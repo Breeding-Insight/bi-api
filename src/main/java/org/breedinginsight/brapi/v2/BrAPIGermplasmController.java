@@ -308,8 +308,7 @@ public class BrAPIGermplasmController {
                 metadata.setPagination(pagination);
                 response = new BrAPIGermplasmPedigreeResponse();
             } else {
-                BrAPIGermplasm germplasm = germplasmService.getGermplasmByDBID(programId, germplasmId)
-                                                                             .orElseThrow(() -> new DoesNotExistException("DBID for this germplasm does not exist"));
+                BrAPIGermplasm germplasm = germplasmService.getGermplasmByUUID(programId, germplasmId);
 
                 //Forward the pedigree call to the backing BrAPI system of the program passing the germplasmDbId that came in the request
                 GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
