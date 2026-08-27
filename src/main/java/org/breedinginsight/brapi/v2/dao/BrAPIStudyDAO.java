@@ -151,11 +151,6 @@ public class BrAPIStudyDAO extends BrAPICachedDAO<BrAPIStudy> {
         return new ArrayList<>(processStudyForDisplay(result, program.getKey()).values());
     }
 
-    public Optional<BrAPIStudy> getStudyByName(String studyName, Program program) throws ApiException {
-        List<BrAPIStudy> studies = getStudiesByName(List.of(studyName), program);
-        return Utilities.getSingleOptional(studies);
-    }
-
     public List<BrAPIStudy> getStudiesByName(List<String> studyNames, Program program) throws ApiException {
         if(studyNames.isEmpty()) {
             return Collections.emptyList();

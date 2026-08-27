@@ -70,7 +70,6 @@ public class BrAPIObservationDAO {
                                BrAPIObservationUnitDAO observationUnitDAO,
                                BrAPIDAOUtil brAPIDAOUtil,
                                BrAPIEndpointProvider brAPIEndpointProvider,
-                               @Property(name = "micronaut.bi.api.run-scheduled-tasks") boolean runScheduledTasks,
                                @Property(name = "brapi.cache.fetch-page-size")  int brapiFetchPageSize,
                                TraitService traitService) {
         this.programDAO = programDAO;

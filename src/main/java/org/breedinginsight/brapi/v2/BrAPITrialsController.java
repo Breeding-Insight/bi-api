@@ -50,6 +50,7 @@ import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -100,19 +101,25 @@ public class BrAPITrialsController {
             if (experimentalCollaborator.isPresent()) {
                 List<UUID> authorizedExperimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
 
-                BrAPITrialListResponse brapiResponse = experimentService.searchTrials(program.get(), authorizedExperimentIds, queryParams);
+                if (authorizedExperimentIds.isEmpty()) {
+                    // User is not authorized for any experiments, return empty response.
+                    return ResponseUtils.getEmptyBrapiQueryResponse();
+                } else {
+                    // User is authorized. Grab the experiment data from BrAPI.
+                    BrAPITrialListResponse brapiResponse = experimentService.searchTrials(program.get(), authorizedExperimentIds, queryParams);
 
-                List<BrAPITrial> foundTrials = brapiResponse.getResult().getData();
-                foundTrials.forEach(this::setDbIds);
+                    List<BrAPITrial> foundTrials = brapiResponse.getResult().getData();
+                    foundTrials.forEach(this::setDbIds);
 
-                return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse, queryParams);
+                    return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse);
+                }
             }
 
             BrAPITrialListResponse brapiResponse = experimentService.searchTrials(program.get(), queryParams);
 
             List<BrAPITrial> foundTrials = brapiResponse.getResult().getData();
             foundTrials.forEach(this::setDbIds);
-            return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse, queryParams);
+            return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse);
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving experiments");
