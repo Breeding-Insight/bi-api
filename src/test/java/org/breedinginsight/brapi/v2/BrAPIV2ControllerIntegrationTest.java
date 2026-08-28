@@ -153,8 +153,8 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
 
         assertEquals(Map.ofEntries(
                 Map.entry("serverinfo", Set.of(MethodsEnum.GET)),
-                Map.entry("programs", Set.of(MethodsEnum.GET, MethodsEnum.POST)),
-                Map.entry("programs/{programDbId}", Set.of(MethodsEnum.GET, MethodsEnum.PUT))
+                Map.entry("programs", Set.of(MethodsEnum.GET)),
+                Map.entry("programs/{programDbId}", Set.of(MethodsEnum.GET))
         ), getMethodsByService(serverInfo));
         assertAllCallsHaveVersions(serverInfo, Set.of("2.0", "2.1"));
     }
