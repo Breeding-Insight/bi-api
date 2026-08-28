@@ -118,10 +118,10 @@ public class BrAPIV2Controller {
     private void setBrAPIServerInfo(BrAPIServerInfo serverInfo) {
         serverInfo.setOrganizationName("Breeding Insight");
         serverInfo.setServerName("DeltaBreed");
-        serverInfo.setContactEmail("bidevteam@cornell.edu");
+        serverInfo.setContactEmail("bi-dev-team@ufl.edu");
         serverInfo.setOrganizationURL("https://breedinginsight.org");
         serverInfo.setServerDescription("DeltaBreed - breeding data management system");
-        serverInfo.setLocation("Cornell University, Ithaca, NY, USA");
+        serverInfo.setLocation("University of Florida, Gainesville, FL, USA");
         serverInfo.setDocumentationURL("https://brapi.org/specification");
     }
 
