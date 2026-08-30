@@ -17,7 +17,7 @@
 
 package org.breedinginsight.services.validators;
 
-import junit.framework.AssertionFailedError;
+import org.opentest4j.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.api.model.v1.response.RowValidationErrors;
