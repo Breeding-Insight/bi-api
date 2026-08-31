@@ -145,10 +145,10 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
 
         assertEquals("Breeding Insight", serverInfo.getOrganizationName());
         assertEquals("DeltaBreed", serverInfo.getServerName());
-        assertEquals("bidevteam@cornell.edu", serverInfo.getContactEmail());
+        assertEquals("bi-dev-team@ufl.edu", serverInfo.getContactEmail());
         assertEquals("https://breedinginsight.org", serverInfo.getOrganizationURL());
         assertEquals("DeltaBreed provides server information and program discovery at this root. Program-scoped BrAPI calls use https://app.breedinginsight.net/v1/programs/{programId}/brapi/v2", serverInfo.getServerDescription());
-        assertEquals("Cornell University, Ithaca, NY, USA", serverInfo.getLocation());
+        assertEquals("University of Florida, Gainesville, FL, USA", serverInfo.getLocation());
         assertEquals("https://brapi.org/specification", serverInfo.getDocumentationURL());
 
         assertEquals(Map.ofEntries(
