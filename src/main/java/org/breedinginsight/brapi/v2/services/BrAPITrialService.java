@@ -1,9 +1,9 @@
 package org.breedinginsight.brapi.v2.services;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.github.filosganga.geogson.model.Coordinates;
 import com.github.filosganga.geogson.model.positions.SinglePosition;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.MediaType;
@@ -17,7 +17,6 @@ import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.core.response.BrAPITrialListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.api.model.v1.request.SubEntityDatasetRequest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
@@ -31,21 +30,20 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.FileMappingUtil;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
 import org.breedinginsight.dao.db.enums.DataType;
-import org.breedinginsight.model.BrAPIConstants;
-import org.breedinginsight.model.Column;
-import org.breedinginsight.model.DownloadFile;
-import org.breedinginsight.model.Program;
 import org.breedinginsight.model.*;
 import org.breedinginsight.model.delta.DeltaEntityFactory;
 import org.breedinginsight.model.delta.Experiment;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.CreationBusyException;
-import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
-import org.breedinginsight.utilities.*;
-import org.jetbrains.annotations.NotNull;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.lock.DistributedLockService;
+import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
+import org.breedinginsight.utilities.DatasetUtil;
+import org.breedinginsight.utilities.FileUtil;
+import org.breedinginsight.utilities.IntOrderComparator;
+import org.breedinginsight.utilities.Utilities;
+import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -56,11 +54,11 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import java.util.concurrent.TimeoutException;
 
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.OBSERVATION_UNIT_ID_SUFFIX;
 
@@ -213,7 +211,7 @@ public class BrAPITrialService {
         if (!requestedEnvIds.isEmpty()) {
             expStudies = expStudies
                     .stream()
-                    .filter(study -> requestedEnvIds.contains(getStudyId(study)))
+                    .filter(study -> requestedEnvIds.contains(study.getStudyDbId()))
                     .collect(Collectors.toList());
         }
         expStudies.forEach(study -> studyByDbId.putIfAbsent(study.getStudyDbId(), study));
@@ -733,16 +731,6 @@ public class BrAPITrialService {
         }
     }
 
-    private String getStudyId(BrAPIStudy study) {
-        // HACK: avoid null reference exceptions.
-        if (study == null) return null;
-        BrAPIExternalReference studyXref = Utilities.getExternalReference(
-                        study.getExternalReferences(),
-                        String.format("%s/%s", referenceSource, ExternalReferenceSource.STUDIES.getName()))
-                .orElseThrow(() -> new RuntimeException("study id not found"));
-        return studyXref.getReferenceID();
-    }
-
     private void addObsVarDataToRow(
             Map<String, Object> row,
             BrAPIObservation obs,
@@ -1103,16 +1091,6 @@ public class BrAPITrialService {
         return Utilities.makePortableFilename(unsafeName);
     }
 
-    private List<BrAPIObservation> filterDatasetByEnvironment(
-            List<BrAPIObservation> dataset,
-            List<String> envIds,
-            Map<String, BrAPIStudy> studyByDbId) {
-        return dataset
-                .stream()
-                .filter(obs -> envIds.contains(getStudyId(studyByDbId.get(obs.getStudyDbId()))))
-                .collect(Collectors.toList());
-    }
-
     private boolean isSubEntityDataset(List<BrAPIObservationUnit> ous){
         return (ous.get(0).getObservationUnitPosition().getObservationLevelRelationships().size() > 2);
     }
@@ -1141,12 +1119,8 @@ public class BrAPITrialService {
         exportRows.sort(envComparator.thenComparing(expUnitIdComparator).thenComparing(subUnitIdComparator));
      }
 
-    public BrAPIStudy getEnvironment(Program program, UUID envId) throws ApiException {
-        List<BrAPIStudy> environments = studyDAO.getStudiesByEnvironmentIds(List.of(envId), program);
-        if (environments.isEmpty()) {
-            throw new RuntimeException("A study with given experiment id was not returned");
+    public BrAPIStudy getEnvironment(Program program, String studyDbId) throws ApiException {
+            return studyDAO.getStudyByDbId(studyDbId, program)
+                            .orElseThrow(() -> new RuntimeException("A study with given study db id was not returned"));
         }
-
-        return environments.get(0);
-    }
 }

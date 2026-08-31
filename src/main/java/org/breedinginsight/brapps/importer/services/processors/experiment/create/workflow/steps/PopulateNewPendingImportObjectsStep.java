@@ -1,4 +1,4 @@
-    /*
+/*
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership.
  *
@@ -45,17 +45,12 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.create
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentSeasonService;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramLocation;
-import org.breedinginsight.model.User;
+import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.Utilities;
-import org.breedinginsight.model.DatasetMetadata;
-import org.breedinginsight.model.DatasetLevel;
 import org.jooq.DSLContext;
-import org.breedinginsight.model.Trait;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
@@ -634,8 +629,6 @@ public class PopulateNewPendingImportObjectsStep {
             if (timeStampValue != null && !timeStampValue.isBlank() && (validDateValue(timeStampValue) || validDateTimeValue(timeStampValue))) {
                 newObservation.setObservationTimeStamp(OffsetDateTime.parse(timeStampValue));
             }
-
-            newObservation.setStudyDbId(studyPIO.getId().toString()); //set as the BI ID to facilitate looking up studies when saving new observations
 
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
             observationByHash.put(key, pio);

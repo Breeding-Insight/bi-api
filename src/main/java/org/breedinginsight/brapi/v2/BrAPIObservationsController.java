@@ -61,20 +61,17 @@ public class BrAPIObservationsController {
 
     private final ProgramService programService;
     private final ProgramDAO programDAO;
-    private final BrAPIStudyDAO brAPIStudyDAO;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
     private final BrAPIObservationDAO observationDAO;
 
     @Inject
     public BrAPIObservationsController(ProgramService programService,
-                                       ProgramDAO programDAO,
                                        ProgramDAO programDAO1,
                                        BrAPIStudyDAO brAPIStudyDAO,
                                        BrAPIEndpointProvider brAPIEndpointProvider,
                                        BrAPIObservationDAO brAPIObservationDAO) {
         this.programService = programService;
         this.programDAO = programDAO1;
-        this.brAPIStudyDAO = brAPIStudyDAO;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.observationDAO = brAPIObservationDAO;
     }
@@ -254,16 +251,6 @@ public class BrAPIObservationsController {
         }
 
         try {
-            // Translate studyDbId if provided.
-            if (queryParams.getStudyDbId() != null) {
-                Optional<BrAPIStudy> study = brAPIStudyDAO.getStudyByEnvironmentId(UUID.fromString(queryParams.getStudyDbId()), program.get());
-                if (study.isEmpty()) {
-                    return HttpResponse.notFound();
-                }
-                queryParams.setStudyDbId(study.get().getStudyDbId());
-            }
-            // TODO: Translate other DbIds if provided as well (but studyDbId is sufficient for Mr. Bean).
-
             ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
             ApiResponse<BrAPIObservationTableResponse> response = api.observationsTableGet(BrAPIWSMIMEDataTypes.APPLICATION_JSON, queryParams.toBrAPIQueryParams());
 

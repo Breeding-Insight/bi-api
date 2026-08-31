@@ -40,6 +40,7 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -92,6 +93,8 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
     private OntologyService ontologyService;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
+    @Inject
+    private BrAPIStudyDAO brAPIStudyDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -199,9 +202,10 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
                 .get(0).getAsJsonObject()
                 .get("trial").getAsJsonObject()
                 .get("id").getAsString();
-        // Add environmentIds.
-        envIds.add(getEnvId(importResult, 0));
-        envIds.add(getEnvId(importResult, 1));
+
+        envIds.clear();
+        brAPIStudyDAO.getStudies(program.getId())
+                   .forEach(study -> envIds.add(study.getStudyDbId()));
     }
 
     @Test
@@ -329,6 +333,10 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         JsonArray observations = responseObj.getAsJsonObject("result").getAsJsonArray("data");
         assertEquals(2, observations.size());
 
+        for (JsonElement observation : observations) {
+           assertEquals(envIds.get(0), observation.getAsJsonObject().get("studyDbId").getAsString());
+        }
+
         // Check the observation values, keep in mind the order of results is not guaranteed.
         Float value1 = observations.get(0).getAsJsonObject().get("value").getAsFloat();
         Float value2 = observations.get(1).getAsJsonObject().get("value").getAsFloat();
@@ -420,18 +428,6 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         fos.write(byteArrayOutputStream.toByteArray());
 
         return file;
-    }
-
-    private String getEnvId(JsonObject result, int index) {
-        return result
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(index).getAsJsonObject()
-                .get("study").getAsJsonObject()
-                .get("brAPIObject").getAsJsonObject()
-                .get("externalReferences").getAsJsonArray()
-                .get(2).getAsJsonObject()
-                .get("referenceId").getAsString();
     }
 
     private List<BrAPIGermplasm> createGermplasm(int numToCreate) {

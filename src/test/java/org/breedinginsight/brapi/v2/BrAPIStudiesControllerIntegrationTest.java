@@ -181,6 +181,21 @@ public class BrAPIStudiesControllerIntegrationTest extends BrAPITest {
         assertEquals(2, studies.size());
         JsonObject study = studies.get(0).getAsJsonObject();
 
+        String studyExternalReferenceId = null;
+
+        for (JsonElement reference : study.getAsJsonArray("externalReferences")) {
+            JsonObject externalReference = reference.getAsJsonObject();
+
+            if (externalReference.get("referenceSource").getAsString().endsWith("/studies")) {
+                studyExternalReferenceId = externalReference.get("referenceId").getAsString();
+                break;
+            }
+        }
+
+        assertNotNull(studyExternalReferenceId);
+
+        assertNotEquals(studyExternalReferenceId, study.get("studyDbId").getAsString());
+
         Flowable<HttpResponse<String>> studyCall = client.exchange(
                 GET(String.format("/programs/%s/brapi/v2/studies/%s", program.getId(), study.get("studyDbId").getAsString()))
                         .bearerAuth("test-registered-user"),

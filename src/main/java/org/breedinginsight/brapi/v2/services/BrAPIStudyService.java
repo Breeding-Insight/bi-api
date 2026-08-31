@@ -44,8 +44,8 @@ public class BrAPIStudyService {
         return studyDAO.getStudies(programId);
     }
 
-    public Optional<BrAPIStudy> getStudyByEnvironmentId(Program program, UUID environmentId) throws ApiException {
-        return studyDAO.getStudyByEnvironmentId(environmentId, program);
+    public Optional<BrAPIStudy> getStudyByDbId(Program program, String studyDbId) throws ApiException {
+           return studyDAO.getStudyByDbId(studyDbId, program);
     }
 
     /**
