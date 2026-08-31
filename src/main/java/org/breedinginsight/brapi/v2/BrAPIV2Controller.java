@@ -86,26 +86,24 @@ public class BrAPIV2Controller {
                 .setBase("serverinfo").GET().build()
                 .setBase("commoncropnames").GET().build()
                 .setBase("lists").GET().addPath("{listDbId}").DELETE().build()
-                .setBase("programs").GET().POST().addPath("{programDbId}").GET().PUT().build()
-                .setBase("studies").GET().POST().addPath("{studyDbId}").GET().PUT().build()
-                .setBase("trials").GET().POST().addPath("{trialDbId}").GET().PUT().build()
+                .setBase("programs").GET().addPath("{programDbId}").GET().build()
+                .setBase("studies").GET().addPath("{studyDbId}").GET().build()
+                .setBase("trials").GET().addPath("{trialDbId}").GET().build()
                 //GERMPLASM
                 .setBase("germplasm").GET().addPath("{germplasmDbId}").GET().build()
                 .setBase("search/germplasm").POST().addPath("{searchResultId}").GET().build()
                 //PHENOTYPING
-                .setBase("images").GET().POST().addPath("{imageDbId}").GET().PUT().addPath("imagecontent").PUT().build()
                 .setBase("observationlevels").GET().build()
-                .setBase("observationunits").GET().POST().PUT().addPath("{observationUnitDbId}").GET().PUT().build()
-                .setBase("observationunits/table").GET().build()
-                .setBase("variables").GET().POST().addPath("{observationVariableDbId}").GET().PUT().build()
-                .setBase("observations").GET().POST().PUT().addPath("{observationDbId}").GET().PUT().build()
+                .setBase("observationunits").GET().addPath("{observationUnitDbId}").GET().build()
+                .setBase("variables").GET().addPath("{observationVariableDbId}").GET().build()
+                .setBase("observations").GET().build()
                 .setBase("observations/table").GET().build()
                 //V2.0 only
                 .versions("2.0")
                 .setBase("germplasm").addPath("{germplasmDbId}").addPath("pedigree").GET().setPath("progeny").GET().build()
                 //V2.1 only
                 .versions("2.1")
-                .setBase("pedigree").GET().POST().PUT()
+                .setBase("pedigree").GET()
                 .build();
 
         BrAPIServerInfo programServerInfo = new BrAPIServerInfo();

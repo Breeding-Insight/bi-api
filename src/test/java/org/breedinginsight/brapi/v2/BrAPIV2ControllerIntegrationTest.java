@@ -160,7 +160,7 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    public void testProgramServerInfoOnlyListsExplicitOverrides() {
+    public void testProgramServerInfoOnlyListsImplementedOverrides() {
         String path = String.format("%s/programs/%s/brapi/v2/serverinfo", biApiVersion, validProgram.getId());
         Flowable<HttpResponse<String>> call = biClient.exchange(GET(path), String.class);
 
@@ -178,31 +178,26 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
                 Map.entry("commoncropnames", Set.of(MethodsEnum.GET)),
                 Map.entry("lists", Set.of(MethodsEnum.GET)),
                 Map.entry("lists/{listDbId}", Set.of(MethodsEnum.DELETE)),
-                Map.entry("programs", Set.of(MethodsEnum.GET, MethodsEnum.POST)),
-                Map.entry("programs/{programDbId}", Set.of(MethodsEnum.GET, MethodsEnum.PUT)),
-                Map.entry("studies", Set.of(MethodsEnum.GET, MethodsEnum.POST)),
-                Map.entry("studies/{studyDbId}", Set.of(MethodsEnum.GET, MethodsEnum.PUT)),
-                Map.entry("trials", Set.of(MethodsEnum.GET, MethodsEnum.POST)),
-                Map.entry("trials/{trialDbId}", Set.of(MethodsEnum.GET, MethodsEnum.PUT)),
+                Map.entry("programs", Set.of(MethodsEnum.GET)),
+                Map.entry("programs/{programDbId}", Set.of(MethodsEnum.GET)),
+                Map.entry("studies", Set.of(MethodsEnum.GET)),
+                Map.entry("studies/{studyDbId}", Set.of(MethodsEnum.GET)),
+                Map.entry("trials", Set.of(MethodsEnum.GET)),
+                Map.entry("trials/{trialDbId}", Set.of(MethodsEnum.GET)),
                 Map.entry("germplasm", Set.of(MethodsEnum.GET)),
                 Map.entry("germplasm/{germplasmDbId}", Set.of(MethodsEnum.GET)),
                 Map.entry("search/germplasm", Set.of(MethodsEnum.POST)),
                 Map.entry("search/germplasm/{searchResultId}", Set.of(MethodsEnum.GET)),
-                Map.entry("images", Set.of(MethodsEnum.GET, MethodsEnum.POST)),
-                Map.entry("images/{imageDbId}", Set.of(MethodsEnum.GET, MethodsEnum.PUT)),
-                Map.entry("images/{imageDbId}/imagecontent", Set.of(MethodsEnum.PUT)),
                 Map.entry("observationlevels", Set.of(MethodsEnum.GET)),
-                Map.entry("observationunits", Set.of(MethodsEnum.GET, MethodsEnum.POST, MethodsEnum.PUT)),
-                Map.entry("observationunits/{observationUnitDbId}", Set.of(MethodsEnum.GET, MethodsEnum.PUT)),
-                Map.entry("observationunits/table", Set.of(MethodsEnum.GET)),
-                Map.entry("variables", Set.of(MethodsEnum.GET, MethodsEnum.POST)),
-                Map.entry("variables/{observationVariableDbId}", Set.of(MethodsEnum.GET, MethodsEnum.PUT)),
-                Map.entry("observations", Set.of(MethodsEnum.GET, MethodsEnum.POST, MethodsEnum.PUT)),
-                Map.entry("observations/{observationDbId}", Set.of(MethodsEnum.GET, MethodsEnum.PUT)),
+                Map.entry("observationunits", Set.of(MethodsEnum.GET)),
+                Map.entry("observationunits/{observationUnitDbId}", Set.of(MethodsEnum.GET)),
+                Map.entry("variables", Set.of(MethodsEnum.GET)),
+                Map.entry("variables/{observationVariableDbId}", Set.of(MethodsEnum.GET)),
+                Map.entry("observations", Set.of(MethodsEnum.GET)),
                 Map.entry("observations/table", Set.of(MethodsEnum.GET)),
                 Map.entry("germplasm/{germplasmDbId}/pedigree", Set.of(MethodsEnum.GET)),
                 Map.entry("germplasm/{germplasmDbId}/progeny", Set.of(MethodsEnum.GET)),
-                Map.entry("pedigree", Set.of(MethodsEnum.GET, MethodsEnum.POST, MethodsEnum.PUT))
+                Map.entry("pedigree", Set.of(MethodsEnum.GET))
         ), getMethodsByService(serverInfo));
 
         serverInfo.getCalls().forEach(service -> {
