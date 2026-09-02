@@ -281,8 +281,10 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
             // get samples from gigwa given sample names
             List<BrAPISample> gigwaSamples = fetchGigwaSamples(brAPIClient, program, sampleNames);
             List<BrAPICallSet> callSets = fetchCallsets(brAPIClient, gigwaSamples);
-            List<BrAPICall> calls = fetchCalls(brAPIClient, callSets);
-            List<BrAPIVariant> variants = fetchVariants(brAPIClient, calls);
+            //Deprecated to avoid running out of memory destabilizing the system
+           /*
+           List<BrAPICall> calls = fetchCalls(brAPIClient, callSets)
+           List<BrAPIVariant> variants = fetchVariants(brAPIClient, calls);
 
             return GermplasmGenotype.builder()
                                     .germplasm(germplasm)
@@ -290,6 +292,14 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                                     .callSets(callSets.stream().collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
                                     .variants(variants.stream().collect(Collectors.toMap(BrAPIVariant::getVariantDbId, variant -> variant)))
                                     .build();
+            */
+
+            return GermplasmGenotype.builder()
+                    .germplasm(germplasm)
+                    .calls(null)
+                    .callSets(callSets.stream().collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
+                    .variants(null)
+                    .build();
         } else {
             return new GermplasmGenotype();
         }
