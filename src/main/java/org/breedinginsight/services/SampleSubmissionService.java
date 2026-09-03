@@ -65,6 +65,7 @@ import java.util.stream.Collectors;
 public class SampleSubmissionService {
 
     private static final String COLUMN_GENOTYPE = "Genotype";
+    public static final String COLUMN_SAMPLE_NAME = "Sample Name";
     private static final String VENDOR_NOT_SUBMITTED_STATUS = "NOT SUBMITTED";
     private static final String VENDOR_SUBMITTED_STATUS = "SUBMITTED";
     private final String referenceSource;
@@ -214,10 +215,7 @@ public class SampleSubmissionService {
         columns.add(Column.builder().value(SampleSubmissionImport.Columns.TISSUE).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(SampleSubmissionImport.Columns.COMMENTS).dataType(Column.ColumnDataType.STRING).build());
 
-        //Sort samples first. May be updated to use BrAPI server sorting after cache removal changes are merged
-        submission.get().getSamples().sort(Comparator.comparing(BrAPISample::getPlateName)
-                .thenComparing(BrAPISample::getColumn)
-                .thenComparing(BrAPISample::getRow));
+        sortSamples(submission.get().getSamples());
 
         List<Map<String, Object>> rows = new ArrayList<>();
         submission.get().getSamples().forEach(sample -> {
@@ -228,6 +226,60 @@ public class SampleSubmissionService {
             row.put(SampleSubmissionImport.Columns.ORGANISM, sample.getAdditionalInfo().get(BrAPIAdditionalInfoFields.SAMPLE_ORGANISM).getAsString());
             row.put(SampleSubmissionImport.Columns.SPECIES, sample.getAdditionalInfo().has(BrAPIAdditionalInfoFields.SAMPLE_SPECIES) ? sample.getAdditionalInfo().get(BrAPIAdditionalInfoFields.SAMPLE_SPECIES).getAsString() : "");
             row.put(COLUMN_GENOTYPE, sample.getSampleName());
+            row.put(SampleSubmissionImport.Columns.TISSUE, sample.getTissueType());
+            row.put(SampleSubmissionImport.Columns.COMMENTS, sample.getSampleDescription());
+
+            rows.add(row);
+        });
+
+
+        return Optional.of(new DownloadFile(filename, FileUtil.writeToStreamedFile(columns, rows, FileType.CSV, "Data")));
+    }
+
+    //Helper method to sort samples. May be updated to use BrAPI server sorting after cache removal changes are merged
+    public void sortSamples(List<BrAPISample> samples) {
+        samples.sort(Comparator.comparing(BrAPISample::getPlateName)
+                .thenComparing(BrAPISample::getColumn)
+                .thenComparing(BrAPISample::getRow));
+    }
+
+    public Optional<DownloadFile> exportSubmission(Program program, UUID submissionId) throws ApiException, IOException {
+        Optional<SampleSubmission> submission = getSampleSubmission(program, submissionId, true);
+        if (submission.isEmpty()) {
+            return Optional.empty();
+        }
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_hh-mm-ssZ");
+        String timestamp = formatter.format(OffsetDateTime.now());
+        String filename = Utilities.makePortableFilename(String.format("%s_SampleSubmission_%s.csv", submission.get().getName(), timestamp));
+
+        List<Column> columns = new ArrayList<>();
+        columns.add(Column.builder().value(SampleSubmissionImport.Columns.GERMPLASM_NAME).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(SampleSubmissionImport.Columns.GERMPLASM_GID).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(SampleSubmissionImport.Columns.OBS_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(COLUMN_SAMPLE_NAME).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(SampleSubmissionImport.Columns.PLATE_ID).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(SampleSubmissionImport.Columns.ROW).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(SampleSubmissionImport.Columns.COLUMN).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(SampleSubmissionImport.Columns.ORGANISM).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(SampleSubmissionImport.Columns.SPECIES).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(SampleSubmissionImport.Columns.TISSUE).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(SampleSubmissionImport.Columns.COMMENTS).dataType(Column.ColumnDataType.STRING).build());
+
+        sortSamples(submission.get().getSamples());
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        submission.get().getSamples().forEach(sample -> {
+            Map<String, Object> row = new HashMap<>();
+            row.put(SampleSubmissionImport.Columns.GERMPLASM_NAME, sample.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_NAME).getAsString());
+            row.put(SampleSubmissionImport.Columns.GERMPLASM_GID, sample.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GID).getAsString());
+            row.put(SampleSubmissionImport.Columns.OBS_UNIT_ID, sample.getObservationUnitDbId());
+            row.put(COLUMN_SAMPLE_NAME, sample.getSampleName());
+            row.put(SampleSubmissionImport.Columns.PLATE_ID, sample.getPlateName());
+            row.put(SampleSubmissionImport.Columns.ROW, sample.getRow());
+            row.put(SampleSubmissionImport.Columns.COLUMN, sample.getColumn());
+            row.put(SampleSubmissionImport.Columns.ORGANISM, sample.getAdditionalInfo().get(BrAPIAdditionalInfoFields.SAMPLE_ORGANISM).getAsString());
+            row.put(SampleSubmissionImport.Columns.SPECIES, sample.getAdditionalInfo().has(BrAPIAdditionalInfoFields.SAMPLE_SPECIES) ? sample.getAdditionalInfo().get(BrAPIAdditionalInfoFields.SAMPLE_SPECIES).getAsString() : "");
             row.put(SampleSubmissionImport.Columns.TISSUE, sample.getTissueType());
             row.put(SampleSubmissionImport.Columns.COMMENTS, sample.getSampleDescription());
 
