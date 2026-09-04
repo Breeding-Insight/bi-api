@@ -842,7 +842,10 @@ public class GermplasmProcessor implements Processor {
                         //entry number no longer needed for figuring out parentage, can remove (since same germplasm can have different entry numbers across multiple lists)
                         brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO, null);
                         // Add femaleParentUUID to additionalInfo.
-                        brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID, femaleParent.getGermplasmDbId());
+                        Optional<BrAPIExternalReference> femaleParentUUID = Utilities.getExternalReference(femaleParent.getExternalReferences(), BRAPI_REFERENCE_SOURCE);
+                        if (femaleParentUUID.isPresent()) {
+                            brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID, femaleParentUUID.get().getReferenceID());
+                        }
                     }
 
                     if (maleParent != null) {
@@ -850,8 +853,10 @@ public class GermplasmProcessor implements Processor {
                         //entry number no longer needed for figuring out parentage, can remove (since same germplasm can have different entry numbers across multiple lists)
                         brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_ENTRY_NO, null);
                         // Add maleParentUUID to additionalInfo.
-                        brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID, maleParent.getGermplasmDbId());
-                    }
+                        Optional<BrAPIExternalReference> maleParentUUID = Utilities.getExternalReference(maleParent.getExternalReferences(), BRAPI_REFERENCE_SOURCE);
+                        if (maleParentUUID.isPresent()) {
+                            brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID, maleParentUUID.get().getReferenceID());
+                        }                    }
                 }
             }
         }
