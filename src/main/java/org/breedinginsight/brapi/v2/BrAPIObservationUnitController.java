@@ -226,6 +226,7 @@ public class BrAPIObservationUnitController {
         ou.programDbId(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS))
                                    .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
                                    .getReferenceID());
+        // TODO: Remove this as part of [BI-3006]
         if (ou.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_UUID)) {
             ou.setGermplasmDbId(ou.getAdditionalInfo()
                                   .get(BrAPIAdditionalInfoFields.GERMPLASM_UUID)
