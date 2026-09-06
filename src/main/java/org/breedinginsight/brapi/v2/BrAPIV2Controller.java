@@ -167,10 +167,10 @@ public class BrAPIV2Controller {
         serverInfo.setDocumentationURL("https://brapi.org/specification");
     }
 
-    // Explicit match for /seasons GET endpoint, to allow Experimental Collaborator access.
+    // Explicit match for the /seasons GET pass-through endpoint.
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/seasons{?queryParams}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.PROGRAM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR})
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<?> getSeasons(@PathVariable("programId") UUID programId, HttpRequest<String> request, @PathVariable Optional<String> queryParams) {
         String path = "seasons";
         if (queryParams.isPresent()) {
@@ -181,7 +181,7 @@ public class BrAPIV2Controller {
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<?> getCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<String> request) {
         return executeRequest(path, programId, request, "GET");
     }
@@ -189,7 +189,7 @@ public class BrAPIV2Controller {
     @Post("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Consumes(MediaType.ALL)
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<String> postCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<byte[]> request,
                                              @Header("Content-Type") String contentType) {
         return executeByteRequest(path, programId, request, contentType, "POST");
@@ -198,7 +198,7 @@ public class BrAPIV2Controller {
     @Put("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Consumes(MediaType.ALL)
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<String> putCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<byte[]> request,
                                             @Header("Content-Type") String contentType) {
         return executeByteRequest(path, programId, request, contentType, "PUT");
