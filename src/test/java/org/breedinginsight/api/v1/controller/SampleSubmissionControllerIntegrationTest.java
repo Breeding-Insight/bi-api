@@ -330,7 +330,7 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
         //Check sorting
         assertEquals("valid_1", lookupTable.column(0).get(1));
         assertEquals("B", lookupTable.column(1).get(1));
-        assertEquals(0, lookupTable.column(2).get(1));
+        assertEquals(1, lookupTable.column(2).get(1));
     }
 
     @Test
@@ -364,10 +364,10 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
         assertEquals(Columns.COMMENTS, lookupTable.column(10).name());
 
         //Check sorting
-        assertEquals(2, lookupTable.column(1).get(1));
+        assertEquals(13, lookupTable.column(1).get(1));
         assertEquals("valid_1", lookupTable.column(4).get(1));
         assertEquals("B", lookupTable.column(5).get(1));
-        assertEquals(0, lookupTable.column(6).get(1));
+        assertEquals(1, lookupTable.column(6).get(1));
     }
 
     @Test
