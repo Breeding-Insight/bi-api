@@ -20,6 +20,7 @@ package org.breedinginsight.brapi.v2.dao;
 import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
@@ -335,15 +336,35 @@ public class BrAPIGermplasmDAO {
     private Map<String, String> getPedigreeGermplasmDbIdByBICreatedExRef(List<BrAPIGermplasm> brAPIGermplasm, Program program) throws ApiException {
         Map<String, String> germplasmDbIdByGeneratedExRef = new HashMap<>();
 
+        // First, utilize initialized map to store all related parent bi-generated exref IDs.
         for  (BrAPIGermplasm germplasm : brAPIGermplasm) {
+            if (germplasm.getAdditionalInfo() == null) {
+                continue;
+            }
             if (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID)) {
+                try {
+                    UUID.fromString(germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID).getAsString());
+                } catch (IllegalArgumentException e) {
+                    throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), String.format("Germplasm with BrAPI dbId [%s] has an additionalInfo.femaleParentUUID that is not a UUID", germplasm.getGermplasmDbId()));
+                }
                 germplasmDbIdByGeneratedExRef.put(germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID).getAsString(), null);
             }
             if (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID)) {
+                try {
+                    UUID.fromString(germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID).getAsString());
+                } catch (IllegalArgumentException e) {
+                    throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), String.format("Germplasm with BrAPI dbId [%s] has an additionalInfo.maleParentUUID that is not a UUID", germplasm.getGermplasmDbId()));
+                }
                 germplasmDbIdByGeneratedExRef.put(germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID).getAsString(), null);
             }
         }
 
+        if (germplasmDbIdByGeneratedExRef.isEmpty()) {
+            // If there are none, no reason to proceed with a BrAPI search.
+            return germplasmDbIdByGeneratedExRef;
+        }
+
+        // Now grab all male/female exrefs and search for them to get their germplasmDbIds
         List<String> exRefIds = new ArrayList<>(germplasmDbIdByGeneratedExRef.keySet());
 
         BrAPIGermplasmSearchRequest searchRequest = new BrAPIGermplasmSearchRequest();
@@ -356,6 +377,9 @@ public class BrAPIGermplasmDAO {
         GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), GermplasmApi.class);
 
 
+        // This will use CACHE_BRAPI_FETCH_PAGE_SIZE env variable to lookup at maximum 65k pedigree germplasm at once.
+        // This should not be normal though, as we should try not to exceed 1k lookups at once using this code.
+        // If there is a need to look up a large amount of germplasm records at once, alternative methods should be used.
         List<BrAPIGermplasm> germplasmSearchedWithExRef = brAPIDAOUtil.searchNoPaging(
                         api::searchGermplasmPost,
                         api::searchGermplasmSearchResultsDbIdGet,
