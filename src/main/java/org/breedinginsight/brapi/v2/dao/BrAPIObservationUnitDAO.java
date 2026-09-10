@@ -316,7 +316,7 @@ public class BrAPIObservationUnitDAO {
                                                .orElse(true);
 
             //adding filter for germplasmDbId because we can't easily search that in the stored data object
-            // TODO: Add search on accessionNumber once it's been added to prod server and brapi client [BI-2978]
+            // TODO: Add search on germplasmDbId directly in search request [BI-3006]
             return matches && germplasmId.map(id -> id.equals(ou.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_UUID).getAsString())).orElse(true);
         }).collect(Collectors.toList());
     }
@@ -382,7 +382,7 @@ public class BrAPIObservationUnitDAO {
 
     	HashMap<String, BrAPIGermplasm> germplasmByDbId = new HashMap<>();
     	if( withGID ){
-            // TODO: Optimize this to use germplasm information directly in BrAPIObservationUnit by adding accession num/GID there via the prodserver/client [BI-2978]
+            // TODO: Optimize this to use germplasm information directly in BrAPIObservationUnit by searching on ou.germplasmDbIds in a GermplasmSearchRequest [BI-3006]
             this.germplasmService.getGermplasm(program.getId()).forEach((germplasm -> germplasmByDbId.put(germplasm.getGermplasmDbId(), germplasm)));
         }
 
