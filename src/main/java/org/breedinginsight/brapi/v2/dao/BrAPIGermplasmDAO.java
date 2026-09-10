@@ -75,6 +75,9 @@ public class BrAPIGermplasmDAO {
     @Property(name = "brapi.paginate.germplasm")
     private boolean paginateGermplasm;
 
+    @Property(name = "data-table.max-size")
+    private int dataTableMaxSize;
+
     private final ProgramCache<BrAPIGermplasm> programGermplasmCache;
 
     private final BrAPIEndpointProvider brAPIEndpointProvider;
@@ -189,26 +192,19 @@ public class BrAPIGermplasmDAO {
                             api::searchGermplasmPost,
                             api::searchGermplasmSearchResultsDbIdGet,
                             germplasmSearch),
-                    program,
-                    true);
+                    program);
         } else {
             log.debug("Fetching germplasm without pagination to BrAPI");
             return processGermplasmForDisplay(brAPIDAOUtil.searchNoPaging(
                     api::searchGermplasmPost,
                     api::searchGermplasmSearchResultsDbIdGet,
                     germplasmSearch),
-                    program,
-                    true);
+                    program);
         }
     }
 
     public void repopulateGermplasmCacheForProgram(UUID programId) {
         programGermplasmCache.populate(programId);
-    }
-
-    private Map<String,BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> programGermplasm,
-                                                                  Program program) throws ApiException {
-        return processGermplasmForDisplay(programGermplasm, program, false);
     }
     /**
      * Process germplasm into a format for display
@@ -217,8 +213,7 @@ public class BrAPIGermplasmDAO {
      * @throws ApiException
      */
     private Map<String,BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> programGermplasm,
-                                                                  Program program,
-                                                                  boolean pedigreeExRefMutation) throws ApiException {
+                                                                  Program program) throws ApiException {
         // Process the germplasm
         Map<String, BrAPIGermplasm> programGermplasmMap = new HashMap<>();
         log.trace("processing germ for display: " + programGermplasm);
@@ -252,6 +247,10 @@ public class BrAPIGermplasmDAO {
         // all program germplasm at once, the performance hit should be negligible.
         // TODO: This hack can be removed once/if we implement [BI-2588/BI-2452]
         Map<String, String> pedigreeBrAPIGermplasmDbIdByBICreatedExRef = null;
+
+        // This should ease concerns for extra time pulling this data.  The intended usage is for the Germplasm data table,
+        // but any usage under 200 germs (current data table max size) should not be too large of a hit to the server or database.
+        boolean pedigreeExRefMutation = programGermplasm.size() <= dataTableMaxSize;
 
         if (pedigreeExRefMutation) {
             // Only perform this operation for callers that require it
@@ -438,7 +437,7 @@ public class BrAPIGermplasmDAO {
         List<BrAPIGermplasm> result = brAPIDAOUtil.get(api::germplasmGet, germplasmQueryParams);
 
         // TODO: Once cache is removed for this class, fix processGermplasmForDisplay to return List<BrAPIGermplasm> [BI-2906]
-        return new ArrayList<>(processGermplasmForDisplay(result, program, true).values());
+        return new ArrayList<>(processGermplasmForDisplay(result, program).values());
     }
 
     // TODO: hack for now, probably should update breedbase
@@ -530,7 +529,7 @@ public class BrAPIGermplasmDAO {
 
         // TODO: Once cache is removed for this class, fix processGermplasmForDisplay to return List<BrAPIGermplasm> [BI-2906]
         List<BrAPIGermplasm> processedGermplasm =
-                new ArrayList<>(processGermplasmForDisplay(brAPIDAOUtil.getListResult(brAPIResponse), program, true).values());
+                new ArrayList<>(processGermplasmForDisplay(brAPIDAOUtil.getListResult(brAPIResponse), program).values());
 
         brAPIResponse.getResult().setData(processedGermplasm);
 
