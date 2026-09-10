@@ -33,7 +33,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.*;
-import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;

@@ -41,6 +41,7 @@ import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.sample.SampleSubmissionImport;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.daos.GenotypeImportDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SampleSubmissionDAO;
 import org.breedinginsight.model.*;
@@ -78,6 +79,7 @@ public class SampleSubmissionService {
     private final BrAPISampleDAO sampleDAO;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
     private final ProgramDAO programDAO;
+    private final GenotypeImportDAO genotypeImportDAO;
     private final DSLContext dsl;
 
     @Inject
@@ -92,6 +94,7 @@ public class SampleSubmissionService {
                                    BrAPISampleDAO sampleDAO,
                                    BrAPIEndpointProvider brAPIEndpointProvider,
                                    ProgramDAO programDAO,
+                                   GenotypeImportDAO genotypeImportDAO,
                                    DSLContext dsl) {
         this.referenceSource = referenceSource;
         this.dartBrapiUrl = dartBrapiUrl;
@@ -104,6 +107,7 @@ public class SampleSubmissionService {
         this.sampleDAO = sampleDAO;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.programDAO = programDAO;
+        this.genotypeImportDAO = genotypeImportDAO;
         this.dsl = dsl;
     }
 
@@ -432,9 +436,21 @@ public class SampleSubmissionService {
      * Deletes BrAPI plates and submission objects as well as sample submission record in bidb
      * We do not currently cache plates or samples so don't need to worry about that
      * @param submissionId sample submission UUID to delete
+     * @return result describing whether the submission was deleted or why deletion was rejected
      * @exception ApiException if a BrAPI call fails
      */
-    public void deleteSampleSubmission(Program program, UUID submissionId) throws ApiException {
+    public DeleteResult deleteSampleSubmission(Program program, UUID submissionId) throws ApiException {
+        Optional<SampleSubmission> submission = getSampleSubmission(program, submissionId, false);
+        if (submission.isEmpty()) {
+            return DeleteResult.NOT_FOUND;
+        }
+        if (!submission.get().isDeletable()) {
+            return DeleteResult.STATUS_NOT_ALLOWED;
+        }
+        if (genotypeImportDAO.existsBySampleSubmissionId(submissionId)) {
+            return DeleteResult.GENOTYPE_DATA_NOT_ALLOWED;
+        }
+
         // create a batch of sampleIds and plateIds to delete
         // get samples with the sample submission xref
         List<BrAPISample> samples = sampleDAO.readSamplesBySubmissionIds(program, List.of(submissionId.toString()));
@@ -449,6 +465,15 @@ public class SampleSubmissionService {
 
         // delete sample submission record from bidb
         submissionDAO.deleteById(submissionId);
+
+        return DeleteResult.DELETED;
+    }
+
+    public enum DeleteResult {
+        DELETED,
+        NOT_FOUND,
+        STATUS_NOT_ALLOWED,
+        GENOTYPE_DATA_NOT_ALLOWED
     }
 
 }

@@ -25,6 +25,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
@@ -43,6 +44,7 @@ import org.breedinginsight.brapps.importer.model.imports.experimentObservation.E
 import org.breedinginsight.brapps.importer.model.imports.sample.SampleSubmissionImport.Columns;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
+import org.breedinginsight.daos.GenotypeImportDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
@@ -61,7 +63,11 @@ import java.io.*;
 import java.util.*;
 
 import static io.micronaut.http.HttpRequest.*;
+import static org.breedinginsight.api.v1.controller.geno.SampleSubmissionController.DELETE_GENOTYPE_DATA_NOT_ALLOWED_ERROR_MESSAGE;
+import static org.breedinginsight.api.v1.controller.geno.SampleSubmissionController.DELETE_STATUS_NOT_ALLOWED_ERROR_MESSAGE;
 import static org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields.SUBMISSION_NAME;
+import static org.breedinginsight.dao.db.Tables.GENOTYPE_IMPORT;
+import static org.breedinginsight.dao.db.Tables.IMPORTER_IMPORT;
 import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
@@ -70,6 +76,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
 
     private Program program;
+    private User testUser;
     private ImportTestUtils importTestUtils;
 
     @Property(name = "brapi.server.reference-source")
@@ -84,6 +91,8 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
     private OntologyService ontologyService;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
+    @Inject
+    private GenotypeImportDAO genotypeImportDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -101,7 +110,7 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
         FannyPack brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
         // Test User
-        User testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
+        testUser = userDAO.getUserByOAuthId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Species
@@ -338,6 +347,73 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
         assertEquals("Genotype", lookupTable.column(0).name());
         assertEquals("Germplasm Name", lookupTable.column(1).name());
         assertEquals("GID", lookupTable.column(2).name());
+    }
+
+    @Test
+    public void testDeleteSubmissionEnforcesStatusAndGenotypeImportRules() throws IOException, InterruptedException {
+        SampleSubmission submission = createSubmission(program).getLeft();
+        String submissionUrl = String.format("/programs/%s/submissions/%s", program.getId(), submission.getId());
+        NettyCookie authCookie = new NettyCookie("phylo-token", "test-registered-user");
+
+        client.exchange(
+                PUT(submissionUrl + "/status", "{status:\"SUBMITTED\"}").cookie(authCookie),
+                String.class
+        ).blockingFirst();
+
+        HttpClientResponseException statusError = assertThrows(HttpClientResponseException.class, () -> client.exchange(
+                DELETE(submissionUrl).cookie(authCookie), String.class
+        ).blockingFirst());
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, statusError.getStatus());
+        assertEquals(
+                DELETE_STATUS_NOT_ALLOWED_ERROR_MESSAGE,
+                statusError.getResponse().getBody(String.class).orElse(null)
+        );
+
+        client.exchange(
+                PUT(submissionUrl + "/status", "{status:\"NOT SUBMITTED\"}").cookie(authCookie),
+                String.class
+        ).blockingFirst();
+
+        UUID importerImportId = dsl.select(IMPORTER_IMPORT.ID)
+                .from(IMPORTER_IMPORT)
+                .where(IMPORTER_IMPORT.PROGRAM_ID.eq(program.getId()))
+                .orderBy(IMPORTER_IMPORT.CREATED_AT.desc())
+                .limit(1)
+                .fetchOne(IMPORTER_IMPORT.ID);
+        genotypeImportDAO.createGenotypeImportLink(submission.getId(), importerImportId, testUser.getId());
+
+        HttpClientResponseException genotypeError = assertThrows(HttpClientResponseException.class, () -> client.exchange(
+                DELETE(submissionUrl).cookie(authCookie), String.class
+        ).blockingFirst());
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, genotypeError.getStatus());
+        assertEquals(
+                DELETE_GENOTYPE_DATA_NOT_ALLOWED_ERROR_MESSAGE,
+                genotypeError.getResponse().getBody(String.class).orElse(null)
+        );
+
+        HttpResponse<String> preservedSubmission = client.exchange(
+                GET(submissionUrl + "?details=true").cookie(authCookie), String.class
+        ).blockingFirst();
+        SampleSubmission preserved = gson.fromJson(
+                JsonParser.parseString(preservedSubmission.body()).getAsJsonObject().getAsJsonObject("result"),
+                SampleSubmission.class
+        );
+        assertEquals(96, preserved.getSamples().size());
+        assertEquals(1, preserved.getPlates().size());
+
+        dsl.deleteFrom(GENOTYPE_IMPORT)
+                .where(GENOTYPE_IMPORT.SAMPLE_SUBMISSION_ID.eq(submission.getId()))
+                .execute();
+
+        HttpResponse<String> deleteResponse = client.exchange(
+                DELETE(submissionUrl).cookie(authCookie), String.class
+        ).blockingFirst();
+        assertEquals(HttpStatus.OK, deleteResponse.getStatus());
+
+        HttpClientResponseException notFound = assertThrows(HttpClientResponseException.class, () -> client.exchange(
+                GET(submissionUrl + "?details=true").cookie(authCookie), String.class
+        ).blockingFirst());
+        assertEquals(HttpStatus.NOT_FOUND, notFound.getStatus());
     }
 
 

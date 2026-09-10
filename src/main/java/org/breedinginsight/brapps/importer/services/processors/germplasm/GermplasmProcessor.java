@@ -17,7 +17,6 @@
 package org.breedinginsight.brapps.importer.services.processors.germplasm;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
@@ -94,6 +93,7 @@ public class GermplasmProcessor implements Processor {
     public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the file: %s";
     public static String badBreedMethodsMsg = "Invalid breeding method";
     public static String badGermplasmNameMsg = "Germplasm name cannot contain /";
+    public static String missingBreedingMethodForParentalGIDorEntryNo = "Required field \"Breeding Method\" cannot contain empty values when parent(s) are specified";
     public static String missingEntryNumbersMsg = "Either all or none of the germplasm must have entry numbers";
     public static String duplicateEntryNoMsg = "Entry numbers must be unique. Duplicated entry numbers found: %s";
     public static String circularDependency = "Circular dependency in the pedigree tree";
@@ -160,17 +160,16 @@ public class GermplasmProcessor implements Processor {
         });
 
         // Get parental accession nos in file
-        for (int i = 0; i < importRows.size(); i++) {
-            BrAPIImport germplasmImport = importRows.get(i);
+        for (BrAPIImport germplasmImport : importRows) {
             Germplasm germplasm = germplasmImport.getGermplasm();
             if (germplasm != null) {
                 // Retrieve parent accession numbers to assess if already in db
-                    if (germplasm.getFemaleParentAccessionNumber() != null) {
-                        germplasmAccessionNumbers.put(germplasm.getFemaleParentAccessionNumber(), true);
-                    }
-                    if (germplasm.getMaleParentAccessionNumber() != null) {
-                        germplasmAccessionNumbers.put(germplasm.getMaleParentAccessionNumber(), true);
-                    }
+                if (germplasm.getFemaleParentAccessionNumber() != null) {
+                    germplasmAccessionNumbers.put(germplasm.getFemaleParentAccessionNumber(), true);
+                }
+                if (germplasm.getMaleParentAccessionNumber() != null) {
+                    germplasmAccessionNumbers.put(germplasm.getMaleParentAccessionNumber(), true);
+                }
             }
         }
 
@@ -269,7 +268,7 @@ public class GermplasmProcessor implements Processor {
         // Method for generating accession number
         String germplasmSequenceName = program.getGermplasmSequence();
         if (germplasmSequenceName == null) {
-            log.error(String.format("Program, %s, is missing a value in the germplasm sequence column.", program.getName()));
+            log.error("Program, {}, is missing a value in the germplasm sequence column.", program.getName());
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Program is not properly configured for germplasm import");
         }
         Supplier<BigInteger> nextVal = () -> dsl.nextval(germplasmSequenceName.toLowerCase());
@@ -285,14 +284,13 @@ public class GermplasmProcessor implements Processor {
         newGermplasmList = new ArrayList<>();
         updatedGermplasmList = new ArrayList<>();
         Map<String, ProgramBreedingMethodEntity> breedingMethods = new HashMap<>();
-        Boolean nullEntryNotFound = false;
         List<String> badBreedingMethods = new ArrayList<>();
         Map<String, Integer> entryNumberCounts = new HashMap<>();
         List<String> userProvidedEntryNumbers = new ArrayList<>();
         ValidationErrors validationErrors = new ValidationErrors();
 
         for (int i = 0; i < importRows.size(); i++) {
-            log.debug("processing germplasm row: " + (i+1));
+            log.debug("processing germplasm row: {}", i + 1);
             BrAPIImport brapiImport = importRows.get(i);
             PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
 
@@ -315,28 +313,28 @@ public class GermplasmProcessor implements Processor {
             //TODO maybe make separate method for cleanliness
             // Have GID so updating an existing germplasm record
             if (germplasm.getAccessionNumber() != null) {
-                processExistingGermplasm(germplasm, validationErrors, importRows, program, importListId, commit, mappedImportRow, i);
+                processExistingGermplasm(germplasm, validationErrors, importRows, breedingMethods, badBreedingMethods, program, commit, mappedImportRow, i);
             } else {
                 processNewGermplasm(germplasm, validationErrors, breedingMethods, badBreedingMethods, program, importListId, commit, mappedImportRow, i, user, nextVal);
             }
             mappedBrAPIImport.put(i, mappedImportRow);
         }
-        if (validationErrors.hasErrors() ){
+        if (validationErrors.hasErrors()) {
             throw new ValidatorException(validationErrors);
         }
 
         // Check for missing entry numbers
-        if (userProvidedEntryNumbers.size() > 0 && userProvidedEntryNumbers.size() < importRows.size()) {
+        if (!userProvidedEntryNumbers.isEmpty() && userProvidedEntryNumbers.size() < importRows.size()) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, missingEntryNumbersMsg);
         }
 
         // Check for duplicate entry numbers
         if (entryNumberCounts.size() < importRows.size()) {
             List<String> dups = entryNumberCounts.keySet().stream()
-                                                 .filter(key -> entryNumberCounts.get(key) > 1)
-                                                 .collect(Collectors.toList());
+                    .filter(key -> entryNumberCounts.get(key) > 1)
+                    .collect(Collectors.toList());
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                                          String.format(duplicateEntryNoMsg, arrayOfStringFormatter.apply(dups)));
+                    String.format(duplicateEntryNoMsg, arrayOfStringFormatter.apply(dups)));
         }
 
         // Construct pedigree
@@ -351,25 +349,12 @@ public class GermplasmProcessor implements Processor {
                                      List<String> badBreedingMethods,
                                      Program program, UUID importListId, boolean commit, PendingImport mappedImportRow, int i, User user, Supplier<BigInteger> nextVal) {
         germplasm = removeBreedingMethodBlanks(germplasm);
+        //Validating if Breeding Method exists for valid parent entries
+        validateGermplasmBreedingMethod(germplasm, i + 2, validationErrors);
         // Get the breeding method database object
-        ProgramBreedingMethodEntity breedingMethod = null;
-        if (germplasm.getBreedingMethod() != null) {
-            if (breedingMethods.containsKey(germplasm.getBreedingMethod())) {
-                breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
-            } else {
-                List<ProgramBreedingMethodEntity> breedingMethodResults = breedingMethodDAO.findByNameOrAbbreviation(germplasm.getBreedingMethod(), program.getId());
-                if (breedingMethodResults.size() > 0) {
-                    breedingMethods.put(germplasm.getBreedingMethod(), breedingMethodResults.get(0));
-                    breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
-                } else {
-                    ValidationError ve = new ValidationError("Breeding Method", badBreedMethodsMsg, HttpStatus.UNPROCESSABLE_ENTITY);
-                    validationErrors.addError(i + 2, ve);  // +2 instead of +1 to account for the column header row.
-                    badBreedingMethods.add(germplasm.getBreedingMethod());
-                }
-            }
-        }
+        ProgramBreedingMethodEntity breedingMethod = resolveBreedingMethod(germplasm, validationErrors, breedingMethods, badBreedingMethods, program, i + 2);
 
-        validateGermplasmName(germplasm, i+2, validationErrors);
+        validateGermplasmName(germplasm, i + 2, validationErrors);
         validatePedigree(germplasm, i + 2, validationErrors);
 
         if (germplasm.pedigreeExists()) {
@@ -391,16 +376,17 @@ public class GermplasmProcessor implements Processor {
 
     // Removes leading and trailing blanks from the germplasm breedingMethod
     private Germplasm removeBreedingMethodBlanks(Germplasm germplasm) {
-        if(germplasm.getBreedingMethod() != null ) {
+        if (germplasm.getBreedingMethod() != null) {
             germplasm.setBreedingMethod(germplasm.getBreedingMethod().strip());
         }
         return germplasm;
     }
 
-    private boolean processExistingGermplasm(Germplasm germplasm, ValidationErrors validationErrors, List<BrAPIImport> importRows, Program program, UUID importListId, boolean commit, PendingImport mappedImportRow, int rowIndex) {
+    private void processExistingGermplasm(Germplasm germplasm, ValidationErrors validationErrors, List<BrAPIImport> importRows, Map<String, ProgramBreedingMethodEntity> breedingMethods,
+                                          List<String> badBreedingMethods, Program program, boolean commit, PendingImport mappedImportRow, int rowIndex) {
         BrAPIGermplasm existingGermplasm;
         String gid = germplasm.getAccessionNumber();
-        boolean mutated = false;
+        boolean mutated;
         boolean updatePedigree = false;
 
         if (germplasmByAccessionNumber.containsKey(gid)) {
@@ -410,9 +396,15 @@ public class GermplasmProcessor implements Processor {
         } else {
             //should be caught in getExistingBrapiData
             ValidationError ve = new ValidationError("GID", String.format(missingGID, gid), HttpStatus.NOT_FOUND);
-            validationErrors.addError(rowIndex+2, ve );  // +2 instead of +1 to account for the column header row.
-            return false;
+            validationErrors.addError(rowIndex + 2, ve);  // +2 instead of +1 to account for the column header row.
+            return;
         }
+
+        germplasm = removeBreedingMethodBlanks(germplasm);
+        //Validating if Breeding Method exists for valid parent entries
+        validateGermplasmBreedingMethod(germplasm, rowIndex + 2, validationErrors);
+        // Get the breeding method database object
+        ProgramBreedingMethodEntity breedingMethod = resolveBreedingMethod(germplasm, validationErrors, breedingMethods, badBreedingMethods, program, rowIndex + 2);
 
         // Error conditions:
         // has existing pedigree and file pedigree is different and not empty
@@ -420,21 +412,21 @@ public class GermplasmProcessor implements Processor {
         // no existing pedigree and file different pedigree
         // existing pedigree and file pedigree same
         // existing pedigree and file pedigree empty
-        if(hasPedigree(existingGermplasm) && germplasm.pedigreeExists()) {
-            if(!arePedigreesEqual(existingGermplasm, germplasm, importRows)) {
+        if (hasPedigree(existingGermplasm) && germplasm.pedigreeExists()) {
+            if (!arePedigreesEqual(existingGermplasm, germplasm, importRows)) {
                 ValidationError ve = new ValidationError("Pedigree", pedigreeAlreadyExists, HttpStatus.UNPROCESSABLE_ENTITY);
                 validationErrors.addError(rowIndex + 2, ve);  // +2 instead of +1 to account for the column header row.
-                return false;
+                return;
             }
         }
 
         // if no existing pedigree and file has pedigree then validate and update
-        if(germplasm.pedigreeExists() && !hasPedigree(existingGermplasm)) {
+        if (germplasm.pedigreeExists() && !hasPedigree(existingGermplasm)) {
             validatePedigree(germplasm, rowIndex + 2, validationErrors);
             updatePedigree = true;
         }
 
-        mutated = germplasm.updateBrAPIGermplasm(existingGermplasm, program, importListId, commit, updatePedigree);
+        mutated = germplasm.updateBrAPIGermplasm(existingGermplasm, program, commit, updatePedigree, breedingMethod);
 
         if (mutated) {
             updatedGermplasmList.add(existingGermplasm);
@@ -448,7 +440,6 @@ public class GermplasmProcessor implements Processor {
 
         // add to list regardless of mutated or not
         importList.addDataItem(existingGermplasm.getGermplasmName());
-        return true;
     }
 
     private boolean canUpdatePedigree(BrAPIGermplasm existingGermplasm, Germplasm germplasm) {
@@ -604,6 +595,35 @@ public class GermplasmProcessor implements Processor {
         }
     }
 
+    private void validateGermplasmBreedingMethod(Germplasm germplasm, Integer rowNumber, ValidationErrors validationErrors) {
+        if (germplasm.pedigreeExists() && StringUtils.isBlank(germplasm.getBreedingMethod())) {
+            ValidationError error = new ValidationError("Breeding Method", missingBreedingMethodForParentalGIDorEntryNo, HttpStatus.UNPROCESSABLE_ENTITY);
+            validationErrors.addError(rowNumber, error);
+        }
+    }
+
+    //shared Breeding Method lookup for create and update processes
+    private ProgramBreedingMethodEntity resolveBreedingMethod(Germplasm germplasm, ValidationErrors validationErrors,
+                                                              Map<String, ProgramBreedingMethodEntity> breedingMethods,
+                                                              List<String> badBreedingMethods, Program program, int rowNumber) {
+        if (germplasm.getBreedingMethod() == null) {
+            return null;
+        }
+        if (breedingMethods.containsKey(germplasm.getBreedingMethod())) {
+            return breedingMethods.get(germplasm.getBreedingMethod());
+        }
+        List<ProgramBreedingMethodEntity> breedingMethodResults = breedingMethodDAO.findByNameOrAbbreviation(germplasm.getBreedingMethod(), program.getId());
+
+        if (breedingMethodResults.isEmpty()) {
+            ValidationError ve = new ValidationError("Breeding Method", badBreedMethodsMsg, HttpStatus.UNPROCESSABLE_ENTITY);
+            validationErrors.addError(rowNumber, ve);
+            badBreedingMethods.add(germplasm.getBreedingMethod());
+            return null;
+        }
+        breedingMethods.put(germplasm.getBreedingMethod(), breedingMethodResults.get(0));
+        return breedingMethods.get(germplasm.getBreedingMethod());
+    }
+
     private void validatePedigree(Germplasm germplasm, Integer rowNumber, ValidationErrors validationErrors) {
         String femaleParentEntryNo = germplasm.getFemaleParentEntryNo();
         String maleParentEntryNo = germplasm.getMaleParentEntryNo();
@@ -657,7 +677,7 @@ public class GermplasmProcessor implements Processor {
             }
 
             totalRecorded += createList.size();
-            if (createList.size() > 0) {
+            if (!createList.isEmpty()) {
                 created.addAll(createList.stream().map(GermplasmImportIdUtils::getImportId).collect(Collectors.toList()));
                 postOrder.add(createList);
             } else if (totalRecorded < newGermplasmList.size()) {
