@@ -69,16 +69,11 @@ public class BrAPIGermplasmDAO {
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
-    @Property(name = "micronaut.bi.api.run-scheduled-tasks")
-    private boolean runScheduledTasks;
-
     @Property(name = "brapi.paginate.germplasm")
     private boolean paginateGermplasm;
 
     @Property(name = "data-table.max-size")
     private int dataTableMaxSize;
-
-    private final ProgramCache<BrAPIGermplasm> programGermplasmCache;
 
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
@@ -88,28 +83,13 @@ public class BrAPIGermplasmDAO {
     public BrAPIGermplasmDAO(ProgramDAO programDAO,
                              ImportDAO importDAO,
                              BrAPIDAOUtil brAPIDAOUtil,
-                             ProgramCacheProvider programCacheProvider,
                              BrAPIEndpointProvider brAPIEndpointProvider,
                              @Property(name = "brapi.cache.fetch-page-size") int brapiFetchPageSize) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
-        this.programGermplasmCache = programCacheProvider.getProgramCache(this::fetchProgramGermplasm, BrAPIGermplasm.class);
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.brapiMaxPageSize = brapiFetchPageSize;
-    }
-
-    @Scheduled(initialDelay = "${startup.delay.germplasm}")
-    public void setup() {
-        if(!runScheduledTasks) {
-            return;
-        }
-        // Populate germplasm cache for all programs on startup
-        log.debug("populating germplasm cache");
-        List<Program> programs = programDAO.getActive();
-        if(programs != null) {
-            programGermplasmCache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
-        }
     }
 
     /**
@@ -203,9 +183,6 @@ public class BrAPIGermplasmDAO {
         }
     }
 
-    public void repopulateGermplasmCacheForProgram(UUID programId) {
-        programGermplasmCache.populate(programId);
-    }
     /**
      * Process germplasm into a format for display
      * @param programGermplasm
@@ -487,11 +464,8 @@ public class BrAPIGermplasmDAO {
         var program = new Program(programDAO.fetchOneById(programId));
         try {
             if (!putBrAPIGermplasmList.isEmpty()) {
-                Callable<Map<String, BrAPIGermplasm>> postFunction = () -> {
-                    List<BrAPIGermplasm> putResponse = putGermplasm(putBrAPIGermplasmList, api);
-                    return processGermplasmForDisplay(putResponse, program);
-                };
-                return programGermplasmCache.post(programId, postFunction);
+                List<BrAPIGermplasm> putResponse = putGermplasm(putBrAPIGermplasmList, api);
+                return new ArrayList<>(processGermplasmForDisplay(putResponse, program).values());
             }
             return new ArrayList<>();
         } catch (Exception e) {
