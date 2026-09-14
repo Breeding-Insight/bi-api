@@ -237,3 +237,5 @@ startup:
     trait: ${TRAIT_START_DELAY:2s}
     observation: ${OBSERVATION_START_DELAY:3s}
     observation_unit: ${OBSERVATION_UNIT_START_DELAY:3s}
+data-table:
+  max-size: ${DATA_TABLE_MAX_SIZE:200}

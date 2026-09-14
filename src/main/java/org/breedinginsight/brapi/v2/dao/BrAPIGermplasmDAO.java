@@ -20,6 +20,7 @@ package org.breedinginsight.brapi.v2.dao;
 import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +71,9 @@ public class BrAPIGermplasmDAO {
 
     @Property(name = "brapi.paginate.germplasm")
     private boolean paginateGermplasm;
+
+    @Property(name = "data-table.max-size")
+    private int dataTableMaxSize;
 
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
@@ -219,7 +223,16 @@ public class BrAPIGermplasmDAO {
         // This should always work because processGermplasmForDisplay is only ever called once Germplasm data has been created in the database, and provided we improve lookups to not fetch
         // all program germplasm at once, the performance hit should be negligible.
         // TODO: This hack can be removed once/if we implement [BI-2588/BI-2452]
-        Map<String, String> pedigreeBrAPIGermplasmDbIdByBICreatedExRef = getPedigreeGermplasmDbIdByBICreatedExRef(programGermplasm, program);
+        Map<String, String> pedigreeBrAPIGermplasmDbIdByBICreatedExRef = null;
+
+        // This should ease concerns for extra time pulling this data.  The intended usage is for the Germplasm data table,
+        // but any usage under 200 germs (current data table max size) should not be too large of a hit to the server or database.
+        boolean pedigreeExRefMutation = programGermplasm.size() <= dataTableMaxSize;
+
+        if (pedigreeExRefMutation) {
+            // Only perform this operation for callers that require it
+            pedigreeBrAPIGermplasmDbIdByBICreatedExRef = getPedigreeGermplasmDbIdByBICreatedExRef(programGermplasm, program);
+        }
 
         // Update pedigree string
         for (BrAPIGermplasm germplasm: programGermplasm) {
@@ -259,8 +272,14 @@ public class BrAPIGermplasmDAO {
             {
                 gidPedigreeString = additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID) ? additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID).getAsString() : "";
                 namePedigreeString = parentNames.get(0);
-                // Convert the bi-generated additionalInfo parent ID to the brapi germplasmDbId using map from previous step.
-                uuidPedigreeString = additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID) ? pedigreeBrAPIGermplasmDbIdByBICreatedExRef.get(additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID).getAsString()) : "";
+
+                if (pedigreeExRefMutation) {
+                    // Convert the bi-generated additionalInfo parent ID to the brapi germplasmDbId using map from previous step.
+                    uuidPedigreeString = additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID) ? pedigreeBrAPIGermplasmDbIdByBICreatedExRef.get(additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID).getAsString()) : "";
+                } else {
+                    uuidPedigreeString = additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID) ? additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID).getAsString() : "";
+                }
+
                 // Throw a descriptive error if femaleParentUUID is absent.
                 if (!additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID)) {
                     String programId = "unknown program";
@@ -279,8 +298,12 @@ public class BrAPIGermplasmDAO {
             {
                 gidPedigreeString += "/" + (additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID) ? additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID).getAsString() : "");
                 namePedigreeString += "/" + parentNames.get(1);
-                // Convert the bi-generated additionalInfo parent ID to the brapi germplasmDbId using map from previous step.
-                uuidPedigreeString += "/" + (additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID) ? pedigreeBrAPIGermplasmDbIdByBICreatedExRef.get(additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID).getAsString()) : "");
+                if (pedigreeExRefMutation) {
+                    // Convert the bi-generated additionalInfo parent ID to the brapi germplasmDbId using map from previous step.
+                    uuidPedigreeString += "/" + (additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID) ? pedigreeBrAPIGermplasmDbIdByBICreatedExRef.get(additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID).getAsString()) : "");
+                } else {
+                    uuidPedigreeString += "/" + (additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID) ? additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID).getAsString() : "");
+                }
                 // Throw a descriptive error if maleParentUUID is absent.
                 if (!additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID)) {
                     String programId = "unknown program";
@@ -311,15 +334,35 @@ public class BrAPIGermplasmDAO {
     private Map<String, String> getPedigreeGermplasmDbIdByBICreatedExRef(List<BrAPIGermplasm> brAPIGermplasm, Program program) throws ApiException {
         Map<String, String> germplasmDbIdByGeneratedExRef = new HashMap<>();
 
+        // First, utilize initialized map to store all related parent bi-generated exref IDs.
         for  (BrAPIGermplasm germplasm : brAPIGermplasm) {
+            if (germplasm.getAdditionalInfo() == null) {
+                continue;
+            }
             if (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID)) {
+                try {
+                    UUID.fromString(germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID).getAsString());
+                } catch (IllegalArgumentException e) {
+                    throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), String.format("Germplasm with BrAPI dbId [%s] has an additionalInfo.femaleParentUUID that is not a UUID", germplasm.getGermplasmDbId()));
+                }
                 germplasmDbIdByGeneratedExRef.put(germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID).getAsString(), null);
             }
             if (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID)) {
+                try {
+                    UUID.fromString(germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID).getAsString());
+                } catch (IllegalArgumentException e) {
+                    throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), String.format("Germplasm with BrAPI dbId [%s] has an additionalInfo.maleParentUUID that is not a UUID", germplasm.getGermplasmDbId()));
+                }
                 germplasmDbIdByGeneratedExRef.put(germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID).getAsString(), null);
             }
         }
 
+        if (germplasmDbIdByGeneratedExRef.isEmpty()) {
+            // If there are none, no reason to proceed with a BrAPI search.
+            return germplasmDbIdByGeneratedExRef;
+        }
+
+        // Now grab all male/female exrefs and search for them to get their germplasmDbIds
         List<String> exRefIds = new ArrayList<>(germplasmDbIdByGeneratedExRef.keySet());
 
         BrAPIGermplasmSearchRequest searchRequest = new BrAPIGermplasmSearchRequest();
@@ -332,6 +375,9 @@ public class BrAPIGermplasmDAO {
         GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), GermplasmApi.class);
 
 
+        // This will use CACHE_BRAPI_FETCH_PAGE_SIZE env variable to lookup at maximum 65k pedigree germplasm at once.
+        // This should not be normal though, as we should try not to exceed 1k lookups at once using this code.
+        // If there is a need to look up a large amount of germplasm records at once, alternative methods should be used.
         List<BrAPIGermplasm> germplasmSearchedWithExRef = brAPIDAOUtil.searchNoPaging(
                         api::searchGermplasmPost,
                         api::searchGermplasmSearchResultsDbIdGet,
