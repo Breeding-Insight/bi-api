@@ -61,7 +61,7 @@ public class BrAPIStudyDAO {
             ProgramDAO programDAO,
             ImportDAO importDAO,
             BrAPIDAOUtil brAPIDAOUtil,
-            BrAPIEndpointProvider brAPIEndpointProvider) { // NEW
+            BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
