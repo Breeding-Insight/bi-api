@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapi.v2.dao;
 
+import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
 import lombok.SneakyThrows;
@@ -26,11 +27,9 @@ import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.daos.cache.FetchFunction;
-import org.breedinginsight.daos.cache.ProgramCache;
-import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
@@ -56,7 +55,6 @@ public class BrAPIStudyDAOUnitTest {
     private BrAPIStudyDAO studyDAO;
     private ProgramDAO programDAO;
     private BrAPIDAOUtil brAPIDAOUtil;
-    private ProgramCache<BrAPIStudy> programCache;
     private Program program;
     private UUID programId;
     private UUID environmentId;
@@ -76,11 +74,7 @@ public class BrAPIStudyDAOUnitTest {
 
         programDAO = mock(ProgramDAO.class);
         brAPIDAOUtil = mock(BrAPIDAOUtil.class);
-        ProgramCacheProvider programCacheProvider = mock(ProgramCacheProvider.class);
-        programCache = mock(ProgramCache.class);
 
-        when(programCacheProvider.getProgramCache(any(FetchFunction.class), eq(BrAPIStudy.class)))
-                .thenReturn(programCache);
         when(programDAO.get(programId)).thenReturn(List.of(program));
         when(programDAO.getCoreClient(programId)).thenReturn(mock(BrAPIClient.class));
         when(programDAO.getProgramBrAPI(program)).thenReturn(brapiProgram);
@@ -89,8 +83,7 @@ public class BrAPIStudyDAOUnitTest {
                 programDAO,
                 mock(ImportDAO.class),
                 brAPIDAOUtil,
-                new BrAPIEndpointProvider(),
-                programCacheProvider
+                new BrAPIEndpointProvider()
         );
 
         Field referenceSource = BrAPIStudyDAO.class.getDeclaredField("referenceSource");
@@ -119,7 +112,6 @@ public class BrAPIStudyDAOUnitTest {
         assertEquals("brapi-program-1", queryParamsCaptor.getValue().programDbId());
         assertEquals(0, queryParamsCaptor.getValue().page());
         assertEquals(1000, queryParamsCaptor.getValue().pageSize());
-        verify(programCache, never()).get(any(UUID.class));
     }
 
     @Test
@@ -143,8 +135,6 @@ public class BrAPIStudyDAOUnitTest {
 
         assertEquals(List.of("brapi-program-1"), requestCaptor.getValue().getProgramDbIds());
         assertEquals(List.of(studyDbId), requestCaptor.getValue().getStudyDbIds());
-
-        verify(programCache, never()).get(any(UUID.class));
     }
 
     @Test
@@ -156,6 +146,28 @@ public class BrAPIStudyDAOUnitTest {
         Optional<BrAPIStudy> result = studyDAO.getStudyByDbId(UUID.randomUUID().toString(), program);
 
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @SneakyThrows
+    void createBrAPIStudiesReturnsDirectBrAPIPostResponse() {
+
+        BrAPIStudy requestedStudy = new BrAPIStudy().studyName("Env1 [TEST-1]");
+        List<BrAPIStudy> requestedStudies = List.of(requestedStudy);
+
+        BrAPIStudy createdStudy = new BrAPIStudy().studyDbId("study-db-id").studyName("Env1 [TEST-1]");
+        ImportUpload upload = mock(ImportUpload.class);
+
+        doReturn(List.of(createdStudy))
+                .when(brAPIDAOUtil)
+                .post(eq(requestedStudies),eq(upload),any(Function.class),any(Consumer.class));
+
+        List<BrAPIStudy> result = studyDAO.createBrAPIStudies(requestedStudies,programId,upload);
+
+        assertEquals(1, result.size());
+        assertEquals("study-db-id",result.get(0).getStudyDbId());
+
+        verify(brAPIDAOUtil).post(eq(requestedStudies),eq(upload),any(Function.class),any(Consumer.class));
     }
 
     private BrAPIStudy study(UUID environmentId, String studyName) {

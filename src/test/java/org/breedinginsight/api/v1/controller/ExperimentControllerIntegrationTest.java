@@ -16,6 +16,7 @@ import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.BrAPITest;
@@ -218,6 +219,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         envIds.clear();
         brAPIStudyDAO.getStudies(program.getId())
+                .stream()
+                .sorted(Comparator.comparing(BrAPIStudy::getStudyName))
                 .forEach(study -> envIds.add(study.getStudyDbId()));
     }
 

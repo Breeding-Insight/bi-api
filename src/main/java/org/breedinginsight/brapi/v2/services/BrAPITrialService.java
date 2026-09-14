@@ -814,8 +814,6 @@ public class BrAPITrialService {
             for (BrAPIListSummary list : lists) {
                 listDAO.deleteBrAPIList(list.getListDbId(), program.getId(), hard);
             }
-            // TODO: if performance is poor, implement more precise invalidation, possibly using hierarchical cache keys.
-            studyDAO.repopulateCache(program.getId());
         }
 
         // Successful or not, return the number of observations in this experiment.
