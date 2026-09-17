@@ -145,44 +145,6 @@ public class BrAPIGermplasmDAO {
         }).collect(Collectors.toList());
     }
 
-
-    /**
-     * Fetch formatted germplasm for this program
-     * @param programId
-     * @return Map<Key = string representing germplasm UUID, value = formatted BrAPIGermplasm>
-     * @throws ApiException
-     */
-    private Map<String, BrAPIGermplasm> fetchProgramGermplasm(UUID programId) throws ApiException {
-        GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
-        // Get the program key
-        List<Program> programs = programDAO.get(programId);
-        if (programs.size() != 1) {
-            throw new InternalServerException("Program was not found for given key");
-        }
-        Program program = programs.get(0);
-
-        // Set query params and make call
-        BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
-        germplasmSearch.externalReferenceIDs(List.of(programId.toString()));
-        germplasmSearch.externalReferenceSources(List.of(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS)));
-
-        if (paginateGermplasm) {
-            log.debug("Fetching germplasm with pagination to BrAPI");
-            return processGermplasmForDisplay(brAPIDAOUtil.search(
-                            api::searchGermplasmPost,
-                            api::searchGermplasmSearchResultsDbIdGet,
-                            germplasmSearch),
-                    program);
-        } else {
-            log.debug("Fetching germplasm without pagination to BrAPI");
-            return processGermplasmForDisplay(brAPIDAOUtil.searchNoPaging(
-                    api::searchGermplasmPost,
-                    api::searchGermplasmSearchResultsDbIdGet,
-                    germplasmSearch),
-                    program);
-        }
-    }
-
     /**
      * Process germplasm into a format for display
      * @param programGermplasm
