@@ -23,6 +23,7 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
+import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -51,6 +52,7 @@ import java.util.UUID;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static io.micronaut.http.HttpRequest.POST;
+import static io.micronaut.http.HttpRequest.PUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -171,18 +173,41 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
     public void testPutVariablesNotFound() {
         BrAPIObservationVariable variable = generateVariable();
 
-        Flowable<HttpResponse<String>> postCall = biClient.exchange(
-                POST(String.format("%s/programs/%s/brapi/v2/variables",
-                                   biApiVersion,
-                                   validProgram.getId().toString()), Arrays.asList(variable))
+        Flowable<HttpResponse<String>> putCall = biClient.exchange(
+                PUT(String.format("%s/programs/%s/brapi/v2/variables",
+                                  biApiVersion,
+                                  validProgram.getId().toString()), Arrays.asList(variable))
                         .contentType(MediaType.APPLICATION_JSON)
                         .bearerAuth("test-registered-user"), String.class
         );
 
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = postCall.blockingFirst();
+            HttpResponse<String> response = putCall.blockingFirst();
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    public void testProgramUserCannotAccessPassThroughEndpoints() {
+        String brapiBaseUrl = String.format("%s/programs/%s/brapi/v2",
+                                            biApiVersion,
+                                            validProgram.getId());
+
+        assertProgramUserForbidden(GET(brapiBaseUrl + "/seasons"));
+        assertProgramUserForbidden(GET(brapiBaseUrl + "/unimplemented-get"));
+        assertProgramUserForbidden(POST(brapiBaseUrl + "/unimplemented-post", "{}")
+                                           .contentType(MediaType.APPLICATION_JSON));
+        assertProgramUserForbidden(PUT(brapiBaseUrl + "/unimplemented-put", "{}")
+                                           .contentType(MediaType.APPLICATION_JSON));
+    }
+
+    private void assertProgramUserForbidden(MutableHttpRequest<?> request) {
+        Flowable<HttpResponse<String>> call = biClient.exchange(
+                request.bearerAuth("other-registered-user"), String.class);
+
+        HttpClientResponseException exception = Assertions.assertThrows(
+                HttpClientResponseException.class, call::blockingFirst);
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
     }
 
 
