@@ -31,6 +31,7 @@ import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
@@ -299,6 +300,20 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.getAsJsonArray("data");
 
         assertEquals(3, data.size(), "Wrong number of germplasm were returned");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{}", "{\"germplasmDbIds\":null}", "{\"germplasmDbIds\":[]}"})
+    public void searchGermplasmWithoutDbIdsSuccess(String requestBody) {
+        HttpResponse<String> response = client.exchange(
+                POST(String.format("/programs/%s/brapi/v2/search/germplasm", validProgram.getId()), requestBody)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        ).blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonArray data = JsonParser.parseString(response.body()).getAsJsonObject()
+                .getAsJsonObject("result").getAsJsonArray("data");
+        assertEquals(6, data.size(), "Only the requested program's germplasm should be returned");
     }
 
     @Test
