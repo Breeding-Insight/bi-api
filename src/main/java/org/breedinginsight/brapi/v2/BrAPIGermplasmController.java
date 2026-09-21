@@ -26,7 +26,9 @@ import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmPedigreeResponse;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmProgenyResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
+import org.breedinginsight.api.auth.ProgramSecuredRole;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
+import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -41,7 +43,9 @@ import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.GermplasmGenotype;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -71,6 +75,8 @@ public class BrAPIGermplasmController {
 
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
+    private final SecurityService securityService;
+    private final ProgramUserService programUserService;
 
     @Inject
     public BrAPIGermplasmController(@Property(name = "brapi.server.reference-source") String referenceSource,
@@ -80,7 +86,9 @@ public class BrAPIGermplasmController {
                                     BrAPIGermplasmDAO germplasmDAO,
                                     GenotypeService genoService,
                                     BrAPIEndpointProvider brAPIEndpointProvider,
-                                    ProgramService programService) {
+                                    ProgramService programService,
+                                    SecurityService securityService,
+                                    ProgramUserService programUserService) {
         this.referenceSource = referenceSource;
         this.germplasmService = germplasmService;
         this.germplasmQueryMapper = germplasmQueryMapper;
@@ -89,6 +97,8 @@ public class BrAPIGermplasmController {
         this.genoService = genoService;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.programService = programService;
+        this.securityService = securityService;
+        this.programUserService = programUserService;
     }
 
     // NOTE: bypasses cache and makes api request directly to brapi service
@@ -196,7 +206,8 @@ public class BrAPIGermplasmController {
 
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN
+            ,ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR })
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> getGermplasm(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid GermplasmQuery queryParams) {
@@ -207,6 +218,15 @@ public class BrAPIGermplasmController {
             String dateFormatParam = queryParams.getDateDisplayFormat();
             if (dateFormatParam != null) {
                 germplasmQueryMapper.setDateDisplayFormat(dateFormatParam);
+            }
+
+            //If experimental collaborator, 403 error should be returned
+            //Handled this way due to FieldBook field import involving a germplasm endpoint call
+            Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
+            if (experimentalCollaborator.isPresent()) {
+                log.info("Experimental Collaborator cannot retrieve germplasm");
+                return HttpResponse.status(HttpStatus.FORBIDDEN, "Experimental Collaborator cannot retrieve germplasm");
+
             }
 
             // Fetch all germplasm in the program unless a list id is supplied to return only germplasm in that collection
