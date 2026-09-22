@@ -28,12 +28,12 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.BrAPIStatus;
 import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.response.BrAPIStudyListResponse;
 import org.brapi.v2.model.core.response.BrAPIStudySingleResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRole;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.auth.SecurityService;
-import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
@@ -87,31 +87,40 @@ public class BrAPIStudiesController {
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured( roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.READ_ONLY, ProgramSecuredRole.PROGRAM_ADMIN
             ,ProgramSecuredRole.EXPERIMENTAL_COLLABORATOR} )
-    public HttpResponse<Response<DataResponse<List<BrAPIStudy>>>> getStudies(
+    public HttpResponse<Response<DataResponse<BrAPIStudy>>> getStudies(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = StudyQueryMapper.class) @Valid StudyQuery queryParams) {
         try {
             Optional<Program> program = programService.getById(programId);
             if (program.isEmpty()) { return HttpResponse.notFound(); }
 
-            queryParams.setSortField(studyQueryMapper.getDefaultSortField());
-            queryParams.setSortOrder(studyQueryMapper.getDefaultSortOrder());
-            SearchRequest searchRequest = queryParams.constructSearchRequest();
+            if (queryParams.getSortField() == null) {
+                queryParams.setSortField(studyQueryMapper.getDefaultSortField());
+            }
+            if (queryParams.getSortOrder() == null) {
+                queryParams.setSortOrder(studyQueryMapper.getDefaultSortOrder());
+            }
             log.debug("fetching studies for program: " + programId);
 
             // If the program user is an experimental collaborator, filter results for only authorized studies.
             Optional<ProgramUser> experimentalCollaborator = programUserService.getIfExperimentalCollaborator(programId, securityService.getUser().getId());
             if (experimentalCollaborator.isPresent()) {
                 List<UUID> authorizedExperimentIds = experimentalCollaboratorService.getAuthorizedExperimentIds(experimentalCollaborator.get().getId());
-                List<BrAPIStudy> authorizedStudies = studyService.getStudiesByExperimentIds(
-                                             program.get(),
-                                             authorizedExperimentIds);
-                return ResponseUtils.getBrapiQueryResponse(authorizedStudies, studyQueryMapper, queryParams, searchRequest);
+                if (authorizedExperimentIds.isEmpty()) {
+                    return ResponseUtils.getEmptyBrapiQueryResponse();
+                }
+
+                BrAPIStudyListResponse brapiResponse = studyService.searchStudies(
+                        program.get(),
+                        authorizedExperimentIds,
+                        queryParams);
+                List<BrAPIStudy> foundStudies = brapiResponse.getResult().getData();
+                return ResponseUtils.getBrapiQueryResponse(foundStudies, brapiResponse);
             }
 
-            // TODO: Instead of getting all studies for a program and filtering, doing the filtering on brapi side [BI-2922]
-            List<BrAPIStudy> studies = studyService.getStudies(programId);
-            return ResponseUtils.getBrapiQueryResponse(studies, studyQueryMapper, queryParams, searchRequest);
+            BrAPIStudyListResponse brapiResponse = studyService.searchStudies(program.get(), queryParams);
+            List<BrAPIStudy> foundStudies = brapiResponse.getResult().getData();
+            return ResponseUtils.getBrapiQueryResponse(foundStudies, brapiResponse);
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving study");

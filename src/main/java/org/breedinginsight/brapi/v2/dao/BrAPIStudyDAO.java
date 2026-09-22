@@ -27,6 +27,8 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
+import org.brapi.v2.model.core.response.BrAPIStudyListResponse;
+import org.breedinginsight.brapi.v2.model.request.query.StudyQuery;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
@@ -81,6 +83,45 @@ public class BrAPIStudyDAO {
                 .orElseThrow();
 
         return getBrAPIStudiesUsingBrAPIProgramId(program);
+    }
+
+    public BrAPIStudyListResponse brapiStudySearch(Program program, StudyQuery studyQuery) throws ApiException {
+        return brapiStudySearch(program, Collections.emptyList(), studyQuery);
+    }
+
+    public BrAPIStudyListResponse brapiStudySearch(Program program, List<UUID> brapiTrialIds,
+                                                   StudyQuery studyQuery) throws ApiException {
+        StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), StudiesApi.class);
+
+        BrAPIStudySearchRequest brAPIStudySearchRequest = buildSearchRequest(program, brapiTrialIds, studyQuery);
+
+        BrAPIStudyListResponse brAPIResponse = brAPIDAOUtil.simpleSearch(api::searchStudiesPost, brAPIStudySearchRequest);
+
+        List<BrAPIStudy> processedStudies = new ArrayList<>(processStudyForDisplay(brAPIDAOUtil.getListResult(brAPIResponse), program.getKey()).values());
+
+        brAPIResponse.getResult().setData(processedStudies);
+
+        return brAPIResponse;
+    }
+
+    private BrAPIStudySearchRequest buildSearchRequest(Program program, List<UUID> brapiTrialIds, StudyQuery studyQuery) {
+        BrAPIProgram brAPIProgram = programDAO.getProgramBrAPI(program);
+
+        if (brAPIProgram == null || brAPIProgram.getProgramDbId() == null) {
+            throw new InternalServerException(String.format("BI program with id [%s] not found in BrAPI db", program.getId()));
+        }
+
+        BrAPIStudySearchRequest searchRequest = new BrAPIStudySearchRequest();
+
+        searchRequest.programDbIds(List.of(brAPIProgram.getProgramDbId()));
+
+        if (brapiTrialIds != null && !brapiTrialIds.isEmpty()) {
+            searchRequest.setTrialDbIds(brapiTrialIds.stream().map(UUID::toString).collect(Collectors.toList()));
+        }
+
+        brAPIDAOUtil.setGenericSearchParameters(searchRequest, studyQuery);
+
+        return searchRequest;
     }
 
     private List<BrAPIStudy> getBrAPIStudiesUsingBrAPIProgramId(Program program) throws ApiException {
@@ -205,7 +246,7 @@ public class BrAPIStudyDAO {
      * @return Map - Key = string representing study UUID, value = formatted BrAPIStudy
      */
     private Map<String,BrAPIStudy> processStudyForDisplay(List<BrAPIStudy> programStudy, String programKey) {
-        Map<String, BrAPIStudy> programStudyMap = new HashMap<>();
+        Map<String, BrAPIStudy> programStudyMap = new LinkedHashMap<>();
         log.trace("processing study for display: " + programStudy);
         for (BrAPIStudy study: programStudy) {
             // Remove program key from studyName, trialName and locationName.

@@ -96,6 +96,48 @@ public class BrAPIStudiesControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
+    public void testGetStudiesAsExperimentalCollaboratorWithStudyFilter() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/studies?studyName=Env3", program.getId()))
+                        .bearerAuth("other-registered-user"),
+                String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+        JsonArray studies = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+        assertEquals(1, studies.size());
+        assertEquals("Env3", studies.get(0).getAsJsonObject().get("studyName").getAsString());
+    }
+
+    @Test
+    public void testGetStudiesUsesProdServerSortingAndPagination() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/studies?sortField=studyName&sortOrder=DESC&page=1&pageSize=2",
+                        program.getId()))
+                        .bearerAuth("test-registered-user"),
+                String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+        JsonArray studies = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+        assertEquals(2, studies.size());
+        assertEquals("Env2", studies.get(0).getAsJsonObject().get("studyName").getAsString());
+        assertEquals("Env1", studies.get(1).getAsJsonObject().get("studyName").getAsString());
+
+        JsonObject pagination = responseObj.getAsJsonObject("metadata").getAsJsonObject("pagination");
+        assertEquals(1, pagination.get("currentPage").getAsInt());
+        assertEquals(2, pagination.get("pageSize").getAsInt());
+        assertEquals(4, pagination.get("totalCount").getAsInt());
+        assertEquals(2, pagination.get("totalPages").getAsInt());
+    }
+
+    @Test
     @SneakyThrows
     public void testPostGetStudiesNotFound() {
         BrAPIStudy study = new BrAPIStudy().studyName("test study")
