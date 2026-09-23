@@ -20,7 +20,9 @@ package org.breedinginsight.brapi.v2.services;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.response.BrAPIStudyListResponse;
 import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
+import org.breedinginsight.brapi.v2.model.request.query.StudyQuery;
 import org.breedinginsight.model.Program;
 
 import javax.inject.Inject;
@@ -38,6 +40,15 @@ public class BrAPIStudyService {
     @Inject
     public BrAPIStudyService(BrAPIStudyDAO studyDAO) {
         this.studyDAO = studyDAO;
+    }
+
+    public BrAPIStudyListResponse searchStudies(Program program, StudyQuery studyQuery) throws ApiException {
+        return studyDAO.brapiStudySearch(program, studyQuery);
+    }
+
+    public BrAPIStudyListResponse searchStudies(Program program, List<UUID> authorizedExperimentIds,
+                                                StudyQuery studyQuery) throws ApiException {
+        return studyDAO.brapiStudySearch(program, authorizedExperimentIds, studyQuery);
     }
 
     public List<BrAPIStudy> getStudies(UUID programId) throws ApiException {
