@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapi.v2;
 
+import io.micronaut.context.annotation.Value;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -186,6 +187,15 @@ public class BrAPIV2Controller {
         return executeRequest(path, programId, request, "GET");
     }
 
+    @Delete("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    public HttpResponse<?> deleteCatchall(@PathVariable("path") String path,
+                                          @PathVariable("programId") UUID programId,
+                                          HttpRequest<Void> request) {
+        return executeDeleteRequest(path, programId, request);
+    }
+
     @Post("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Consumes(MediaType.ALL)
     @Produces(MediaType.APPLICATION_JSON)
@@ -234,6 +244,22 @@ public class BrAPIV2Controller {
 //                                                    .addHeader("Authorization", "Bearer " + token) //TODO
                                                     .method(method, request.getBody().isPresent() ? RequestBody.create(request.getBody().get(), okhttp3.MediaType.get(MediaType.APPLICATION_JSON)) : null)
                                                     .build();
+
+            return makeCall(brapiRequest);
+        }
+
+        throw new HttpStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized BrAPI Request");
+    }
+
+    private HttpResponse<String> executeDeleteRequest(String path, UUID programId, HttpRequest<?> request) {
+        AuthenticatedUser actingUser = securityService.getUser();
+
+        if (programId != null) {
+            HttpUrl requestUrl = getUrl(programId, path, request);
+
+            var brapiRequest = new Request.Builder().url(requestUrl)
+                    .method("DELETE", null)
+                    .build();
 
             return makeCall(brapiRequest);
         }
