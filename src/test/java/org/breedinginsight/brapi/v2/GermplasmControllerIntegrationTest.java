@@ -396,6 +396,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
     @Test
     @SneakyThrows
     public void filterGermplasmCreatedDateSuccess() {
+        // TODO: This test is going to continue to fail until date data is migrated to the proper format [BI-3057]
         // Case 1: createdDate="/".
         // If createdDate is filtered in the default format, "dd/MM/yyyy HH:mm:ss", "/" will match all, test fails.
         // If createdDate is filtered after formatting with "yyyy-MM-dd", "/" will match none, test succeeds.
