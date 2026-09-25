@@ -19,6 +19,7 @@ import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.BrAPIStatus;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.*;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
@@ -185,7 +186,7 @@ public class BrAPIGermplasmController {
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
-    public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> getGermplasm(
+    public HttpResponse<Response<DataResponse<BrAPIGermplasm>>> getGermplasm(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid GermplasmQuery queryParams) {
         try {
@@ -198,15 +199,19 @@ public class BrAPIGermplasmController {
             }
 
             // Fetch all germplasm in the program unless a list id is supplied to return only germplasm in that collection
-            List<BrAPIGermplasm> germplasm = queryParams.getListDbId() == null ? germplasmService.getGermplasm(programId) : germplasmService.getGermplasmByList(programId, queryParams.getListDbId());
-            SearchRequest searchRequest = queryParams.constructSearchRequest();
-            return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams, searchRequest);
+            BrAPIGermplasmListResponse brapiResponse = queryParams.getListDbId() == null ? germplasmService.searchGermplasm(programId, queryParams) : germplasmService.getGermplasmByList(programId, queryParams);
+
+            List<BrAPIGermplasm> foundTrials = brapiResponse.getResult().getData();
+            return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse, queryParams);
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
         } catch (IllegalArgumentException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.NOT_FOUND, "Supplied programId does not exist");
         }
     }
 

@@ -8,7 +8,9 @@ import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.jooq.tools.StringUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Introspected
@@ -66,5 +68,43 @@ public class GermplasmQuery extends BrapiQuery {
             filters.add(constructFilterRequest("synonyms", getSynonym()));
         }
         return new SearchRequest(filters);
+    }
+
+    @Override
+    public Map<String, String> getFilterValuesByBrAPIColumnName() {
+        Map<String, String> filterValuesByBrAPIColumnName = new HashMap<>();
+
+        filterValuesByBrAPIColumnName.put("importEntryNumber", getImportEntryNumber());
+        filterValuesByBrAPIColumnName.put("accessionNumber", getAccessionNumber());
+        filterValuesByBrAPIColumnName.put("defaultDisplayName", getDefaultDisplayName());
+        filterValuesByBrAPIColumnName.put("breedingMethod", getBreedingMethod());
+        filterValuesByBrAPIColumnName.put("seedSource", getSeedSource());
+        filterValuesByBrAPIColumnName.put("pedigree", getPedigree());
+        filterValuesByBrAPIColumnName.put("femaleParentGID", getFemaleParentGID());
+        filterValuesByBrAPIColumnName.put("maleParentGID", getMaleParentGID());
+        filterValuesByBrAPIColumnName.put("createdDate", getCreatedDate());
+        filterValuesByBrAPIColumnName.put("createdBy", getCreatedByUserName());
+        filterValuesByBrAPIColumnName.put("synonyms", getSynonym());
+
+        return filterValuesByBrAPIColumnName;
+    }
+
+    @Override
+    public Map<String, String> getBrAPIColumnNamesByBiColumnName() {
+        Map<String, String> brAPIColumnNamesByBiColumnName = new HashMap<>();
+
+        brAPIColumnNamesByBiColumnName.put("importEntryNumber", "importEntryNumber");
+        brAPIColumnNamesByBiColumnName.put("accessionNumber", "accessionNumber");
+        brAPIColumnNamesByBiColumnName.put("defaultDisplayName", "defaultDisplayName");
+        brAPIColumnNamesByBiColumnName.put("breedingMethod", "breedingMethod");
+        brAPIColumnNamesByBiColumnName.put("seedSource", "seedSource");
+        brAPIColumnNamesByBiColumnName.put("pedigree", "pedigree");
+        brAPIColumnNamesByBiColumnName.put("femaleParentGID", "femaleParentGID");
+        brAPIColumnNamesByBiColumnName.put("maleParentGID", "maleParentGID");
+        brAPIColumnNamesByBiColumnName.put("createdDate", "createdDate");
+        brAPIColumnNamesByBiColumnName.put("createdBy", "createdByUserName");
+        brAPIColumnNamesByBiColumnName.put("synonyms", "synonyms");
+
+        return brAPIColumnNamesByBiColumnName;
     }
 }
