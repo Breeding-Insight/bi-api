@@ -23,14 +23,22 @@ import lombok.SneakyThrows;
 import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.model.queryParams.core.StudyQueryParams;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.BrAPIMetadata;
+import org.brapi.v2.model.BrAPIPagination;
+import org.brapi.v2.model.BrAPISortOrder;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
+import org.brapi.v2.model.core.response.BrAPIStudyListResponse;
+import org.brapi.v2.model.core.response.BrAPIStudyListResponseResult;
+import org.breedinginsight.api.v1.controller.metadata.SortOrder;
+import org.breedinginsight.brapi.v2.model.request.query.StudyQuery;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
@@ -39,12 +47,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -150,6 +160,67 @@ public class BrAPIStudyDAOUnitTest {
 
     @Test
     @SneakyThrows
+    void brapiStudySearchSendsServerSideQueryAndPreservesPagedResponseOrder() {
+        UUID authorizedTrialId = UUID.randomUUID();
+        StudyQuery studyQuery = new StudyQuery();
+        setStudyQueryField(studyQuery, "studyName", "Environment");
+        studyQuery.setSortField("studyName");
+        studyQuery.setSortOrder(SortOrder.DESC);
+        studyQuery.setPage(1);
+        studyQuery.setPageSize(2);
+
+        BrAPIDAOUtil genericSearchParameterUtil = new BrAPIDAOUtil(1, Duration.ofSeconds(1), 50, 50, 1000, mock(ProgramService.class));
+        doAnswer(invocation -> {
+            genericSearchParameterUtil.setGenericSearchParameters(
+                    invocation.getArgument(0),
+                    invocation.getArgument(1));
+            return null;
+        }).when(brAPIDAOUtil).setGenericSearchParameters(any(BrAPIStudySearchRequest.class), same(studyQuery));
+
+        BrAPIPagination pagination = mock(BrAPIPagination.class);
+        when(pagination.getCurrentPage()).thenReturn(1);
+        when(pagination.getPageSize()).thenReturn(2);
+        when(pagination.getTotalCount()).thenReturn(4);
+        when(pagination.getTotalPages()).thenReturn(2);
+
+        BrAPIStudyListResponse brAPIResponse = new BrAPIStudyListResponse()
+                .metadata(new BrAPIMetadata().pagination(pagination))
+                .result(new BrAPIStudyListResponseResult());
+        List<BrAPIStudy> serverOrderedStudies = List.of(
+                study("2", "Environment 2 [TEST-2]"),
+                study("1", "Environment 1 [TEST-1]"));
+
+        when(brAPIDAOUtil.simpleSearch(any(Function.class), any(BrAPIStudySearchRequest.class))).thenReturn(brAPIResponse);
+        doReturn(serverOrderedStudies).when(brAPIDAOUtil).getListResult(brAPIResponse);
+
+        BrAPIStudyListResponse result = studyDAO.brapiStudySearch(program, List.of(authorizedTrialId), studyQuery);
+
+        ArgumentCaptor<BrAPIStudySearchRequest> requestCaptor =
+                ArgumentCaptor.forClass(BrAPIStudySearchRequest.class);
+        verify(brAPIDAOUtil).simpleSearch(any(Function.class), requestCaptor.capture());
+
+        BrAPIStudySearchRequest request = requestCaptor.getValue();
+        assertEquals(List.of("brapi-program-1"), request.getProgramDbIds());
+        assertEquals(List.of(authorizedTrialId.toString()), request.getTrialDbIds());
+        assertEquals(1, request.getPage());
+        assertEquals(2, request.getPageSize());
+        assertEquals(1, request.getSortBy().size());
+        assertEquals("studyName", request.getSortBy().get(0).getSortedOn());
+        assertEquals(BrAPISortOrder.DESC, request.getSortBy().get(0).getSortOrder());
+
+        Map<String, String> filters = request.getFilterBy().stream()
+                .collect(Collectors.toMap(filter -> filter.getFilterOn(), filter -> filter.getValue()));
+        assertEquals(Map.of("studyName", "Environment"), filters);
+
+        assertSame(brAPIResponse, result);
+        assertSame(pagination, result.getMetadata().getPagination());
+        assertEquals(List.of("Environment 2", "Environment 1"), result.getResult().getData().stream()
+                .map(BrAPIStudy::getStudyName)
+                .collect(Collectors.toList()));
+    }
+
+    @Test
+    @SneakyThrows
     void createBrAPIStudiesReturnsDirectBrAPIPostResponse() {
 
         BrAPIStudy requestedStudy = new BrAPIStudy().studyName("Env1 [TEST-1]");
@@ -171,12 +242,22 @@ public class BrAPIStudyDAOUnitTest {
     }
 
     private BrAPIStudy study(UUID environmentId, String studyName) {
+        return study(environmentId.toString(), studyName);
+    }
+
+    private BrAPIStudy study(String environmentId, String studyName) {
         BrAPIExternalReference studyReference = new BrAPIExternalReference()
                 .referenceSource(Utilities.generateReferenceSource(REFERENCE_SOURCE, ExternalReferenceSource.STUDIES))
-                .referenceId(environmentId.toString());
+                .referenceId(environmentId);
 
         return new BrAPIStudy()
                 .studyName(studyName)
                 .externalReferences(List.of(studyReference));
+    }
+
+    private void setStudyQueryField(StudyQuery studyQuery, String fieldName, String value) throws Exception {
+        Field field = StudyQuery.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(studyQuery, value);
     }
 }
