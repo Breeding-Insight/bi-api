@@ -97,7 +97,7 @@ public class BrAPIStudyDAO {
 
         BrAPIStudyListResponse brAPIResponse = brAPIDAOUtil.simpleSearch(api::searchStudiesPost, brAPIStudySearchRequest);
 
-        List<BrAPIStudy> processedStudies = new ArrayList<>(processStudyForDisplay(brAPIDAOUtil.getListResult(brAPIResponse), program.getKey()).values());
+        List<BrAPIStudy> processedStudies = processStudyForDisplay(brAPIDAOUtil.getListResult(brAPIResponse), program.getKey());
 
         brAPIResponse.getResult().setData(processedStudies);
 
@@ -148,7 +148,7 @@ public class BrAPIStudyDAO {
 
         List<BrAPIStudy> result = brAPIDAOUtil.get(api::studiesGet, studyQueryParams);
 
-        return new ArrayList<>(processStudyForDisplay(result, program.getKey()).values());
+        return processStudyForDisplay(result, program.getKey());
     }
 
     public List<BrAPIStudy> getStudiesByName(List<String> studyNames, Program program) throws ApiException {
@@ -192,11 +192,11 @@ public class BrAPIStudyDAO {
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.trialDbIds(experimentIds.stream().map(UUID::toString).collect(Collectors.toList()));
         StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), StudiesApi.class);
-        return new ArrayList<>(processStudyForDisplay(brAPIDAOUtil.search(
+        return processStudyForDisplay(brAPIDAOUtil.search(
                 api::searchStudiesPost,
                 api::searchStudiesSearchResultsDbIdGet,
                 studySearch
-        ), program.getKey()).values());
+        ), program.getKey());
     }
 
     public List<BrAPIStudy> createBrAPIStudies(List<BrAPIStudy> brAPIStudyList, UUID programId, ImportUpload upload) throws ApiException {
@@ -241,18 +241,23 @@ public class BrAPIStudyDAO {
     }
 
     /**
-     * Process study into a format for display
-     * @param programStudy
-     * @return Map - Key = string representing study UUID, value = formatted BrAPIStudy
+     * Process studies into a format for display while preserving their order.
+     *
+     * @param programStudy studies returned by BrAPI
+     * @param programKey the program key to remove from display fields
+     * @return formatted studies in their original order
      */
-    private Map<String,BrAPIStudy> processStudyForDisplay(List<BrAPIStudy> programStudy, String programKey) {
-        Map<String, BrAPIStudy> programStudyMap = new LinkedHashMap<>();
+    private List<BrAPIStudy> processStudyForDisplay(List<BrAPIStudy> programStudy, String programKey) {
+        List<BrAPIStudy> processedStudies = new ArrayList<>(programStudy.size());
+
         log.trace("processing study for display: " + programStudy);
-        for (BrAPIStudy study: programStudy) {
+
+        for (BrAPIStudy study : programStudy) {
             // Remove program key from studyName, trialName and locationName.
             if (study.getStudyName() != null) {
                 // Study name is appended with experiment sequence number in addition to program key.
-                study.setStudyName(Utilities.removeProgramKeyAndUnknownAdditionalData(study.getStudyName(), programKey));
+                study.setStudyName(
+                        Utilities.removeProgramKeyAndUnknownAdditionalData(study.getStudyName(), programKey));
             }
             if (study.getTrialName() != null) {
                 study.setTrialName(Utilities.removeProgramKey(study.getTrialName(), programKey));
@@ -260,24 +265,13 @@ public class BrAPIStudyDAO {
             if (study.getLocationName() != null) {
                 study.setLocationName(Utilities.removeProgramKey(study.getLocationName(), programKey));
             }
-        }
-
-        String refSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
-        // Add to map.
-        for (BrAPIStudy study: programStudy) {
-            JsonObject additionalInfo = study.getAdditionalInfo();
-            if(additionalInfo == null) {
-                additionalInfo = new JsonObject();
-                study.setAdditionalInfo(additionalInfo);
+            if (study.getAdditionalInfo() == null) {
+                study.setAdditionalInfo(new JsonObject());
             }
 
-            BrAPIExternalReference extRef = study.getExternalReferences().stream()
-                    .filter(reference -> reference.getReferenceSource().equals(refSource))
-                    .findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
-            String studyId = extRef.getReferenceId();
-            programStudyMap.put(studyId, study);
+            processedStudies.add(study);
         }
 
-        return programStudyMap;
+        return processedStudies;
     }
 }
