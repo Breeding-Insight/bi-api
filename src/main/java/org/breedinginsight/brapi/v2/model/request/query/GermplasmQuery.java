@@ -102,7 +102,7 @@ public class GermplasmQuery extends BrapiQuery {
         brAPIColumnNamesByBiColumnName.put("femaleParentGID", "femaleParentGID");
         brAPIColumnNamesByBiColumnName.put("maleParentGID", "maleParentGID");
         brAPIColumnNamesByBiColumnName.put("createdDate", "createdDate");
-        brAPIColumnNamesByBiColumnName.put("createdBy", "createdByUserName");
+        brAPIColumnNamesByBiColumnName.put("createdByUserName", "createdBy");
         brAPIColumnNamesByBiColumnName.put("synonyms", "synonyms");
 
         return brAPIColumnNamesByBiColumnName;
