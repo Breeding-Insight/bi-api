@@ -16,6 +16,7 @@ import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.BrAPITest;
@@ -24,6 +25,7 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
@@ -46,19 +48,24 @@ import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.FileUtil;
 import org.jooq.DSLContext;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
+
 import javax.inject.Inject;
 import java.io.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.*;
@@ -98,6 +105,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private RoleDao roleDao;
     @Inject
     private BrAPITrialService brAPITrialService;
+    @Inject
+    private BrAPIStudyDAO brAPIStudyDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -200,7 +209,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         rows.add(row2);
 
         // Import test experiment, environments, and any observations
-        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
+        importTestUtils.uploadAndFetchWorkflow(
                 writeDataToFile(rows, traits),
                 null,
                 true,
@@ -213,9 +222,11 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         experimentId = trial.getTrialDbId();
 
-        // Add environmentIds.
-        envIds.add(getEnvId(importResult, 0));
-        envIds.add(getEnvId(importResult, 1));
+        envIds.clear();
+        brAPIStudyDAO.getStudies(program.getId())
+                .stream()
+                .sorted(Comparator.comparing(BrAPIStudy::getStudyName))
+                .forEach(study -> envIds.add(study.getStudyDbId()));
     }
 
     // Create an experiment with no observations.
@@ -1296,18 +1307,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
     private BigDecimal toBigDecimal(Object value) {
         return new BigDecimal(value.toString());
-    }
-
-    private String getEnvId(JsonObject result, int index) {
-        return result
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(index).getAsJsonObject()
-                .get("study").getAsJsonObject()
-                .get("brAPIObject").getAsJsonObject()
-                .get("externalReferences").getAsJsonArray()
-                .get(2).getAsJsonObject()
-                .get("referenceId").getAsString();
     }
 
     private JsonArray getProgramTrials(String programId) {

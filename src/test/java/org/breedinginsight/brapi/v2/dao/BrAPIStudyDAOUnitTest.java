@@ -1,0 +1,263 @@
+/*
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.breedinginsight.brapi.v2.dao;
+
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.functions.Function3;
+import lombok.SneakyThrows;
+import org.brapi.client.v2.BrAPIClient;
+import org.brapi.client.v2.model.queryParams.core.StudyQueryParams;
+import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.BrAPIMetadata;
+import org.brapi.v2.model.BrAPIPagination;
+import org.brapi.v2.model.BrAPISortOrder;
+import org.brapi.v2.model.core.BrAPIProgram;
+import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
+import org.brapi.v2.model.core.response.BrAPIStudyListResponse;
+import org.brapi.v2.model.core.response.BrAPIStudyListResponseResult;
+import org.breedinginsight.api.v1.controller.metadata.SortOrder;
+import org.breedinginsight.brapi.v2.model.request.query.StudyQuery;
+import org.breedinginsight.brapps.importer.daos.ImportDAO;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
+import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+import java.lang.reflect.Field;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+public class BrAPIStudyDAOUnitTest {
+
+    private static final String REFERENCE_SOURCE = "breedinginsight.org";
+
+    private BrAPIStudyDAO studyDAO;
+    private ProgramDAO programDAO;
+    private BrAPIDAOUtil brAPIDAOUtil;
+    private Program program;
+    private UUID programId;
+    private UUID environmentId;
+
+    @BeforeEach
+    @SneakyThrows
+    void setup() {
+        programId = UUID.randomUUID();
+        environmentId = UUID.randomUUID();
+
+        program = new Program();
+        program.setId(programId);
+        program.setKey("TEST");
+        BrAPIProgram brapiProgram = new BrAPIProgram()
+                .programDbId("brapi-program-1");
+        program.setBrapiProgram(brapiProgram);
+
+        programDAO = mock(ProgramDAO.class);
+        brAPIDAOUtil = mock(BrAPIDAOUtil.class);
+
+        when(programDAO.get(programId)).thenReturn(List.of(program));
+        when(programDAO.getCoreClient(programId)).thenReturn(mock(BrAPIClient.class));
+        when(programDAO.getProgramBrAPI(program)).thenReturn(brapiProgram);
+
+        studyDAO = new BrAPIStudyDAO(
+                programDAO,
+                mock(ImportDAO.class),
+                brAPIDAOUtil,
+                new BrAPIEndpointProvider()
+        );
+
+        Field referenceSource = BrAPIStudyDAO.class.getDeclaredField("referenceSource");
+        referenceSource.setAccessible(true);
+        referenceSource.set(studyDAO, REFERENCE_SOURCE);
+
+        Field brapiMaxPageSize = BrAPIStudyDAO.class.getDeclaredField("brapiMaxPageSize");
+        brapiMaxPageSize.setAccessible(true);
+        brapiMaxPageSize.set(studyDAO, 1000);
+    }
+
+    @Test
+    @SneakyThrows
+    void getStudiesUsesDirectBrAPIGetInsteadOfProgramCache() {
+        BrAPIStudy study = study(environmentId, "Env1 [TEST-1]");
+
+        when(brAPIDAOUtil.get(any(Function.class), any(StudyQueryParams.class)))
+                .thenReturn(List.of(study));
+
+        List<BrAPIStudy> result = studyDAO.getStudies(programId);
+
+        assertEquals(1, result.size());
+        assertEquals("Env1", result.get(0).getStudyName());
+        ArgumentCaptor<StudyQueryParams> queryParamsCaptor = ArgumentCaptor.forClass(StudyQueryParams.class);
+        verify(brAPIDAOUtil).get(any(Function.class), queryParamsCaptor.capture());
+        assertEquals("brapi-program-1", queryParamsCaptor.getValue().programDbId());
+        assertEquals(0, queryParamsCaptor.getValue().page());
+        assertEquals(1000, queryParamsCaptor.getValue().pageSize());
+    }
+
+    @Test
+    @SneakyThrows
+    void getStudiesByStudyDbIdUsesDirectBrAPISearch() {
+        String studyDbId = UUID.randomUUID().toString();
+        BrAPIStudy study = new BrAPIStudy().studyDbId(studyDbId).studyName("Env1");
+
+        when(brAPIDAOUtil.search(any(Function.class), any(Function3.class), any(BrAPIStudySearchRequest.class)))
+                .thenReturn(List.of(study));
+
+        List<BrAPIStudy> result = studyDAO.getStudiesByStudyDbId(
+                        List.of(studyDbId), program);
+
+        assertEquals(1, result.size());
+        assertEquals(studyDbId, result.get(0).getStudyDbId());
+
+        ArgumentCaptor<BrAPIStudySearchRequest> requestCaptor = ArgumentCaptor.forClass(BrAPIStudySearchRequest.class);
+
+        verify(brAPIDAOUtil).search(any(Function.class), any(Function3.class), requestCaptor.capture());
+
+        assertEquals(List.of("brapi-program-1"), requestCaptor.getValue().getProgramDbIds());
+        assertEquals(List.of(studyDbId), requestCaptor.getValue().getStudyDbIds());
+    }
+
+    @Test
+    @SneakyThrows
+    void getStudyByDbIdReturnsEmptyWhenBrAPIDoesNotFindStudy() {
+        when(brAPIDAOUtil.search(any(Function.class), any(Function3.class), any(BrAPIStudySearchRequest.class)))
+                .thenReturn(List.of());
+
+        Optional<BrAPIStudy> result = studyDAO.getStudyByDbId(UUID.randomUUID().toString(), program);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @SneakyThrows
+    void brapiStudySearchSendsServerSideQueryAndPreservesPagedResponseOrder() {
+        UUID authorizedTrialId = UUID.randomUUID();
+        StudyQuery studyQuery = new StudyQuery();
+        setStudyQueryField(studyQuery, "studyName", "Environment");
+        studyQuery.setSortField("studyName");
+        studyQuery.setSortOrder(SortOrder.DESC);
+        studyQuery.setPage(1);
+        studyQuery.setPageSize(2);
+
+        BrAPIDAOUtil genericSearchParameterUtil = new BrAPIDAOUtil(1, Duration.ofSeconds(1), 50, 50, 1000, mock(ProgramService.class));
+        doAnswer(invocation -> {
+            genericSearchParameterUtil.setGenericSearchParameters(
+                    invocation.getArgument(0),
+                    invocation.getArgument(1));
+            return null;
+        }).when(brAPIDAOUtil).setGenericSearchParameters(any(BrAPIStudySearchRequest.class), same(studyQuery));
+
+        BrAPIPagination pagination = mock(BrAPIPagination.class);
+        when(pagination.getCurrentPage()).thenReturn(1);
+        when(pagination.getPageSize()).thenReturn(2);
+        when(pagination.getTotalCount()).thenReturn(4);
+        when(pagination.getTotalPages()).thenReturn(2);
+
+        BrAPIStudyListResponse brAPIResponse = new BrAPIStudyListResponse()
+                .metadata(new BrAPIMetadata().pagination(pagination))
+                .result(new BrAPIStudyListResponseResult());
+        List<BrAPIStudy> serverOrderedStudies = List.of(
+                study("2", "Environment 2 [TEST-2]"),
+                study("1", "Environment 1 [TEST-1]"));
+
+        when(brAPIDAOUtil.simpleSearch(any(Function.class), any(BrAPIStudySearchRequest.class))).thenReturn(brAPIResponse);
+        doReturn(serverOrderedStudies).when(brAPIDAOUtil).getListResult(brAPIResponse);
+
+        BrAPIStudyListResponse result = studyDAO.brapiStudySearch(program, List.of(authorizedTrialId), studyQuery);
+
+        ArgumentCaptor<BrAPIStudySearchRequest> requestCaptor =
+                ArgumentCaptor.forClass(BrAPIStudySearchRequest.class);
+        verify(brAPIDAOUtil).simpleSearch(any(Function.class), requestCaptor.capture());
+
+        BrAPIStudySearchRequest request = requestCaptor.getValue();
+        assertEquals(List.of("brapi-program-1"), request.getProgramDbIds());
+        assertEquals(List.of(authorizedTrialId.toString()), request.getTrialDbIds());
+        assertEquals(1, request.getPage());
+        assertEquals(2, request.getPageSize());
+        assertEquals(1, request.getSortBy().size());
+        assertEquals("studyName", request.getSortBy().get(0).getSortedOn());
+        assertEquals(BrAPISortOrder.DESC, request.getSortBy().get(0).getSortOrder());
+
+        Map<String, String> filters = request.getFilterBy().stream()
+                .collect(Collectors.toMap(filter -> filter.getFilterOn(), filter -> filter.getValue()));
+        assertEquals(Map.of("studyName", "Environment"), filters);
+
+        assertSame(brAPIResponse, result);
+        assertSame(pagination, result.getMetadata().getPagination());
+        assertEquals(List.of("Environment 2", "Environment 1"), result.getResult().getData().stream()
+                .map(BrAPIStudy::getStudyName)
+                .collect(Collectors.toList()));
+    }
+
+    @Test
+    @SneakyThrows
+    void createBrAPIStudiesReturnsDirectBrAPIPostResponse() {
+
+        BrAPIStudy requestedStudy = new BrAPIStudy().studyName("Env1 [TEST-1]");
+        List<BrAPIStudy> requestedStudies = List.of(requestedStudy);
+
+        BrAPIStudy createdStudy = new BrAPIStudy().studyDbId("study-db-id").studyName("Env1 [TEST-1]");
+        ImportUpload upload = mock(ImportUpload.class);
+
+        doReturn(List.of(createdStudy))
+                .when(brAPIDAOUtil)
+                .post(eq(requestedStudies),eq(upload),any(Function.class),any(Consumer.class));
+
+        List<BrAPIStudy> result = studyDAO.createBrAPIStudies(requestedStudies,programId,upload);
+
+        assertEquals(1, result.size());
+        assertEquals("study-db-id",result.get(0).getStudyDbId());
+
+        verify(brAPIDAOUtil).post(eq(requestedStudies),eq(upload),any(Function.class),any(Consumer.class));
+    }
+
+    private BrAPIStudy study(UUID environmentId, String studyName) {
+        return study(environmentId.toString(), studyName);
+    }
+
+    private BrAPIStudy study(String environmentId, String studyName) {
+        BrAPIExternalReference studyReference = new BrAPIExternalReference()
+                .referenceSource(Utilities.generateReferenceSource(REFERENCE_SOURCE, ExternalReferenceSource.STUDIES))
+                .referenceId(environmentId);
+
+        return new BrAPIStudy()
+                .studyName(studyName)
+                .externalReferences(List.of(studyReference));
+    }
+
+    private void setStudyQueryField(StudyQuery studyQuery, String fieldName, String value) throws Exception {
+        Field field = StudyQuery.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(studyQuery, value);
+    }
+}

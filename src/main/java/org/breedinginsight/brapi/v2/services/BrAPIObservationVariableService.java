@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapi.v2.services;
 
-import io.micronaut.context.annotation.Property;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -27,12 +26,11 @@ import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
-import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.model.*;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.DatasetUtil;
-import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
@@ -45,15 +43,12 @@ import java.util.stream.Collectors;
 public class BrAPIObservationVariableService {
     private final ProgramService programService;
     private final BrAPITrialService trialService;
-    private final String referenceSource;
 
     @Inject
     public BrAPIObservationVariableService(
-            ProgramService programService, BrAPITrialService trialService,
-            @Property(name = "brapi.server.reference-source") String referenceSource) {
+            ProgramService programService, BrAPITrialService trialService){
         this.programService = programService;
         this.trialService = trialService;
-        this.referenceSource = referenceSource;
     }
 
     // TODO: support sub-entity datasets.
@@ -73,9 +68,8 @@ public class BrAPIObservationVariableService {
         if(experimentId.isPresent()) {
             expId = UUID.fromString(experimentId.get());
         } else {
-            UUID envId = UUID.fromString(environmentId.orElseThrow(() -> new IllegalStateException("no environment id found")));
-            // TODO: Double check this (and other studyDbId bi-brapi) lookup still works with cache removal on studies [BI-2962]
-            BrAPIStudy environment = trialService.getEnvironment(program.get(), envId);
+            String studyDbId = environmentId.orElseThrow(() -> new IllegalStateException("no study db id found"));
+            BrAPIStudy environment = trialService.getEnvironment(program.get(), studyDbId);
             expId = UUID.fromString(environment.getTrialDbId());
         }
 

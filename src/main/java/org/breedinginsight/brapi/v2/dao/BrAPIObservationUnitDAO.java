@@ -237,18 +237,16 @@ public class BrAPIObservationUnitDAO {
 
     public List<BrAPIObservationUnit> getObservationUnitsForDatasetAndEnvs(@NotNull String datasetId, Collection<String> envIds, @NotNull Program program) throws ApiException {
         String datasetReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.DATASET);
-        String studyReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
-        // TODO: Optimize and change this to search/get on both dataset id and studyDbId once a solution is in place to relate ous to datasets and study cache is removed [BI-2961]
-        return getProgramObservationUnits(program.getId()).stream()
+
+        return getProgramObservationUnits(program.getId())
+                .stream()
                 .filter(ou -> {
-                    Optional<BrAPIExternalReference> datasetExRef = Utilities.getExternalReference(ou.getExternalReferences(), datasetReferenceSource);
-                    Optional<BrAPIExternalReference> studyExRef = Utilities.getExternalReference(ou.getExternalReferences(), studyReferenceSource);
-                    return Boolean.logicalAnd(
-                            datasetExRef.map(x -> x.getReferenceId().equals(datasetId)).orElse(false),
-                            studyExRef.map(x -> envIds.contains(x.getReferenceId())).orElse(false)
-                    );
-                })
-                .collect(Collectors.toList());
+                    Optional<BrAPIExternalReference> datasetExRef =
+                            Utilities.getExternalReference(ou.getExternalReferences(), datasetReferenceSource);
+
+                    return Boolean.logicalAnd(datasetExRef.map(x -> x.getReferenceId().equals(datasetId)).orElse(false),
+                            envIds.contains(ou.getStudyDbId()));
+                }).collect(Collectors.toList());
     }
 
     // Note: does not use cache, impractical to implement all search parameters client-side.
@@ -279,8 +277,7 @@ public class BrAPIObservationUnitDAO {
 //                                    .page(page)
 //                                    .pageSize(pageSize);
 
-        List<String> xrefIds = new ArrayList<>();
-        List<String> xrefSources = new ArrayList<>();
+
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
         AtomicBoolean levelFilter = new AtomicBoolean(false);
         BrAPIObservationUnitLevelRelationship relationship = new BrAPIObservationUnitLevelRelationship();
@@ -296,34 +293,15 @@ public class BrAPIObservationUnitDAO {
         addLevelFilter(observationUnitLevelName, observationUnitLevelOrder, observationUnitLevelCode, level, levelFilter);
         addLevelFilter(observationUnitLevelRelationshipName, observationUnitLevelRelationshipOrder, observationUnitLevelRelationshipCode, relationship, relationshipFilter);
         // TODO: Use observationUnitSearchRequest.setStudyDbIds() instead of xrefs [BI-2919]
-        environmentId.ifPresent(envId -> addXRefFilter(envId, ExternalReferenceSource.STUDIES, xrefIds, xrefSources));
-//        germplasmId.ifPresent(germId -> {
-//            xrefIds.add(germId);
-//            xrefSources.add(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.));
-//        });
-        if(!xrefIds.isEmpty()) {
-            observationUnitSearchRequest.externalReferenceIDs(xrefIds);
-        }
-        if(!xrefSources.isEmpty()) {
-            observationUnitSearchRequest.externalReferenceSources(xrefSources);
-        }
+        environmentId.ifPresent(envId -> observationUnitSearchRequest.setStudyDbIds(List.of(envId)));
 
-        return searchObservationUnitsAndProcess(observationUnitSearchRequest, program, true).stream().filter(ou -> {
-            //xref search does an OR, so we need to convert the searching for expId/envId to be an AND
-            boolean matches = environmentId.map(id -> id.equals(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES))
-                                                                             .get()
-                                                                             .getReferenceId()))
-                                               .orElse(true);
-
-            //adding filter for germplasmDbId because we can't easily search that in the stored data object
-            // TODO: Add search on accessionNumber once it's been added to prod server and brapi client [BI-2978]
-            return matches && germplasmId.map(id -> id.equals(ou.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_UUID).getAsString())).orElse(true);
-        }).collect(Collectors.toList());
-    }
-
-    private void addXRefFilter(String ouId, ExternalReferenceSource externalReferenceSource, List<String> xrefIds, List<String> xrefSources) {
-        xrefIds.add(ouId);
-        xrefSources.add(Utilities.generateReferenceSource(referenceSource, externalReferenceSource));
+        return searchObservationUnitsAndProcess(observationUnitSearchRequest, program, true)
+                .stream()
+                .filter(ou -> germplasmId.map(id -> id.equals(ou.getAdditionalInfo()
+                                                        .get(BrAPIAdditionalInfoFields.GERMPLASM_UUID)
+                                                        .getAsString()))
+                                .orElse(true))
+                .collect(Collectors.toList());
     }
 
     private void addLevelFilter(Optional<String> observationUnitLevelName, Optional<Integer> observationUnitLevelOrder, Optional<String> observationUnitLevelCode, BrAPIObservationUnitLevelRelationship level, AtomicBoolean levelFilter) {

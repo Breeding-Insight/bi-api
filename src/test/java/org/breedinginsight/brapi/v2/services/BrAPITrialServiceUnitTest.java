@@ -247,6 +247,53 @@ class BrAPITrialServiceUnitTest {
         assertEquals("Env Year not found for Study DbId = 'study-1'.", exception.getMessage());
     }
 
+    @Test
+    void exportObservationsFiltersByStudyDbId() throws Exception {
+        ExperimentExportQuery params = exportQuery(EXPORT_DATASET_ID);
+
+        setField(params, "environments", "study-1");
+
+        BrAPIStudy secondStudy = new BrAPIStudy();
+        secondStudy.setStudyDbId("study-2");
+        secondStudy.setStudyName("Environment 2");
+        secondStudy.setLocationName("Location 2");
+        secondStudy.setSeasons(List.of("season-2"));
+
+        BrAPIObservationUnit requestedObservationUnit = createObservationUnit("ou-db-1", "plot-1");
+
+        when(trialDAO.getTrialsByExperimentIds(anyCollection(), eq(program)))
+                .thenReturn(List.of(experiment));
+
+        when(studyDAO.getStudiesByBrAPITrialExRefId(any(UUID.class), eq(program)))
+                .thenReturn(List.of(study, secondStudy));
+
+        when(observationUnitDAO.getObservationUnitsForDatasetAndEnvs(EXPORT_DATASET_ID, List.of("study-1"), program))
+                .thenReturn(List.of(requestedObservationUnit));
+
+        when(seasonDAO.getSeasonById("season-1", program.getId())).thenReturn(season);
+
+        when(listDAO.getListsByTypeAndExternalRef(any(), eq(program.getId()), any(), any()))
+                .thenReturn(Collections.emptyList());
+
+        when(observationDAO.getObservationsByObservationUnits(anyCollection(), eq(program)))
+                .thenReturn(Collections.emptyList());
+
+        when(germplasmDAO.getGermplasmsByDBID(anyList(), eq(program.getId())))
+                .thenReturn(List.of(germplasm));
+
+        DownloadFile downloadFile = service.exportObservations(program, UUID.fromString("11111111-1111-1111-1111-111111111111"), params);
+
+        Table exportTable = FileUtil.parseTableFromCsv(new ByteArrayInputStream(downloadFile.getStreamedFile()
+                                        .getInputStream()
+                                        .readAllBytes()));
+
+        assertEquals(1, exportTable.rowCount());
+
+        assertEquals("Environment 1", exportTable.stringColumn(Columns.ENV).get(0));
+
+        verify(observationUnitDAO).getObservationUnitsForDatasetAndEnvs(EXPORT_DATASET_ID, List.of("study-1"), program);
+    }
+
     private ExperimentExportQuery exportQuery(String datasetId) throws Exception {
         ExperimentExportQuery params = new ExperimentExportQuery();
         setField(params, "datasetId", datasetId);
