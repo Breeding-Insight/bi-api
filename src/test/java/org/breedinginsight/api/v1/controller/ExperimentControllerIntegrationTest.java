@@ -923,6 +923,28 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
     }
 
+    @Test
+    @SneakyThrows
+    public void hardDeleteExperimentIgnoresObservationsFromOtherExperiment() {
+        Program deleteProgram = createSeededProgram("Delete Experiment Isolation");
+
+        String observedExperimentTitle = "Observed Experiment " + UUID.randomUUID();
+        String emptyExperimentTitle = "Empty Experiment " + UUID.randomUUID();
+
+        uploadExperimentWithObs(deleteProgram, observedExperimentTitle, buildObservedRows(observedExperimentTitle));
+
+        String emptyExperimentId = uploadExperimentWithoutObs(deleteProgram, emptyExperimentTitle,"Plot");
+
+        Flowable<HttpResponse<String>> deleteCall = client.exchange(DELETE(String.format("/programs/%s/experiments/%s?hard=true", deleteProgram.getId(), emptyExperimentId)).cookie(new NettyCookie("phylo-token","test-registered-user")),String.class);
+
+        HttpResponse<String> deleteResponse = deleteCall.blockingFirst();
+
+        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+
+        JsonArray remainingTrials = getProgramTrials(deleteProgram.getId().toString());
+        assertEquals(1, remainingTrials.size());
+    }
+
     private List<Map<String, Object>> buildObservedRows(String title) {
         List<Map<String, Object>> observedRows = new ArrayList<>();
         String envBase = title.replaceAll("\\s+", "");
