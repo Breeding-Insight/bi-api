@@ -1,6 +1,5 @@
 package org.breedinginsight.brapi.v2;
 
-import com.drew.lang.annotations.Nullable;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
@@ -108,15 +107,8 @@ public class BrAPIGermplasmController {
             return HttpResponse.notFound();
         }
 
-        // Can't use BrAPI server programDbId filtering, think germplasm are linked to program through observation
-        // units and doesn't work if don't have any loaded, use external refs instead for now
-        // Just use DeltaBreed program UUID
-        String extRefId = program.get().getId().toString();
-        body.externalReferenceIds(List.of(extRefId));
-
-        // convert request filter dbIds from DeltaBreed UUID to BrAPI service dbIds
-        List<String> convertedDbIds = germplasmService.getGermplasmDbIdsForUUIDs(program.get().getId(), body.getGermplasmDbIds());
-        body.setGermplasmDbIds(convertedDbIds);
+        String brapiProgramDbId = programService.getBrAPIProgramDbId(program.get().getId());
+        body.setProgramDbIds(List.of(brapiProgramDbId));
 
         ApiResponse<Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>>> brapiGermplasm;
         brapiGermplasm = brAPIEndpointProvider
@@ -177,10 +169,6 @@ public class BrAPIGermplasmController {
         // Prepare a regex pattern for program key removal
         Pattern programKeyPattern = Utilities.getRegexPatternMatchAllProgramKeysAnyAccession(programKey);
         germplasmList.parallelStream().forEach(germplasm -> {
-            // Set dbId
-            germplasm.germplasmDbId(Utilities.getExternalReference(germplasm.getExternalReferences(), "breedinginsight.org")
-                    .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
-                    .getReferenceId());
             // Process synonyms
             if (germplasm.getSynonyms() != null) {
                 germplasm.getSynonyms().forEach(synonym -> {
@@ -320,8 +308,7 @@ public class BrAPIGermplasmController {
                 metadata.setPagination(pagination);
                 response = new BrAPIGermplasmPedigreeResponse();
             } else {
-                BrAPIGermplasm germplasm = germplasmService.getGermplasmByDBID(programId, germplasmId)
-                                                                             .orElseThrow(() -> new DoesNotExistException("DBID for this germplasm does not exist"));
+                BrAPIGermplasm germplasm = germplasmService.getGermplasmByUUID(programId, germplasmId);
 
                 //Forward the pedigree call to the backing BrAPI system of the program passing the germplasmDbId that came in the request
                 GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);

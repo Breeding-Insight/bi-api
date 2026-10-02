@@ -27,6 +27,7 @@ import org.breedinginsight.brapps.importer.services.processors.germplasm.Germpla
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.SpeciesService;
@@ -75,6 +76,8 @@ public class GermplasmFileImportTest extends BrAPITest {
     private DSLContext dsl;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
+    @Inject
+    private ProgramDAO programDAO;
 
     private ImportTestUtils importTestUtils;
 
@@ -1217,11 +1220,13 @@ public class GermplasmFileImportTest extends BrAPITest {
     }
 
     private void seedExistingGermplasm(String accessionNumber, String displayName, String source, String breedingMethodCode) {
+        String brapiProgramDbId = programDAO.getProgramBrAPI(validProgram).getProgramDbId();
         BrAPIGermplasm germplasm = new BrAPIGermplasm();
         germplasm.setAccessionNumber(accessionNumber);
         germplasm.setDefaultDisplayName(displayName);
         germplasm.setGermplasmName(String.format("%s [%s-%s]", displayName, validProgram.getKey(), accessionNumber));
         germplasm.setSeedSource(source);
+        germplasm.setProgramDbId(brapiProgramDbId);
 
         JsonObject additionalInfo = new JsonObject();
         additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, accessionNumber);

@@ -626,4 +626,8 @@ public class BrAPIDAOUtil {
             brapiSearchRequest.setPageSize(biSearchQuery.getPageSize());
         }
     }
+
+    public String getBrAPIProgramDbId(UUID biProgramId) throws ApiException {
+        return programService.getBrAPIProgramDbId(biProgramId);
+    }
 }
