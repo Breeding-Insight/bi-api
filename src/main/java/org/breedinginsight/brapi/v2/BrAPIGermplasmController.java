@@ -115,8 +115,10 @@ public class BrAPIGermplasmController {
         body.externalReferenceIds(List.of(extRefId));
 
         // convert request filter dbIds from DeltaBreed UUID to BrAPI service dbIds
-        List<String> convertedDbIds = germplasmService.getGermplasmDbIdsForUUIDs(program.get().getId(), body.getGermplasmDbIds());
-        body.setGermplasmDbIds(convertedDbIds);
+        if (body.getGermplasmDbIds() != null && !body.getGermplasmDbIds().isEmpty()) {
+            List<String> convertedDbIds = germplasmService.getGermplasmDbIdsForUUIDs(program.get().getId(), body.getGermplasmDbIds());
+            body.setGermplasmDbIds(convertedDbIds);
+        }
 
         ApiResponse<Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>>> brapiGermplasm;
         brapiGermplasm = brAPIEndpointProvider

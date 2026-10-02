@@ -20,6 +20,8 @@ package org.breedinginsight.brapi.v2;
 import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.HttpMethod;
+import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -32,6 +34,8 @@ import lombok.SneakyThrows;
 import org.brapi.client.v2.typeAdapters.PaginationTypeAdapter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.BrAPIPagination;
+import org.brapi.v2.model.core.BrAPIService;
+import org.brapi.v2.model.core.BrAPIService.MethodsEnum;
 import org.brapi.v2.model.core.BrAPIServerInfo;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.BrAPITest;
@@ -42,12 +46,13 @@ import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.User;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import javax.inject.Inject;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static io.micronaut.http.HttpRequest.POST;
@@ -140,11 +145,73 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
 
         assertEquals("Breeding Insight", serverInfo.getOrganizationName());
         assertEquals("DeltaBreed", serverInfo.getServerName());
-        assertEquals("bidevteam@cornell.edu", serverInfo.getContactEmail());
+        assertEquals("bi-dev-team@ufl.edu", serverInfo.getContactEmail());
         assertEquals("https://breedinginsight.org", serverInfo.getOrganizationURL());
-        assertEquals("BrAPI endpoints are not implemented at the root of this domain.  Please make BrAPI calls in the context of a program (ex: https://app.breedinginsight.net/v1/programs/{programId}/brapi/v2)", serverInfo.getServerDescription());
-        assertEquals("Cornell University, Ithaca, NY, USA", serverInfo.getLocation());
+        assertEquals("DeltaBreed provides server information and program discovery at this root. Program-scoped BrAPI calls use https://app.breedinginsight.net/v1/programs/{programId}/brapi/v2", serverInfo.getServerDescription());
+        assertEquals("University of Florida, Gainesville, FL, USA", serverInfo.getLocation());
         assertEquals("https://brapi.org/specification", serverInfo.getDocumentationURL());
+
+        assertEquals(Map.ofEntries(
+                Map.entry("serverinfo", Set.of(MethodsEnum.GET)),
+                Map.entry("programs", Set.of(MethodsEnum.GET)),
+                Map.entry("programs/{programDbId}", Set.of(MethodsEnum.GET))
+        ), getMethodsByService(serverInfo));
+        assertAllCallsHaveVersions(serverInfo, Set.of("2.0", "2.1"));
+    }
+
+    @Test
+    public void testProgramServerInfoOnlyListsImplementedOverrides() {
+        String path = String.format("%s/programs/%s/brapi/v2/serverinfo", biApiVersion, validProgram.getId());
+        Flowable<HttpResponse<String>> call = biClient.exchange(GET(path), String.class);
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertNotNull(response.body(), "Response body is empty");
+
+        JsonObject result = JsonParser.parseString(response.body())
+                                      .getAsJsonObject()
+                                      .getAsJsonObject("result");
+        BrAPIServerInfo serverInfo = GSON.fromJson(result, BrAPIServerInfo.class);
+
+        assertEquals(Map.ofEntries(
+                Map.entry("serverinfo", Set.of(MethodsEnum.GET)),
+                Map.entry("commoncropnames", Set.of(MethodsEnum.GET)),
+                Map.entry("lists", Set.of(MethodsEnum.GET)),
+                Map.entry("lists/{listDbId}", Set.of(MethodsEnum.DELETE)),
+                Map.entry("programs", Set.of(MethodsEnum.GET)),
+                Map.entry("programs/{programDbId}", Set.of(MethodsEnum.GET)),
+                Map.entry("studies", Set.of(MethodsEnum.GET)),
+                Map.entry("studies/{studyDbId}", Set.of(MethodsEnum.GET)),
+                Map.entry("trials", Set.of(MethodsEnum.GET)),
+                Map.entry("trials/{trialDbId}", Set.of(MethodsEnum.GET)),
+                Map.entry("germplasm", Set.of(MethodsEnum.GET)),
+                Map.entry("germplasm/{germplasmDbId}", Set.of(MethodsEnum.GET)),
+                Map.entry("search/germplasm", Set.of(MethodsEnum.POST)),
+                Map.entry("search/germplasm/{searchResultId}", Set.of(MethodsEnum.GET)),
+                Map.entry("observationlevels", Set.of(MethodsEnum.GET)),
+                Map.entry("observationunits", Set.of(MethodsEnum.GET)),
+                Map.entry("observationunits/{observationUnitDbId}", Set.of(MethodsEnum.GET)),
+                Map.entry("variables", Set.of(MethodsEnum.GET)),
+                Map.entry("variables/{observationVariableDbId}", Set.of(MethodsEnum.GET)),
+                Map.entry("observations", Set.of(MethodsEnum.GET)),
+                Map.entry("observations/table", Set.of(MethodsEnum.GET)),
+                Map.entry("germplasm/{germplasmDbId}/pedigree", Set.of(MethodsEnum.GET)),
+                Map.entry("germplasm/{germplasmDbId}/progeny", Set.of(MethodsEnum.GET)),
+                Map.entry("pedigree", Set.of(MethodsEnum.GET))
+        ), getMethodsByService(serverInfo));
+
+        serverInfo.getCalls().forEach(service -> {
+            Set<String> expectedVersions;
+            if (service.getService().equals("germplasm/{germplasmDbId}/pedigree") ||
+                    service.getService().equals("germplasm/{germplasmDbId}/progeny")) {
+                expectedVersions = Set.of("2.0");
+            } else if (service.getService().equals("pedigree")) {
+                expectedVersions = Set.of("2.1");
+            } else {
+                expectedVersions = Set.of("2.0", "2.1");
+            }
+            assertEquals(expectedVersions, new HashSet<>(service.getVersions()), service.getService());
+        });
     }
 
     @Test
@@ -185,6 +252,21 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
 
+    @ParameterizedTest
+    @EnumSource(value = HttpMethod.class, names = {"GET", "POST", "PUT"})
+    public void testCatchallRequiresSystemAdmin(HttpMethod method) {
+        String path = String.format("%s/programs/%s/brapi/v2/unsupported", biApiVersion, validProgram.getId());
+        HttpRequest<?> request = HttpRequest.create(method, path)
+                                            .contentType(MediaType.APPLICATION_JSON)
+                                            .bearerAuth("other-registered-user");
+
+        HttpClientResponseException exception = Assertions.assertThrows(HttpClientResponseException.class,
+                                                                          () -> biClient.exchange(request, String.class)
+                                                                                        .blockingFirst());
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+    }
+
 
 
     private BrAPIObservationVariable generateVariable() {
@@ -201,5 +283,16 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
                                                                       .methodClass("Measurement"))
                                              .scale(new BrAPIScale().scaleName("test scale" + random)
                                                                     .dataType(BrAPITraitDataType.NUMERICAL));
+    }
+
+    private Map<String, Set<MethodsEnum>> getMethodsByService(BrAPIServerInfo serverInfo) {
+        return serverInfo.getCalls().stream()
+                         .collect(Collectors.toMap(BrAPIService::getService,
+                                                   service -> new HashSet<>(service.getMethods())));
+    }
+
+    private void assertAllCallsHaveVersions(BrAPIServerInfo serverInfo, Set<String> versions) {
+        serverInfo.getCalls().forEach(service ->
+                assertEquals(versions, new HashSet<>(service.getVersions()), service.getService()));
     }
 }
