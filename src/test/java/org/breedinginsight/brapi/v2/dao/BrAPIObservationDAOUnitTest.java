@@ -81,6 +81,30 @@ public class BrAPIObservationDAOUnitTest {
 
     @Test
     @SneakyThrows
+    void getObservationsByDbIdsUsesObservationSearch() {
+        List<String> observationDbIds = List.of("observation-1", "observation-2");
+
+        BrAPIObservation observation = new BrAPIObservation().observationDbId("observation-1");
+
+        when(brAPIDAOUtil.search(any(Function.class), any(Function4.class), any(BrAPIObservationSearchRequest.class))).thenReturn(List.of(observation));
+
+        List<BrAPIObservation> result = observationDAO.getObservationsByDbIds(observationDbIds, program);
+
+        assertEquals(List.of(observation), result);
+
+        ArgumentCaptor<BrAPIObservationSearchRequest> requestCaptor = ArgumentCaptor.forClass(BrAPIObservationSearchRequest.class);
+
+        verify(brAPIDAOUtil).search(any(Function.class), any(Function4.class), requestCaptor.capture());
+
+        BrAPIObservationSearchRequest request = requestCaptor.getValue();
+
+        assertEquals(List.of(BRAPI_PROGRAM_DB_ID), request.getProgramDbIds());
+
+        assertEquals(observationDbIds, request.getObservationDbIds());
+    }
+
+    @Test
+    @SneakyThrows
     void getObservationsByTrialDbIdUsesObservationSearch() {
         String trialDbId = "trial-1";
         String observationUnitDbId = "ou-1";
@@ -166,6 +190,8 @@ public class BrAPIObservationDAOUnitTest {
     @SneakyThrows
     void observationSearchIsSkippedForEmptyFilters() {
         assertTrue(observationDAO.getObservationsByTrialDbId(List.of(), program).isEmpty());
+
+        assertTrue(observationDAO.getObservationsByDbIds(List.of(),program).isEmpty());
 
         assertTrue(observationDAO.getObservationsByObservationUnits(List.of(), program).isEmpty());
 
