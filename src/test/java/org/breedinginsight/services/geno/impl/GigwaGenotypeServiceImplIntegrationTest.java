@@ -561,6 +561,39 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         assertEquals("Header row is not valid VCF format", response.getProgress().getMessage());
     }
 
+@Test
+    public void testSubmitSameFileName() throws ApiException, IOException {
+        UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
+        String programKey = "TESTSUBMITDUPNAME";
+        UUID submissionId = UUID.randomUUID();
+        setupMocksForSubmitGenoData(programId, submissionId, buildSamplesFromValidVcf());
+
+        // First upload should be accepted for asynchronous processing.
+        AtomicReference<ImportResponse> importResponse = new AtomicReference<>();
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponse.set(submitGenoData(programId, programKey, submissionId, "sample.vcf")), "Upload did not complete within the time period");
+
+        ImportResponse response = importResponse.get();
+        assertNotNull(response);
+        assertNotNull(response.getProgress());
+        assertEquals((short) HttpStatus.ACCEPTED.getCode(),
+                response.getProgress().getStatuscode(),
+                "Error importing geno file: " + response.getProgress().getMessage());
+
+        // The DAO is mocked: explicitly simulate the completed import before resubmitting.
+        doReturn(List.of(GenotypeImportDetails.builder()
+                .genotypingFileName("sample.vcf")
+                .build()))
+                .when(genotypeImportDAO).getGenotypeImportsByProgramId(programId);
+        AtomicReference<ImportResponse> importResponseTwo = new AtomicReference<>();
+        assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> importResponseTwo.set(submitGenoData(programId, programKey, submissionId, "sample.vcf")), "Upload did not complete within the time period");
+
+        ImportResponse responseTwo = importResponseTwo.get();
+        assertNotNull(responseTwo);
+        assertNotNull(responseTwo.getProgress());
+        assertEquals((short) HttpStatus.BAD_REQUEST.getCode(), responseTwo.getProgress().getStatuscode());
+        assertEquals("Import cannot proceed. File name 'sample.vcf' already exists in the database.", responseTwo.getProgress().getMessage());
+    }
+
     @Test
     public void testSubmitMissingSubmissionSamples() throws ApiException {
         UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");

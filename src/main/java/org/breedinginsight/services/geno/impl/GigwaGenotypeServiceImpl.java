@@ -224,6 +224,21 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         progress.setId(upload.getImporterProgressId());
         upload.setProgress(progress);
 
+        //Query all filenames to avoid duplicate file uploads
+        String fileName = uploadedFile.getFilename();
+        List<GenotypeImportDetails> existingImports = getGenotypeImports(programId);
+        for (GenotypeImportDetails existingImport : existingImports) {
+            if (existingImport.getGenotypingFileName().equals(fileName)){
+                ImportResponse response = new ImportResponse();
+                upload.getProgress().setStatuscode((short)HttpStatus.BAD_REQUEST.getCode());
+                upload.getProgress().setMessage(String.format("Import cannot proceed. File name '%s' already exists in the database.", fileName));
+                importDAO.updateProgress(upload.getProgress());
+                response.setImportId(upload.getId());
+                response.setProgress(progress);
+                return response;
+            }
+        }
+
         String gigwaAuthToken;
         try {
             gigwaAuthToken = getAuthToken();
