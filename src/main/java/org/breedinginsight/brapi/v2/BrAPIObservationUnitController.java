@@ -220,9 +220,6 @@ public class BrAPIObservationUnitController {
     }
 
     private void setDbIds(BrAPIObservationUnit ou) {
-        ou.studyDbId(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES))
-                              .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
-                              .getReferenceID());
         ou.programDbId(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS))
                                    .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
                                    .getReferenceID());

@@ -25,6 +25,7 @@ import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.model.queryParams.core.BrAPIQueryParams;
+import org.brapi.v2.model.BrAPIPagination;
 import org.brapi.v2.model.BrAPIResponse;
 import org.breedinginsight.api.model.v1.request.query.PaginationParams;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
@@ -132,16 +133,35 @@ public class ResponseUtils {
     }
 
     public static <T> HttpResponse<Response<DataResponse<T>>> getBrapiQueryResponse(List<T> data,
-                                                                                    BrAPIResponse brAPIResponse,
-                                                                                    BrapiQuery queryParams) {
+                                                                                    BrAPIResponse brAPIResponse) {
         Pagination pagination = new Pagination();
-        pagination.setTotalCount(brAPIResponse.getMetadata().getPagination().getTotalCount());
-        pagination.setCurrentPage(queryParams.getPage());
-        pagination.setPageSize(queryParams.getPageSize());
+
+        // We want to use the pagination results from BrAPI here.
+        BrAPIPagination brAPIPagination = brAPIResponse.getMetadata().getPagination();
+
+        pagination.setTotalCount(brAPIPagination.getTotalCount());
+        pagination.setCurrentPage(brAPIPagination.getCurrentPage());
+        pagination.setPageSize(brAPIPagination.getPageSize());
+        pagination.setTotalPages((int) Math.ceil(pagination.getTotalCount() / (double) pagination.getPageSize()));
 
         Metadata metadata = constructMetadata(new Metadata(), pagination);
 
         return HttpResponse.ok(new Response<>(metadata, new DataResponse<>(data)));
+    }
+
+    public static <T> HttpResponse<Response<DataResponse<T>>> getEmptyBrapiQueryResponse() {
+        Pagination pagination = new Pagination();
+        Metadata metadata;
+
+        // Caller expects empty BrAPI response set. Set with empty defaults
+        pagination.setTotalCount(0);
+        pagination.setCurrentPage(0);
+        pagination.setPageSize(0);
+        pagination.setTotalPages(0);
+
+        metadata = constructMetadata(new Metadata(), pagination);
+
+        return HttpResponse.ok(new Response<>(metadata, new DataResponse<>(new ArrayList<>())));
     }
 
     private static <T> HttpResponse<Response<ProgramUpload>> processUploadSearchResponse(
