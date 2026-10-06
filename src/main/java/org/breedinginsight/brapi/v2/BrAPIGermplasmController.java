@@ -19,7 +19,6 @@ import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.BrAPIStatus;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.*;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
@@ -27,7 +26,6 @@ import org.brapi.v2.model.germ.response.BrAPIGermplasmPedigreeResponse;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmProgenyResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
-import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
@@ -201,8 +199,8 @@ public class BrAPIGermplasmController {
             // Fetch all germplasm in the program unless a list id is supplied to return only germplasm in that collection
             BrAPIGermplasmListResponse brapiResponse = queryParams.getListDbId() == null ? germplasmService.searchGermplasm(programId, queryParams) : germplasmService.getGermplasmByList(programId, queryParams);
 
-            List<BrAPIGermplasm> foundTrials = brapiResponse.getResult().getData();
-            return ResponseUtils.getBrapiQueryResponse(foundTrials, brapiResponse, queryParams);
+            List<BrAPIGermplasm> foundGermplasm = brapiResponse.getResult().getData();
+            return ResponseUtils.getBrapiQueryResponse(foundGermplasm, brapiResponse);
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");

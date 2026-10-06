@@ -99,6 +99,7 @@ public class BrAPIObservationUnitControllerIntegrationTest extends BrAPITest {
     private BrAPITrialDAO brapiTrialDAO;
     @Inject
     private ProgramDAO programDAO;
+    @Inject
     private BrAPIStudyDAO brAPIStudyDAO;
 
     @Inject

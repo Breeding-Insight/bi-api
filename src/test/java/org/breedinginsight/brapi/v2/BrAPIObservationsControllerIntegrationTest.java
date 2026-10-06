@@ -96,6 +96,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
     private BrAPIGermplasmDAO germplasmDAO;
     @Inject
     private ProgramDAO programDAO;
+    @Inject
     private BrAPIStudyDAO brAPIStudyDAO;
 
     @Inject

@@ -95,6 +95,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
     private BrAPIGermplasmDAO germplasmDAO;
     @Inject
     ProgramDAO programDAO;
+    @Inject
     private BrAPITrialService brAPITrialService;
     @Inject
     private BrAPIStudyDAO brAPIStudyDAO;
