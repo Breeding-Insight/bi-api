@@ -51,7 +51,6 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
     private BrAPIGermplasmService germplasmService;
     private BrAPIDAOUtil brAPIDAOUtil;
     private String referenceSource;
-    private ProgramCacheProvider cacheProvider;
 
     @SneakyThrows
     @BeforeEach
@@ -61,8 +60,7 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         listDAO = mock(BrAPIListDAO.class);
         programDAO = mock(ProgramDAO.class);
         brAPIDAOUtil = mock(BrAPIDAOUtil.class);
-        cacheProvider = new ProgramCacheProvider(super.getRedisConnection());
-        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, cacheProvider, new BrAPIEndpointProvider(), 65000);
+        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, new BrAPIEndpointProvider(), 65000);
         programService = mock(ProgramService.class);
 
         Field externalReferenceSource = BrAPIGermplasmDAO.class.getDeclaredField("referenceSource");
@@ -156,11 +154,6 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         when(brAPIDAOUtil.get(any(Function.class),
                 any(GermplasmQueryParams.class))).thenReturn(germplasm);
         when(brAPIDAOUtil.getBrAPIProgramDbId(any())).thenReturn(brapiProgramDbId);
-
-        //Create germplasm cache of stub data
-        Method setupMethod = BrAPIGermplasmDAO.class.getDeclaredMethod("setup");
-        setupMethod.setAccessible(true);
-        setupMethod.invoke(germplasmDAO);
 
         //Create test instance of service, injecting spy- and mock-dependencies
         germplasmService = new BrAPIGermplasmService(brAPIListSpy, programSpy, germplasmDAO);

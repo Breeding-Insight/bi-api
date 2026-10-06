@@ -1257,8 +1257,5 @@ public class GermplasmFileImportTest extends BrAPITest {
         germplasm.setExternalReferences(externalReferences);
 
         germplasmDAO.createBrAPIGermplasm(List.of(germplasm), validProgram.getId(), null);
-
-        //Refresh cache so importer lookup sees the seeded germplasm immediately.
-        germplasmDAO.repopulateGermplasmCacheForProgram(validProgram.getId());
     }
 }
