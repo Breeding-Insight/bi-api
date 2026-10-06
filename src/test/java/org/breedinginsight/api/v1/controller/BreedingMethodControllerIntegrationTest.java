@@ -355,6 +355,7 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
     @Test
     public void createGermplasmWithProgramMethod() throws ApiException {
         Program program = createProgram("createGermProgBM", "CGBM", "CGERBM");
+        String brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
 
         ProgramBreedingMethodEntity method = ProgramBreedingMethodEntity.builder()
                                                                         .programId(program.getId())
@@ -401,6 +402,8 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
                 .externalReferences(List.of(programRef, germIdRef))
                 .accessionNumber(accessionNum);
 
+        germplasm.setProgramDbId(brapiProgramDbId);
+
         assertDoesNotThrow(() -> germplasmService.createBrAPIGermplasm(List.of(germplasm), program.getId(), null));
 
         String germplasmUrl = String.format("/programs/%s/brapi/v2/germplasm", program.getId());
@@ -427,6 +430,7 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
     @Test
     public void tryDeleteProgramMethodInUse() throws ApiException {
         Program program = createProgram("tryDeleteProgramBM", "TDBM", "TRYDBM");
+        String brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
 
         ProgramBreedingMethodEntity method = ProgramBreedingMethodEntity.builder()
                                                                         .programId(program.getId())
@@ -472,6 +476,7 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
                 .putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_DATE, formatter.format(now))
                 .externalReferences(List.of(programRef, germIdRef))
                 .accessionNumber(accessionNum);
+        germplasm.setProgramDbId(brapiProgramDbId);
 
         assertDoesNotThrow(() -> germplasmService.createBrAPIGermplasm(List.of(germplasm), program.getId(), null));
 

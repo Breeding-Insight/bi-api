@@ -43,8 +43,10 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.Processor;
+import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
+import org.breedinginsight.daos.impl.ProgramDAOImpl;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
@@ -64,6 +66,7 @@ import java.util.stream.Collectors;
 public class GermplasmProcessor implements Processor {
 
     private static final String NAME = "Germplasm";
+    private final ProgramDAOImpl programDAOImpl;
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
 
@@ -109,13 +112,14 @@ public class GermplasmProcessor implements Processor {
     };
 
     @Inject
-    public GermplasmProcessor(BrAPIGermplasmService brAPIGermplasmService, DSLContext dsl, BreedingMethodDAO breedingMethodDAO, BrAPIListDAO brAPIListDAO, BrAPIGermplasmDAO brAPIGermplasmDAO) {
+    public GermplasmProcessor(BrAPIGermplasmService brAPIGermplasmService, DSLContext dsl, BreedingMethodDAO breedingMethodDAO, BrAPIListDAO brAPIListDAO, BrAPIGermplasmDAO brAPIGermplasmDAO, ProgramDAOImpl programDAOImpl) {
         this.brAPIGermplasmService = brAPIGermplasmService;
         this.dsl = dsl;
         this.breedingMethodDAO = breedingMethodDAO;
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
         this.brAPIListDAO = brAPIListDAO;
         this.brAPIGermplasmService = brAPIGermplasmService;
+        this.programDAOImpl = programDAOImpl;
     }
 
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ApiException {
@@ -289,6 +293,8 @@ public class GermplasmProcessor implements Processor {
         List<String> userProvidedEntryNumbers = new ArrayList<>();
         ValidationErrors validationErrors = new ValidationErrors();
 
+        String brapiProgramDbId = programDAOImpl.getProgramBrAPI(program).getProgramDbId();
+
         for (int i = 0; i < importRows.size(); i++) {
             log.debug("processing germplasm row: {}", i + 1);
             BrAPIImport brapiImport = importRows.get(i);
@@ -315,7 +321,7 @@ public class GermplasmProcessor implements Processor {
             if (germplasm.getAccessionNumber() != null) {
                 processExistingGermplasm(germplasm, validationErrors, importRows, breedingMethods, badBreedingMethods, program, commit, mappedImportRow, i);
             } else {
-                processNewGermplasm(germplasm, validationErrors, breedingMethods, badBreedingMethods, program, importListId, commit, mappedImportRow, i, user, nextVal);
+                processNewGermplasm(germplasm, validationErrors, breedingMethods, badBreedingMethods, program, importListId, commit, mappedImportRow, i, user, nextVal, brapiProgramDbId);
             }
             mappedBrAPIImport.put(i, mappedImportRow);
         }
@@ -347,7 +353,8 @@ public class GermplasmProcessor implements Processor {
 
     private void processNewGermplasm(Germplasm germplasm, ValidationErrors validationErrors, Map<String, ProgramBreedingMethodEntity> breedingMethods,
                                      List<String> badBreedingMethods,
-                                     Program program, UUID importListId, boolean commit, PendingImport mappedImportRow, int i, User user, Supplier<BigInteger> nextVal) {
+                                     Program program, UUID importListId, boolean commit, PendingImport mappedImportRow, int i, User user, Supplier<BigInteger> nextVal,
+                                     String brapiProgramDbId) {
         germplasm = removeBreedingMethodBlanks(germplasm);
         //Validating if Breeding Method exists for valid parent entries
         validateGermplasmBreedingMethod(germplasm, i + 2, validationErrors);
@@ -361,7 +368,7 @@ public class GermplasmProcessor implements Processor {
             numNewPedigreeConnections++;
         }
 
-        BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal, importListId);
+        BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal, importListId, brapiProgramDbId);
 
         newGermplasmList.add(newGermplasm);
         // Assign status of the germplasm
