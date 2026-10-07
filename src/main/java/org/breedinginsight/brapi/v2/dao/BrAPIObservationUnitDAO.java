@@ -292,20 +292,12 @@ public class BrAPIObservationUnitDAO {
         // TODO: Are level filters being used here at all?  Should they be?
         addLevelFilter(observationUnitLevelName, observationUnitLevelOrder, observationUnitLevelCode, level, levelFilter);
         addLevelFilter(observationUnitLevelRelationshipName, observationUnitLevelRelationshipOrder, observationUnitLevelRelationshipCode, relationship, relationshipFilter);
-        // TODO: Use observationUnitSearchRequest.setStudyDbIds() instead of xrefs [BI-2919]
+
         environmentId.ifPresent(envId -> observationUnitSearchRequest.setStudyDbIds(List.of(envId)));
 
-        return searchObservationUnitsAndProcess(observationUnitSearchRequest, program, true).stream().filter(ou -> {
-            //xref search does an OR, so we need to convert the searching for expId/envId to be an AND
-            boolean matches = environmentId.map(id -> id.equals(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES))
-                                                                             .get()
-                                                                             .getReferenceId()))
-                                               .orElse(true);
-
-            //adding filter for germplasmDbId because we can't easily search that in the stored data object
-            // TODO: Add search on germplasmDbId directly in search request [BI-3006]
-            return matches && germplasmId.map(id -> id.equals(ou.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_UUID).getAsString())).orElse(true);
-        }).collect(Collectors.toList());
+        return searchObservationUnitsAndProcess(observationUnitSearchRequest, program, true).stream()
+                // TODO: Add search on germplasmDbId directly in the search request [BI-3006]
+                .filter(ou -> germplasmId.map(id -> id.equals(ou.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_UUID).getAsString())).orElse(true)).collect(Collectors.toList());
     }
 
     private void addLevelFilter(Optional<String> observationUnitLevelName, Optional<Integer> observationUnitLevelOrder, Optional<String> observationUnitLevelCode, BrAPIObservationUnitLevelRelationship level, AtomicBoolean levelFilter) {
