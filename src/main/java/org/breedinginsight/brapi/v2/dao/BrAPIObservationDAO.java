@@ -123,6 +123,20 @@ public class BrAPIObservationDAO {
         );
     }
 
+    private List<BrAPIObservation> searchBrapiObservations(BrAPIObservationSearchRequest observationSearchRequest, Program program) throws ApiException {
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
+
+        List<BrAPIObservation> observations = brAPIDAOUtil.search(
+                api::searchObservationsPost,
+                (brAPIWSMIMEDataTypes, searchResultsDbId, page, pageSize) -> searchObservationsSearchResultsDbIdGet(program.getId(), searchResultsDbId, page, pageSize),
+                observationSearchRequest
+        );
+
+        processObservations(program.getKey(), observations);
+
+        return observations;
+    }
+
     /**
      * Retrieves a list of observations based on their database IDs and a specific program.
      *
@@ -133,50 +147,60 @@ public class BrAPIObservationDAO {
      */
     public List<BrAPIObservation> getObservationsByDbIds(List<String> dbIds, Program program) throws ApiException {
         // Check if the dbIds list is empty and return an empty list if so
-        if(dbIds.isEmpty()) {
+        if (dbIds.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // Filter the observations based on the provided program ID and the provided list of dbIds
-        // Collect the filtered observations into a List and return the result
-        return getProgramObservations(program.getId()).stream()
-                .filter(o -> dbIds.contains(o.getObservationDbId()))
-                .collect(Collectors.toList());
+        BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest()
+                .programDbIds(List.of(program.getBrapiProgram().getProgramDbId()))
+                .observationDbIds(new ArrayList<>(dbIds));
+
+        return searchBrapiObservations(observationSearchRequest, program);
     }
 
     public List<BrAPIObservation> getObservationsByTrialDbId(List<String> trialDbIds, Program program) throws ApiException {
-        if(trialDbIds.isEmpty()) {
+        if (trialDbIds.isEmpty()) {
             return Collections.emptyList();
         }
         // First, get all ObservationUnits for the given trialDbIds.
-        // TODO: Once OUDAO removes cache, investigate utilizing observationUnit GET param to includeObservations instead of making an extra call for the observations. This should offer performance gains. [BI-2963]
         List<String> observationUnitDbIds = observationUnitDAO.getObservationUnitsForTrialDbIds(program.getId(), trialDbIds)
                 .stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
-        // Finally, return all Observations for those ObservationUnits (Observations are linked to Trial through ObservationUnits).
-        // TODO: This gets all observations for the program and filters, which is extremely inefficient.  If above TODO suggestion doesn't work, another improvement would be to search on OU ids directly in BrAPI instead. [BI-2963]
-        return getProgramObservations(program.getId()).stream()
-                .filter(o -> observationUnitDbIds.contains(o.getObservationUnitDbId()))
-                .collect(Collectors.toList());
+
+        if (observationUnitDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest()
+                        .programDbIds(List.of(program.getBrapiProgram().getProgramDbId()))
+                        .observationUnitDbIds(observationUnitDbIds);
+
+        return searchBrapiObservations(observationSearchRequest, program);
     }
 
     public List<BrAPIObservation> getObservationsByObservationUnitsAndVariables(Collection<String> ouDbIds, Collection<String> variableDbIds, Program program) throws ApiException {
-        if(ouDbIds.isEmpty() || variableDbIds.isEmpty()) {
+        if (ouDbIds.isEmpty() || variableDbIds.isEmpty()) {
             return Collections.emptyList();
         }
-        // TODO: Once OUDAO removes cache, change to BrAPI Observation search request on program, observation var ids, and ouDbId [BI-2963]
-        return getProgramObservations(program.getId()).stream()
-                .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()) && variableDbIds.contains(o.getObservationVariableDbId()))
-                .collect(Collectors.toList());
+
+        BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest()
+                .programDbIds(List.of(program.getBrapiProgram().getProgramDbId()))
+                .observationUnitDbIds(new ArrayList<>(ouDbIds))
+                .observationVariableDbIds(new ArrayList<>(variableDbIds));
+
+        return searchBrapiObservations(observationSearchRequest, program);
     }
 
     public List<BrAPIObservation> getObservationsByObservationUnits(Collection<String> ouDbIds, Program program) throws ApiException {
-        // TODO: Once OUDAO removes cache, change to BrAPI Observation search request on program and ouDbIds [BI-2963]
-        if(ouDbIds.isEmpty()) {
+
+        if (ouDbIds.isEmpty()) {
             return Collections.emptyList();
         }
-        return getProgramObservations(program.getId()).stream()
-                .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()))
-                .collect(Collectors.toList());
+
+        BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest()
+                .programDbIds(List.of(program.getBrapiProgram().getProgramDbId()))
+                .observationUnitDbIds(new ArrayList<>(ouDbIds));
+
+        return searchBrapiObservations(observationSearchRequest, program);
     }
 
     public List<BrAPIObservation> getObservationsByFilters(Program program, String studyDbId) throws ApiException, DoesNotExistException {
