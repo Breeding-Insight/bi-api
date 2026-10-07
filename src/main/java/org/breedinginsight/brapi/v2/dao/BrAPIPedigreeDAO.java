@@ -85,7 +85,7 @@ public class BrAPIPedigreeDAO {
 
         PedigreeQueryParams pedigreeRequest = new PedigreeQueryParams();
 
-        // TODO: Issue with BrAPI server programDbId filtering, think germplasm are linked to program through observation
+        // TODO: Issue with BrAPI server programDbId filtering, think germplasm are linked to program through observation [BI-
         // units and doesn't work if don't have any loaded
         // use external refs instead for now
         //pedigreeSearchRequest.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));

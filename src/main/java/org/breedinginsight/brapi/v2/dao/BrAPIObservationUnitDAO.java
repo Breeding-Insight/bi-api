@@ -292,16 +292,12 @@ public class BrAPIObservationUnitDAO {
         // TODO: Are level filters being used here at all?  Should they be?
         addLevelFilter(observationUnitLevelName, observationUnitLevelOrder, observationUnitLevelCode, level, levelFilter);
         addLevelFilter(observationUnitLevelRelationshipName, observationUnitLevelRelationshipOrder, observationUnitLevelRelationshipCode, relationship, relationshipFilter);
-        // TODO: Use observationUnitSearchRequest.setStudyDbIds() instead of xrefs [BI-2919]
+
         environmentId.ifPresent(envId -> observationUnitSearchRequest.setStudyDbIds(List.of(envId)));
 
-        return searchObservationUnitsAndProcess(observationUnitSearchRequest, program, true)
-                .stream()
-                .filter(ou -> germplasmId.map(id -> id.equals(ou.getAdditionalInfo()
-                                                        .get(BrAPIAdditionalInfoFields.GERMPLASM_UUID)
-                                                        .getAsString()))
-                                .orElse(true))
-                .collect(Collectors.toList());
+        return searchObservationUnitsAndProcess(observationUnitSearchRequest, program, true).stream()
+                // TODO: Add search on germplasmDbId directly in the search request [BI-3006]
+                .filter(ou -> germplasmId.map(id -> id.equals(ou.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_UUID).getAsString())).orElse(true)).collect(Collectors.toList());
     }
 
     private void addLevelFilter(Optional<String> observationUnitLevelName, Optional<Integer> observationUnitLevelOrder, Optional<String> observationUnitLevelCode, BrAPIObservationUnitLevelRelationship level, AtomicBoolean levelFilter) {
@@ -360,7 +356,7 @@ public class BrAPIObservationUnitDAO {
 
     	HashMap<String, BrAPIGermplasm> germplasmByDbId = new HashMap<>();
     	if( withGID ){
-            // TODO: Optimize this to use germplasm information directly in BrAPIObservationUnit by adding accession num/GID there via the prodserver/client [BI-2978]
+            // TODO: Optimize this to use germplasm information directly in BrAPIObservationUnit by searching on ou.germplasmDbIds in a GermplasmSearchRequest [BI-3006]
             this.germplasmService.getGermplasm(program.getId()).forEach((germplasm -> germplasmByDbId.put(germplasm.getGermplasmDbId(), germplasm)));
         }
 
