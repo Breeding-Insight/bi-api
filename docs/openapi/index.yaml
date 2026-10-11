@@ -1,0 +1,81 @@
+#
+# See the NOTICE file distributed with this work for additional information
+# regarding copyright ownership.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+openapi: 3.0.2
+info:
+  title: Breeding Insight API
+  description: API documentation for Breeding Insight
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: np398@cornell.edu
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Breeding Insight
+  url: http://www.breedinginsight.org
+servers:
+  - url: http://localhost:8081/v1
+tags:
+  - $ref: ./tags/users.yaml
+  - $ref: ./tags/programs.yaml
+  - $ref: ./tags/roles.yaml
+  - $ref: ./tags/traits.yaml
+  - $ref: ./tags/uploads.yaml
+  - $ref: ./tags/breeding-methods.yaml
+  - $ref: ./tags/jobs.yaml
+  - $ref: ./tags/ontology.yaml
+  - $ref: ./tags/experiments.yaml
+  - $ref: ./tags/species.yaml
+  - $ref: ./tags/genotype-data-upload.yaml
+  - $ref: ./tags/sample-submissions.yaml
+  - $ref: ./tags/oidc.yaml
+  - $ref: ./tags/importer.yaml
+  - $ref: ./tags/server-management.yaml
+  - $ref: ./tags/token-management.yaml
+  - $ref: ./tags/countries.yaml
+  - $ref: ./tags/topography-options.yaml
+  - $ref: ./tags/accessibility-options.yaml
+  - $ref: ./tags/environment-data-types.yaml
+paths:
+  $ref: ./paths/importer.yaml
+  $ref: ./paths/oidc.yaml
+  $ref: ./paths/sample-submissions.yaml
+  $ref: ./paths/genotype-data-upload.yaml
+  $ref: ./paths/species.yaml
+  $ref: ./paths/experiments.yaml
+  $ref: ./paths/ontology.yaml
+  $ref: ./paths/jobs.yaml
+  $ref: ./paths/breeding-methods.yaml
+  $ref: ./paths/users.yaml
+  $ref: ./paths/programs.yaml
+  $ref: ./paths/roles.yaml
+  $ref: ./paths/traits.yaml
+  $ref: ./paths/uploads.yaml
+  $ref: ./paths/health.yaml
+  $ref: ./paths/api-token.yaml
+  $ref: ./paths/server-info.yaml
+  $ref: ./paths/countries.yaml
+  $ref: ./paths/topography-options.yaml
+  $ref: ./paths/accessibility-options.yaml
+  $ref: ./paths/environment-data-types.yaml
+components:
+  $ref: ./components/schemas.yaml
+  $ref: ./components/responses.yaml
+  $ref: ./components/security-schemes.yaml
+  $ref: ./components/examples.yaml
+  $ref: ./components/parameters.yaml
