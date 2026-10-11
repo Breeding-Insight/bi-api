@@ -27,7 +27,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
-import junit.framework.AssertionFailedError;
+import org.opentest4j.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
@@ -42,7 +42,6 @@ import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.SpeciesService;
 import org.jooq.DSLContext;
-import org.junit.Rule;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;

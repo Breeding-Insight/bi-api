@@ -16,7 +16,7 @@
  */
 package org.breedinginsight.services.parsers;
 
-import junit.framework.AssertionFailedError;
+import org.opentest4j.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.api.model.v1.response.RowValidationErrors;
 import org.breedinginsight.api.model.v1.response.ValidationError;

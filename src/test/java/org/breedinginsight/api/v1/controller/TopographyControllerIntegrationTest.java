@@ -35,7 +35,7 @@ import org.junit.jupiter.api.*;
 import javax.inject.Inject;
 
 import static io.micronaut.http.HttpRequest.GET;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
