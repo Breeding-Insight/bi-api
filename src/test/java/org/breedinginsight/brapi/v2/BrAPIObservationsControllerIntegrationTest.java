@@ -368,6 +368,58 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         checkPagination(1, 0, HttpStatus.BAD_REQUEST, null, null, null);
         checkPagination(10, 100, HttpStatus.BAD_REQUEST, null, null, null);
 
+        // Invalid negative values.
+        checkPagination(-1, 2, HttpStatus.BAD_REQUEST, null, null, null);
+        checkPagination(0, -1, HttpStatus.BAD_REQUEST, null, null, null);
+
+        // Invalid boundary when the final page is partial.
+        checkPagination(2, 3, HttpStatus.BAD_REQUEST, null, null, null);
+    }
+
+    @Test
+    public void testGetObsUnknownStudyReturnsEmptyFirstPage() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/observations" + "?studyDbId=%s&page=0&pageSize=2", program.getId(), UUID.randomUUID()))
+                        .bearerAuth("test-registered-user"), String.class);
+
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+        JsonArray observations = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+        JsonObject pagination = responseObj.getAsJsonObject("metadata").getAsJsonObject("pagination");
+
+        assertEquals(0, observations.size());
+        assertEquals(0, pagination.get("currentPage").getAsInt());
+        assertEquals(2, pagination.get("pageSize").getAsInt());
+        assertEquals(0, pagination.get("totalCount").getAsInt());
+        assertEquals(0, pagination.get("totalPages").getAsInt());
+    }
+
+    @Test
+    public void testGetObsByStudyDbIdWithPagination() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format(
+                        "/programs/%s/brapi/v2/observations?studyDbId=%s&page=0&pageSize=1",
+                        program.getId(),
+                        envIds.get(0)))
+                        .bearerAuth("test-registered-user"), String.class);
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+        JsonArray observations = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+        JsonObject pagination = responseObj.getAsJsonObject("metadata").getAsJsonObject("pagination");
+
+        assertEquals(1, observations.size());
+        assertEquals(envIds.get(0), observations.get(0).getAsJsonObject().get("studyDbId").getAsString());
+
+        assertEquals(0, pagination.get("currentPage").getAsInt());
+        assertEquals(1, pagination.get("pageSize").getAsInt());
+        assertEquals(2, pagination.get("totalCount").getAsInt());
+        assertEquals(2, pagination.get("totalPages").getAsInt());
     }
 
     private void checkPagination(Integer page, Integer pageSize, HttpStatus expectedStatus, Integer expectedSize, Integer expectedTotalCount, Integer expectedTotalPages) {
@@ -400,7 +452,8 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
             JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
             // Get metadata.
             JsonObject pagination = responseObj.getAsJsonObject("metadata").getAsJsonObject("pagination");
-            assertEquals(expectedSize, pagination.get("pageSize").getAsInt());
+            int expectedPageSize = pageSize == null ? 1000 : pageSize;
+            assertEquals(expectedPageSize, pagination.get("pageSize").getAsInt());
             int expectedPage = page == null ? 0 : page;
             assertEquals(expectedPage, pagination.get("currentPage").getAsInt());
             assertEquals(expectedTotalPages, pagination.get("totalPages").getAsInt());

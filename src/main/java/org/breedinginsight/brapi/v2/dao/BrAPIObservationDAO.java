@@ -203,21 +203,32 @@ public class BrAPIObservationDAO {
         return searchBrapiObservations(observationSearchRequest, program);
     }
 
-    public List<BrAPIObservation> getObservationsByFilters(Program program, String studyDbId) throws ApiException, DoesNotExistException {
-        Collection<BrAPIObservation> observations = getProgramObservations(program.getId());
+    public BrAPIObservationListResponse getObservationsByFilters(Program program, String studyDbId, Integer page, Integer pageSize) throws ApiException, DoesNotExistException {
+        BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest()
+                .programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
 
-        HashMap<String, String> traitIdsByObservationVariableDbId =
-                traitService.getIdsByObservationVariableDbIds(
-                        program.getId(),
-                        observations.stream()
-                                .map(BrAPIObservation::getObservationVariableDbId)
-                                .collect(Collectors.toList()));
+        if (studyDbId != null) {
+            observationSearchRequest.setStudyDbIds(List.of(studyDbId));
+        }
+        observationSearchRequest.setPage(page == null ? 0 : page);
+        observationSearchRequest.setPageSize(pageSize == null ? 1000 : pageSize);
 
-        return observations.stream()
-                .filter(o -> studyDbId == null || studyDbId.equals(o.getStudyDbId()))
-                .peek(o ->
-                        o.setObservationVariableDbId(traitIdsByObservationVariableDbId.get(o.getObservationVariableDbId())))
-                .collect(Collectors.toList());
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
+
+        BrAPIObservationListResponse brAPIResponse = brAPIDAOUtil.simpleSearch(api::searchObservationsPost, observationSearchRequest);
+
+        List<BrAPIObservation> observations = brAPIDAOUtil.getListResult(brAPIResponse);
+        processObservations(program.getKey(), observations);
+
+        HashMap<String, String> traitIdsByObservationVariableDbId = traitService.getIdsByObservationVariableDbIds(
+                program.getId(), observations.stream()
+                        .map(BrAPIObservation::getObservationVariableDbId).collect(Collectors.toList()));
+
+        observations.forEach(observation -> observation
+                .setObservationVariableDbId(traitIdsByObservationVariableDbId.get(observation.getObservationVariableDbId())));
+        brAPIResponse.getResult().setData(observations);
+
+        return brAPIResponse;
     }
 
     @NotNull

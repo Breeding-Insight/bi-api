@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapi.v2;
 
-
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
@@ -28,13 +27,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.phenotype.ObservationsApi;
-import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.BrAPIStatus;
 import org.brapi.v2.model.BrAPIWSMIMEDataTypes;
-import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.pheno.BrAPIObservation;
-import org.brapi.v2.model.pheno.response.*;
+import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
+import org.brapi.v2.model.pheno.response.BrAPIObservationTableResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
@@ -46,7 +44,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.Utilities;
-
+import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -144,54 +142,37 @@ public class BrAPIObservationsController {
                 );
             }
 
-            // Get a filtered list of observations.
-            // TODO: Handle filtering and pagination of this request entirely on BrAPI side once study and ou cache is removed: [BI-2964]
-            List<BrAPIObservation> observations = observationDAO.getObservationsByFilters(program.get(), studyDbId);
+            boolean pageSizeValid = pageSize == null || pageSize > 0;
+            boolean pageValid = page == null || page >= 0;
 
-            // If page is not provided, set it to the default value 0.
-            if (page == null) page = 0;
-            // If pageSize is not provided, set it to the default value 1000.
-            if (pageSize == null) pageSize = 1000;
-
-            // Total number of records in the unpaged super set.
-            int totalCount = observations.size();
-            // The least of pageSize and totalCount, unless pageSize is zero, in which case use totalCount.
-            int requestedPageSize = pageSize > 0 ? Math.min(pageSize, totalCount) : totalCount;
-            // Integer division and round up.
-            int totalPages = totalCount / requestedPageSize + ((totalCount % requestedPageSize == 0) ? 0 : 1);
-            log.info("(Pagination) totalCount: " + totalCount + " page (0-indexed): " + page + " requestedPageSize: " + requestedPageSize + " totalPages: " + totalPages);
-
-            // Determine validity of pagination query parameters.
-            boolean pageSizeValid = pageSize > 0;
-            boolean pageValid = page >= 0 && page < totalPages;
-
-            // Only paginate if valid pagination values were sent.
-            if (pageSizeValid && pageValid) {
-                int start = page * requestedPageSize;
-                // Account for last page, which may have fewer than requestedPageSize items, or exactly requestedPageSize items.
-                int end = (page == (totalPages - 1) && totalCount % requestedPageSize != 0) ? (start + (totalCount % requestedPageSize)) : Math.min(((page + 1) * requestedPageSize), totalCount);
-                log.info("(Pagination) start " + start + " end " + end);
-                // Sort observations so that paging is consistent and coherent.
-                observations.sort(Comparator.comparing(BrAPIObservation::getObservationDbId));
-                // Paginate response.
-                observations = observations.subList(start, end);
-            } else {
+            if (!pageSizeValid || !pageValid) {
                 String errorMessage = "Invalid query parameters: page, pageSize";
-                return HttpResponse.badRequest(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().status(List.of(new BrAPIStatus().messageType(BrAPIStatus.MessageTypeEnum.ERROR)
-                        .message(errorMessage)))));
+                return HttpResponse.badRequest(new BrAPIObservationListResponse()
+                        .metadata(new BrAPIMetadata()
+                                .status(List.of(new BrAPIStatus()
+                                        .messageType(BrAPIStatus.MessageTypeEnum.ERROR)
+                                        .message(errorMessage)))));
             }
 
-            return HttpResponse.ok(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().pagination(new BrAPIIndexPagination()
-                            .currentPage(page)
-                            .totalPages(totalPages)
-                            .pageSize(observations.size())
-                            .totalCount(totalCount)))
-                    .result(new BrAPIObservationListResponseResult().data(observations)));
+            BrAPIObservationListResponse brAPIResponse = observationDAO.getObservationsByFilters(program.get(), studyDbId, page, pageSize);
+
+            List<BrAPIObservation> observations = brAPIResponse.getResult().getData();
+            return ResponseUtils.getBrapiQueryResponse(observations, brAPIResponse);
 
         } catch (ApiException e) {
             log.error(Utilities.generateApiExceptionLogMessage(e), e);
-            return HttpResponse.serverError(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().status(List.of(new BrAPIStatus().messageType(BrAPIStatus.MessageTypeEnum.ERROR)
-                    .message("Error fetching observations")))));
+
+            BrAPIObservationListResponse errorResponse = new BrAPIObservationListResponse()
+                    .metadata(new BrAPIMetadata()
+                            .status(List.of(new BrAPIStatus()
+                                    .messageType(BrAPIStatus.MessageTypeEnum.ERROR)
+                                    .message("Error fetching observations"))));
+
+            if (e.getCode() == HttpStatus.BAD_REQUEST.getCode()) {
+                return HttpResponse.badRequest(errorResponse);
+            }
+
+            return HttpResponse.serverError(errorResponse);
         } catch (Exception e) {
             log.error("Error fetching Observations", e);
             return HttpResponse.serverError(new BrAPIObservationListResponse().metadata(new BrAPIMetadata().status(List.of(new BrAPIStatus().messageType(BrAPIStatus.MessageTypeEnum.ERROR)

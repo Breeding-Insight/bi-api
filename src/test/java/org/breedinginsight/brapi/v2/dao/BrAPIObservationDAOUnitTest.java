@@ -41,6 +41,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
+import org.brapi.v2.model.pheno.response.BrAPIObservationListResponseResult;
+import java.util.HashMap;
 
 public class BrAPIObservationDAOUnitTest {
 
@@ -50,6 +53,7 @@ public class BrAPIObservationDAOUnitTest {
     private BrAPIObservationUnitDAO observationUnitDAO;
     private BrAPIDAOUtil brAPIDAOUtil;
     private Program program;
+    private TraitService traitService;
 
     @BeforeEach
     void setup() {
@@ -65,6 +69,7 @@ public class BrAPIObservationDAOUnitTest {
         ProgramDAO programDAO = mock(ProgramDAO.class);
         observationUnitDAO = mock(BrAPIObservationUnitDAO.class);
         brAPIDAOUtil = mock(BrAPIDAOUtil.class);
+        traitService = mock(TraitService.class);
 
         when(programDAO.getCoreClient(programId)).thenReturn(mock(BrAPIClient.class));
 
@@ -75,7 +80,7 @@ public class BrAPIObservationDAOUnitTest {
                 brAPIDAOUtil,
                 new BrAPIEndpointProvider(),
                 1000,
-                mock(TraitService.class)
+                traitService
         );
     }
 
@@ -199,5 +204,71 @@ public class BrAPIObservationDAOUnitTest {
 
         verifyNoInteractions(observationUnitDAO);
         verify(brAPIDAOUtil, never()).search(any(Function.class),any(Function4.class),any(BrAPIObservationSearchRequest.class));
+    }
+
+    @Test
+    @SneakyThrows
+    void getObservationsByFiltersUsesDefaultsWithoutStudyFilter() {
+        List<BrAPIObservation> observations = List.of();
+
+        BrAPIObservationListResponse brAPIResponse = new BrAPIObservationListResponse().result(new BrAPIObservationListResponseResult().data(observations));
+
+        when(brAPIDAOUtil.simpleSearch(any(Function.class), any(BrAPIObservationSearchRequest.class))).thenReturn(brAPIResponse);
+
+        doReturn(observations).when(brAPIDAOUtil).getListResult(brAPIResponse);
+
+        when(traitService.getIdsByObservationVariableDbIds(program.getId(), List.of())).thenReturn(new HashMap<>());
+
+        observationDAO.getObservationsByFilters(program, null, null, null);
+
+        ArgumentCaptor<BrAPIObservationSearchRequest> requestCaptor = ArgumentCaptor.forClass(BrAPIObservationSearchRequest.class);
+
+        verify(brAPIDAOUtil).simpleSearch(any(Function.class), requestCaptor.capture());
+
+        BrAPIObservationSearchRequest request = requestCaptor.getValue();
+
+        assertEquals(List.of(BRAPI_PROGRAM_DB_ID), request.getProgramDbIds());
+        assertEquals(null, request.getStudyDbIds());
+        assertEquals(0, request.getPage());
+        assertEquals(1000, request.getPageSize());
+    }
+
+    @Test
+    @SneakyThrows
+    void getObservationsByFiltersUsesBrAPISearchPagination() {
+        String brapiVariableDbId = "brapi-variable-1";
+        String traitId = UUID.randomUUID().toString();
+
+        BrAPIObservation observation = new BrAPIObservation()
+                .observationDbId("observation-1")
+                .studyDbId("study-1")
+                .observationVariableDbId(brapiVariableDbId);
+
+        List<BrAPIObservation> brapiObservations = List.of(observation);
+        BrAPIObservationListResponse brAPIResponse = new BrAPIObservationListResponse().result(new BrAPIObservationListResponseResult().data(brapiObservations));
+
+        when(brAPIDAOUtil.simpleSearch(any(Function.class), any(BrAPIObservationSearchRequest.class))).thenReturn(brAPIResponse);
+
+        doReturn(brapiObservations).when(brAPIDAOUtil).getListResult(brAPIResponse);
+
+        HashMap<String, String> traitIdsByObservationVariableDbId = new HashMap<>();
+        traitIdsByObservationVariableDbId.put(brapiVariableDbId, traitId);
+
+        when(traitService.getIdsByObservationVariableDbIds(program.getId(), List.of(brapiVariableDbId)))
+                .thenReturn(traitIdsByObservationVariableDbId);
+
+        BrAPIObservationListResponse result = observationDAO.getObservationsByFilters(program, "study-1", 2, 25);
+
+        ArgumentCaptor<BrAPIObservationSearchRequest> requestCaptor = ArgumentCaptor.forClass(BrAPIObservationSearchRequest.class);
+
+        verify(brAPIDAOUtil).simpleSearch(any(Function.class), requestCaptor.capture());
+
+        BrAPIObservationSearchRequest request = requestCaptor.getValue();
+
+        assertEquals(List.of(BRAPI_PROGRAM_DB_ID), request.getProgramDbIds());
+        assertEquals(List.of("study-1"), request.getStudyDbIds());
+        assertEquals(2, request.getPage());
+        assertEquals(25, request.getPageSize());
+        assertEquals(traitId, result.getResult().getData().get(0).getObservationVariableDbId());
     }
 }
