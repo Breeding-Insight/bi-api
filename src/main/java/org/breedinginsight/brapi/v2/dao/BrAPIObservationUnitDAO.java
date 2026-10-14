@@ -200,10 +200,9 @@ public class BrAPIObservationUnitDAO {
     }
 
     public List<BrAPIObservationUnit> getObservationUnitsForStudyDbId(@NotNull String studyDbId, Program program) throws ApiException {
-        // TODO: Optimize and change this to search/get on studyDbId once cache is removed for studies [BI-2979]
-        return getProgramObservationUnits(program.getId()).stream()
-                .filter(ou -> ou.getStudyDbId().equals(studyDbId))
-                .collect(Collectors.toList());
+        BrAPIObservationUnitSearchRequest observationUnitSearchRequest = buildSearchRequest(program, null);
+        observationUnitSearchRequest.setStudyDbIds(List.of(studyDbId));
+        return searchObservationUnitsAndProcess(observationUnitSearchRequest, program, true);
     }
 
     public List<BrAPIObservationUnit> getObservationUnitsForTrialDbIds(@NotNull UUID programId, List<String> trialDbIds) throws ApiException {
@@ -211,17 +210,15 @@ public class BrAPIObservationUnitDAO {
             return Collections.emptyList();
         }
 
-        // TODO: Optimize and change this to search on trialDbIds [BI-2979]
-        return getProgramObservationUnits(programId).stream()
-                .filter(ou -> trialDbIds.contains(ou.getTrialDbId()))
-                .collect(Collectors.toList());
+        Program program = programDAO.get(programId).stream().findFirst().orElseThrow();
+
+        BrAPIObservationUnitSearchRequest observationUnitSearchRequest = buildSearchRequest(program, null);
+        observationUnitSearchRequest.setTrialDbIds(trialDbIds);
+        return searchObservationUnitsAndProcess(observationUnitSearchRequest, program, true);
     }
 
     public List<BrAPIObservationUnit> getObservationUnitsForTrialDbId(@NotNull UUID programId, @NotNull String trialDbId) throws ApiException {
-        return getProgramObservationUnits(programId).stream()
-                // TODO: Optimize and change this to search/get on trialDbId [BI-2979]
-                .filter(ou -> ou.getTrialDbId().equals(trialDbId))
-                .collect(Collectors.toList());
+        return getObservationUnitsForTrialDbIds(programId, List.of(trialDbId));
     }
 
     public List<BrAPIObservationUnit> getObservationUnitsForDataset(@NotNull String datasetId, @NotNull Program program) throws ApiException {
