@@ -220,6 +220,7 @@ public class BrAPIObservationDAO {
         List<BrAPIObservation> observations = brAPIDAOUtil.getListResult(brAPIResponse);
         processObservations(program.getKey(), observations);
 
+        // TODO: Investigate if this resetting of the observationVariableDbId can be undone when trait exrefs are examined [BI-2925]
         HashMap<String, String> traitIdsByObservationVariableDbId = traitService.getIdsByObservationVariableDbIds(
                 program.getId(), observations.stream()
                         .map(BrAPIObservation::getObservationVariableDbId).collect(Collectors.toList()));
