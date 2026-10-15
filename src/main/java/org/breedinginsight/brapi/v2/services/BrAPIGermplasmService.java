@@ -7,12 +7,15 @@ import io.micronaut.http.server.types.files.StreamedFile;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.v2.model.core.BrAPIListItemWithFullItem;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.brapi.v2.model.core.response.BrAPIListItemsListResponse;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponseResult;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
@@ -172,94 +175,36 @@ public class BrAPIGermplasmService {
         if(Objects.nonNull(listResponse) && Objects.nonNull(listResponse.getResult())) {
 
             // get the list ID stored in the list external references
-            UUID listId = getGermplasmListId(listResponse.getResult());
+            // TODO: See if this can be removed/replaced with actual BrAPI list db id
+            UUID biGermplasmListId = getGermplasmListId(listResponse.getResult());
 
-            // get list BrAPI germplasm variables.
-            // The order of these germplasm names are the exact order/entry number in the list that was imported.
-            List<String> germplasmNamesFromBrapiList = listResponse.getResult().getData();
+            // Required for the actual data search in BrAPI
+            String brapiListDbId = listResponse.getResult().getListDbId();
 
-            BrAPIGermplasmListResponse germplasmSearchResponse = germplasmDAO.searchGermplasmByRawName(germplasmNamesFromBrapiList, programId, germplasmQuery);
+            BrAPIListItemsListResponse<BrAPIGermplasm> listSearchResponse = germplasmDAO.searchGermplasmByList(brapiListDbId, programId, germplasmQuery);
 
-            List<BrAPIGermplasm> germplasm = germplasmSearchResponse.getResult().getData();
-            Map<String, BrAPIGermplasm> germplasmByGid = new HashMap<>();
+            List<BrAPIListItemWithFullItem<BrAPIGermplasm>> listItemsWithFullItem = listSearchResponse.getResult().getData();
 
-            if (germplasm == null || germplasm.isEmpty()) {
+            listItemsWithFullItem.forEach(li -> {
+                li.getItem().putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, biGermplasmListId);
+                li.getItem().putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, li.getListItem().getPosition() + 1);
+            });
+
+            List<BrAPIGermplasm> germplasm = listItemsWithFullItem.stream().map(BrAPIListItemWithFullItem::getItem).collect(Collectors.toList());
+
+            BrAPIGermplasmListResponse germplasmSearchResponse = new BrAPIGermplasmListResponse();
+            BrAPIGermplasmListResponseResult germplasmListResponseResult = new BrAPIGermplasmListResponseResult();
+
+            germplasmSearchResponse.setMetadata(listSearchResponse.getMetadata());
+            germplasmListResponseResult.setData(germplasm);
+            germplasmSearchResponse.setResult(germplasmListResponseResult);
+
+            if (germplasm.isEmpty()) {
                 return germplasmSearchResponse;
-            }
-
-            for (BrAPIGermplasm g : germplasm) {
-                // set the list ID in the germplasm additional info
-                g.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, listId);
-                // Add to map.
-                germplasmByGid.put(g.getAccessionNumber(), g);
-            }
-
-            // Extract gids from list names
-            List<String> gids = germplasmNamesFromBrapiList.stream().map(Utilities::extractGid).collect(Collectors.toList());
-
-            // Build list from BrAPI list that preserves ordering and duplicates and assigns sequential entry numbers.
-            List<BrAPIGermplasm> orderByEntryNumber = new ArrayList<>();
-
-            Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Could not find program: " + programId));
-
-            for (String gid : gids) {
-                BrAPIGermplasm germ = germplasmByGid.get(gid);
-
-                if (germ == null) {
-                    continue;
-                }
-
-                // We can't simply use germ.getGermplasmName here because the BrAPIGermplasmDAO code strips the key and gid via BrAPIGermplasmDAO.processGermplasmForDisplay()
-                // Rebuild the unique name so we can get the entry number via the order on the germplasmNamesFromBrapiList list which was derived from the list response.
-                String fullGermplasmName = Utilities.appendProgramKey(germ.getDefaultDisplayName(), program.getKey(), germ.getAccessionNumber());
-
-                BrAPIGermplasm listEntry = cloneBrAPIGermplasm(germ);
-
-                int entryNumber = germplasmNamesFromBrapiList.indexOf(fullGermplasmName) + 1;
-
-                // Set entry number.
-                listEntry.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNumber);
-                germ.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNumber);
-                orderByEntryNumber.add(listEntry);
-            }
-
-            if (germplasmQuery.getSortField() == null || germplasmQuery.getSortField().equals("importEntryNumber")) {
-                // This should order by entry number when germplasm list details page displays
-                germplasmSearchResponse.getResult().setData(orderByEntryNumber);
-            } else {
-                // In all other cases it will order by the other selected data
-                germplasmSearchResponse.getResult().setData(germplasm);
             }
 
             return germplasmSearchResponse;
         } else throw new ApiException();
-    }
-
-//    private BrAPIGermplasmListResponse orderByListImportEntryNumber() {
-//        for (String gid : gids) {
-//            BrAPIGermplasm germ = germplasmByGid.get(gid);
-//
-//            if (germ == null) {
-//                continue;
-//            }
-//
-//            // We can't simply use germ.getGermplasmName here because the BrAPIGermplasmDAO code strips the key and gid via BrAPIGermplasmDAO.processGermplasmForDisplay()
-//            // Rebuild the unique name so we can get the entry number via the order on the germplasmNamesFromBrapiList list which was derived from the list response.
-//            String fullGermplasmName = Utilities.appendProgramKey(germ.getDefaultDisplayName(), program.getKey(), germ.getAccessionNumber());
-//
-//            BrAPIGermplasm listEntry = cloneBrAPIGermplasm(germ);
-//
-//            int entryNumber = germplasmNamesFromBrapiList.indexOf(fullGermplasmName) + 1;
-//
-//            // Set entry number.
-//            listEntry.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNumber);
-//            orderByEntryNumber.add(listEntry);
-//        }
-//    }
-
-    private BrAPIGermplasm cloneBrAPIGermplasm(BrAPIGermplasm germplasm) {
-        // Serialize then deserialize to deep copy.
-        return (BrAPIGermplasm) gson.fromJson(gson.toJson(germplasm), BrAPIGermplasm.class);
     }
 
     public DownloadFile exportGermplasm(UUID programId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException, DoesNotExistException {
