@@ -221,12 +221,12 @@ public class BrAPIListDAO {
         return brAPIDAOUtil.makeCall(brapiRequest);
     }
 
-    public <T> BrAPIListItemsListResponse<T> searchBrAPIListItemsByList(String listDbId, UUID programId, JsonNode requestBody, Class<T> itemClass) throws ApiException {
+    public <T> BrAPIListItemsListResponse<T> searchBrAPIListItemsByList(String listDbId, UUID programId, JsonNode requestBody) throws ApiException {
         ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
         // Do manually, it doesn't like List<Object> to List<BrAPIListNewRequest> for some reason
         ApiResponse<BrAPIListItemsListResponse<T>> response;
         try {
-            response = api.searchListItemsByList(listDbId, requestBody, itemClass);
+            response = api.searchListItemsByList(listDbId, requestBody);
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw e;

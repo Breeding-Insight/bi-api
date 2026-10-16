@@ -445,7 +445,11 @@ public class BrAPIGermplasmDAO {
 
         JsonNode listRequestBody = objectMapper.valueToTree(searchRequest);
 
-        return brAPIListDAO.searchBrAPIListItemsByList(listDbId, programId, listRequestBody, BrAPIGermplasm.class);
+        BrAPIListItemsListResponse<BrAPIGermplasm> response = brAPIListDAO.searchBrAPIListItemsByList(listDbId, programId, listRequestBody);
+
+        processGermplasmForDisplay(response.getResult().getData().stream().map(BrAPIListItemWithFullItem::getItem).collect(Collectors.toList()), program);
+
+        return response;
     }
 
     public List<BrAPIGermplasm> brapiGermplasmSearchReturnList(Program program,
