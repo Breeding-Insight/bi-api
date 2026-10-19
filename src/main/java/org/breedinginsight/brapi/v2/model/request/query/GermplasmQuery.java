@@ -74,7 +74,7 @@ public class GermplasmQuery extends BrapiQuery {
     public Map<String, String> getFilterValuesByBrAPIColumnName() {
         Map<String, String> filterValuesByBrAPIColumnName = new HashMap<>();
 
-        filterValuesByBrAPIColumnName.put("importEntryNumber", getImportEntryNumber());
+        filterValuesByBrAPIColumnName.put("listItemPosition", getImportEntryNumber());
         filterValuesByBrAPIColumnName.put("accessionNumber", getAccessionNumber());
         filterValuesByBrAPIColumnName.put("defaultDisplayName", getDefaultDisplayName());
         filterValuesByBrAPIColumnName.put("breedingMethod", getBreedingMethod());
@@ -93,7 +93,7 @@ public class GermplasmQuery extends BrapiQuery {
     public Map<String, String> getBrAPIColumnNamesByBiColumnName() {
         Map<String, String> brAPIColumnNamesByBiColumnName = new HashMap<>();
 
-        brAPIColumnNamesByBiColumnName.put("importEntryNumber", "importEntryNumber");
+        brAPIColumnNamesByBiColumnName.put("importEntryNumber", "listItemPosition");
         brAPIColumnNamesByBiColumnName.put("accessionNumber", "accessionNumber");
         brAPIColumnNamesByBiColumnName.put("defaultDisplayName", "defaultDisplayName");
         brAPIColumnNamesByBiColumnName.put("breedingMethod", "breedingMethod");
