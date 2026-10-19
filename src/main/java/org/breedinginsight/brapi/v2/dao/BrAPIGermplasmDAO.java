@@ -443,6 +443,8 @@ public class BrAPIGermplasmDAO {
 
         BrAPIGermplasmSearchRequest searchRequest = buildSearchRequest(program, null, germplasmQuery);
 
+        // Because the list item search endpoint is generalized, a typed BrAPISearchRequest won't work, so convert it to JsonNode.
+        // The search request type is derived by the client/prod server based off of the type of the submitted list dbId.
         JsonNode listRequestBody = objectMapper.valueToTree(searchRequest);
 
         BrAPIListItemsListResponse<BrAPIGermplasm> response = brAPIListDAO.searchBrAPIListItemsByList(listDbId, programId, listRequestBody);

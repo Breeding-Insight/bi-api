@@ -187,6 +187,8 @@ public class BrAPIGermplasmService {
 
             listItemsWithFullItem.forEach(li -> {
                 li.getItem().putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, biGermplasmListId);
+                // listItem.position start of index is 0 in BrAPI, but in DeltaBreed, it starts at 1.  increment result data to account for this.
+                // The actual sort/filter performs the search on a formula column created on the prod server, so no need to worry about that in the request above.
                 li.getItem().putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, li.getListItem().getPosition() + 1);
             });
 
