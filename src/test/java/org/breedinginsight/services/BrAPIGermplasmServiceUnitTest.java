@@ -1,5 +1,6 @@
 package org.breedinginsight.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
@@ -60,7 +61,7 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         listDAO = mock(BrAPIListDAO.class);
         programDAO = mock(ProgramDAO.class);
         brAPIDAOUtil = mock(BrAPIDAOUtil.class);
-        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, new BrAPIEndpointProvider(), 65000);
+        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, new BrAPIEndpointProvider(), 65000, new ObjectMapper(), listDAO);
         programService = mock(ProgramService.class);
 
         Field externalReferenceSource = BrAPIGermplasmDAO.class.getDeclaredField("referenceSource");
