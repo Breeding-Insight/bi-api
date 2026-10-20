@@ -135,7 +135,6 @@ public class BrAPIObservationUnitDAOUnitTest {
     @Test
     @SneakyThrows
     void getObservationUnitsForEmptyTrialDbIdsDoesNotSearch() {
-
         assertTrue(observationUnitDAO.getObservationUnitsForTrialDbIds(program.getId(), List.of()).isEmpty());
 
         verify(brAPIDAOUtil, never()).search(any(Function.class), any(Function3.class), any(BrAPIObservationUnitSearchRequest.class));
