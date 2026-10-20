@@ -411,6 +411,8 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         GenotypeCallsPage firstPage = gigwaGenoStorageService.retrieveGenotypeCalls(programId, germplasmId, callSetDbId, 1, 50);
         GenotypeCallsPage secondPage = gigwaGenoStorageService.retrieveGenotypeCalls(programId, germplasmId, callSetDbId, 2, 50);
 
+        // callsets are looked up once for the summary and reused while paging
+        verify(sampleDAO, times(1)).readSamplesByGermplasmIds(any(Program.class), eq(List.of(germplasm.getGermplasmDbId())));
         assertEquals(50, firstPage.getCalls().size());
         assertEquals(50, firstPage.getPageSize());
         assertTrue(firstPage.getTotalCount() > 50, "Expected more calls than one page");

@@ -18,6 +18,8 @@
 package org.breedinginsight.services.geno.impl;
 
 import com.agorapulse.micronaut.amazon.awssdk.s3.SimpleStorageService;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -96,6 +98,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -144,6 +147,12 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     private final boolean callVisualizationEnabled;
     private final int maxCallsPageSize;
     private final Duration gigwaTimeout;
+
+    // Callset ids per program and germplasm, so paging calls doesn't repeat the sample and callset searches on every page
+    private final Cache<String, Set<String>> germplasmCallSetIds = CacheBuilder.newBuilder()
+                                                                             .expireAfterWrite(10, TimeUnit.MINUTES)
+                                                                             .maximumSize(10_000)
+                                                                             .build();
 
     @Inject
     public GigwaGenotypeServiceImpl(@Property(name = "gigwa.host") String gigwaHost,
@@ -299,6 +308,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
             // Calls are not fetched here; loading every call for a germplasm at once exhausted API memory (BI-3033).
             // Clients page through calls for one callset at a time with retrieveGenotypeCalls.
             List<BrAPICallSet> callSets = fetchGermplasmCallsets(brAPIClient, program, germplasmId);
+            cacheGermplasmCallSetIds(programId, germplasmId, callSets);
 
             return GermplasmGenotype.builder()
                                     .germplasm(germplasm)
@@ -330,17 +340,10 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         }
         int boundedPageSize = Math.min(pageSize, maxCallsPageSize);
 
-        Program program = getProgram(programId);
         BrAPIClient brAPIClient = getGigwaBrAPIClient(programId);
-        if(!verifyProgramExists(brAPIClient, program)) {
-            throw new DoesNotExistException("No genotype data exists for this program");
-        }
 
         // Only serve callsets belonging to this germplasm so calls can't be read across germplasm or programs
-        boolean callSetBelongsToGermplasm = fetchGermplasmCallsets(brAPIClient, program, germplasmId)
-                .stream()
-                .anyMatch(callSet -> callSetDbId.equals(callSet.getCallSetDbId()));
-        if(!callSetBelongsToGermplasm) {
+        if(!isGermplasmCallSet(brAPIClient, programId, germplasmId, callSetDbId)) {
             throw new DoesNotExistException("Callset not found for germplasm");
         }
 
@@ -362,6 +365,33 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                                 .pageSize(boundedPageSize)
                                 .totalCount(totalCount != null ? totalCount : calls.size())
                                 .build();
+    }
+
+    private boolean isGermplasmCallSet(BrAPIClient brAPIClient, UUID programId, UUID germplasmId, String callSetDbId) throws DoesNotExistException, ApiException {
+        Set<String> cachedCallSetIds = germplasmCallSetIds.getIfPresent(germplasmCallSetKey(programId, germplasmId));
+        if(cachedCallSetIds != null && cachedCallSetIds.contains(callSetDbId)) {
+            return true;
+        }
+
+        // Not cached, or the callset may be from a newer import, so check Gigwa
+        Program program = getProgram(programId);
+        if(!verifyProgramExists(brAPIClient, program)) {
+            throw new DoesNotExistException("No genotype data exists for this program");
+        }
+        List<BrAPICallSet> callSets = fetchGermplasmCallsets(brAPIClient, program, germplasmId);
+        return cacheGermplasmCallSetIds(programId, germplasmId, callSets).contains(callSetDbId);
+    }
+
+    private Set<String> cacheGermplasmCallSetIds(UUID programId, UUID germplasmId, List<BrAPICallSet> callSets) {
+        Set<String> callSetIds = callSets.stream()
+                                         .map(BrAPICallSet::getCallSetDbId)
+                                         .collect(Collectors.toUnmodifiableSet());
+        germplasmCallSetIds.put(germplasmCallSetKey(programId, germplasmId), callSetIds);
+        return callSetIds;
+    }
+
+    private String germplasmCallSetKey(UUID programId, UUID germplasmId) {
+        return programId + "/" + germplasmId;
     }
 
     private BrAPIClient getGigwaBrAPIClient(UUID programId) throws AuthorizationException {
