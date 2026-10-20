@@ -20,6 +20,7 @@ import io.micronaut.http.multipart.CompletedFileUpload;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.model.DownloadFile;
+import org.breedinginsight.model.GenotypeCallsPage;
 import org.breedinginsight.model.GermplasmGenotype;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -34,6 +35,10 @@ public interface GenotypeService {
     ImportResponse submitGenotypeData(UUID userId, UUID programId, UUID submissionId, CompletedFileUpload uploadedFile) throws DoesNotExistException, AuthorizationException, ApiException;
 
     GermplasmGenotype retrieveGenotypeData(UUID programId, UUID germplasmId) throws DoesNotExistException, AuthorizationException, ApiException;
+
+    boolean isCallVisualizationEnabled();
+
+    GenotypeCallsPage retrieveGenotypeCalls(UUID programId, UUID germplasmId, String callSetDbId, int page, int pageSize) throws DoesNotExistException, AuthorizationException, ApiException;
 
     List<GenotypeImportDetails> getGenotypeImports(UUID programId);
 

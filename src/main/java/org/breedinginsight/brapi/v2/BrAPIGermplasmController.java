@@ -30,6 +30,8 @@ import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
+import org.breedinginsight.api.model.v1.response.metadata.Metadata;
+import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
@@ -39,6 +41,7 @@ import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
+import org.breedinginsight.model.GenotypeCallsPage;
 import org.breedinginsight.model.GermplasmGenotype;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
@@ -452,6 +455,38 @@ public class BrAPIGermplasmController {
         } catch (AuthorizationException | ApiException e) {
             log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving genotype data");
+        }
+    }
+
+    @Get("/programs/{programId}/germplasm/{germplasmId}/genotype/calls{?callSetDbId,page,pageSize}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    public HttpResponse<Response<GenotypeCallsPage>> getGermplasmGenotypeCalls(@PathVariable("programId") UUID programId,
+                                                                               @PathVariable("germplasmId") String germplasmId,
+                                                                               @Nullable @QueryValue("callSetDbId") String callSetDbId,
+                                                                               @QueryValue(value = "page", defaultValue = "1") Integer page,
+                                                                               @QueryValue(value = "pageSize", defaultValue = "100") Integer pageSize) {
+        if(!genoService.isCallVisualizationEnabled()) {
+            return HttpResponse.status(HttpStatus.NOT_FOUND, "Genotype call visualization is disabled");
+        }
+
+        try {
+            germplasmDAO.getGermplasmByUUID(germplasmId, programId);
+
+            GenotypeCallsPage callsPage = genoService.retrieveGenotypeCalls(programId, UUID.fromString(germplasmId), callSetDbId, page, pageSize);
+
+            int totalPages = (int) Math.ceil((double) callsPage.getTotalCount() / callsPage.getPageSize());
+            Pagination pagination = new Pagination(callsPage.getTotalCount(), callsPage.getPageSize(), totalPages, callsPage.getPage());
+            Response<GenotypeCallsPage> response = new Response<>(new Metadata(pagination, new ArrayList<>()), callsPage);
+            return HttpResponse.ok(response);
+        } catch (IllegalArgumentException e) {
+            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (DoesNotExistException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (AuthorizationException | ApiException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving genotype calls");
         }
     }
 

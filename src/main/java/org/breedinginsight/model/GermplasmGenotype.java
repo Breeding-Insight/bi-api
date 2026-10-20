@@ -1,12 +1,9 @@
 package org.breedinginsight.model;
 
 import lombok.*;
-import org.brapi.v2.model.geno.BrAPICall;
 import org.brapi.v2.model.geno.BrAPICallSet;
-import org.brapi.v2.model.geno.BrAPIVariant;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 
-import java.util.List;
 import java.util.Map;
 
 @Getter
@@ -17,6 +14,6 @@ import java.util.Map;
 public class GermplasmGenotype {
     private BrAPIGermplasm germplasm;
     private Map<String, BrAPICallSet> callSets;
-    private Map<String, List<BrAPICall>> calls;
-    private Map<String, BrAPIVariant> variants;
+    // Calls are fetched a page at a time via GenotypeCallsPage when visualization is enabled
+    private boolean callsEnabled;
 }

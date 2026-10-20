@@ -25,10 +25,12 @@ import org.brapi.client.v2.model.queryParams.core.ProgramQueryParams;
 import org.brapi.client.v2.model.queryParams.core.StudyQueryParams;
 import org.brapi.client.v2.modules.core.ProgramsApi;
 import org.brapi.client.v2.modules.core.StudiesApi;
+import org.brapi.client.v2.modules.genotype.CallsApi;
 import org.brapi.client.v2.modules.genotype.SamplesApi;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.v2.model.core.response.BrAPIProgramListResponse;
 import org.brapi.v2.model.core.response.BrAPIStudyListResponse;
+import org.brapi.v2.model.geno.BrAPICall;
 import org.brapi.v2.model.geno.BrAPISample;
 import org.brapi.v2.model.geno.request.BrAPISampleSearchRequest;
 import org.brapi.v2.model.geno.response.BrAPISampleListResponse;
@@ -80,6 +82,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -89,7 +92,11 @@ import static org.mockito.Mockito.*;
 @MicronautTest(rebuildContext = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Property(name = "gigwa.visualization.enabled", value = "true")
+@Property(name = "gigwa.visualization.max-page-size", value = "" + GigwaGenotypeServiceImplIntegrationTest.MAX_CALLS_PAGE_SIZE)
 public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
+
+    static final int MAX_CALLS_PAGE_SIZE = 200;
 
     @Inject
     private ProgramDAO programDAO;
@@ -376,6 +383,78 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     public void testFetchGermplasmGenotype() throws AuthorizationException, ApiException, DoesNotExistException {
         UUID programId = UUID.fromString("8b667063-480b-4b0a-862c-7eaa651dda28");
         String programKey = "TESTFETCH";
+        BrAPIGermplasm germplasm = setupGermplasmGenotype(programId, programKey);
+
+        GermplasmGenotype germplasmGenotype = gigwaGenoStorageService.retrieveGenotypeData(programId, UUID.fromString(germplasm.getGermplasmDbId()));
+
+        verify(sampleDAO).readSamplesByGermplasmIds(any(Program.class), eq(List.of(germplasm.getGermplasmDbId())));
+        verify(brAPIEndpointProvider, never()).get(any(BrAPIClient.class), eq(ObservationUnitsApi.class));
+        // the summary must not load calls; they are paged separately
+        verify(brAPIEndpointProvider, never()).get(any(BrAPIClient.class), eq(CallsApi.class));
+        assertNotNull(germplasmGenotype);
+        assertFalse(germplasmGenotype.getCallSets().isEmpty());
+        assertTrue(germplasmGenotype.isCallsEnabled());
+    }
+
+    @Test
+    public void testFetchGenotypeCallsPage() throws AuthorizationException, ApiException, DoesNotExistException {
+        UUID programId = UUID.fromString("5c2bb1e4-2a5d-4c39-8f0f-5a8d2f8d2b11");
+        String programKey = "TESTCALLSPAGE";
+        BrAPIGermplasm germplasm = setupGermplasmGenotype(programId, programKey);
+        UUID germplasmId = UUID.fromString(germplasm.getGermplasmDbId());
+        String callSetDbId = gigwaGenoStorageService.retrieveGenotypeData(programId, germplasmId)
+                                                    .getCallSets()
+                                                    .keySet()
+                                                    .iterator()
+                                                    .next();
+
+        GenotypeCallsPage firstPage = gigwaGenoStorageService.retrieveGenotypeCalls(programId, germplasmId, callSetDbId, 1, 50);
+        GenotypeCallsPage secondPage = gigwaGenoStorageService.retrieveGenotypeCalls(programId, germplasmId, callSetDbId, 2, 50);
+
+        assertEquals(50, firstPage.getCalls().size());
+        assertEquals(50, firstPage.getPageSize());
+        assertTrue(firstPage.getTotalCount() > 50, "Expected more calls than one page");
+        assertTrue(firstPage.getCalls().stream().allMatch(call -> callSetDbId.equals(call.getCallSetDbId())));
+        // every call on the page has its variant, and no variants beyond the page are returned
+        Set<String> pageVariantIds = firstPage.getCalls().stream().map(BrAPICall::getVariantDbId).collect(Collectors.toSet());
+        assertEquals(pageVariantIds, firstPage.getVariants().keySet());
+
+        Set<String> secondPageVariantIds = secondPage.getCalls().stream().map(BrAPICall::getVariantDbId).collect(Collectors.toSet());
+        assertTrue(Collections.disjoint(pageVariantIds, secondPageVariantIds), "Pages should not overlap");
+    }
+
+    @Test
+    public void testFetchGenotypeCallsCapsPageSize() throws AuthorizationException, ApiException, DoesNotExistException {
+        UUID programId = UUID.fromString("0f6b7f0e-9a57-4f0c-9b8e-3f1f6e1c7a22");
+        String programKey = "TESTCALLSCAP";
+        BrAPIGermplasm germplasm = setupGermplasmGenotype(programId, programKey);
+        UUID germplasmId = UUID.fromString(germplasm.getGermplasmDbId());
+        String callSetDbId = gigwaGenoStorageService.retrieveGenotypeData(programId, germplasmId)
+                                                    .getCallSets()
+                                                    .keySet()
+                                                    .iterator()
+                                                    .next();
+
+        GenotypeCallsPage page = gigwaGenoStorageService.retrieveGenotypeCalls(programId, germplasmId, callSetDbId, 1, 100000);
+
+        assertEquals(MAX_CALLS_PAGE_SIZE, page.getPageSize());
+        assertEquals(MAX_CALLS_PAGE_SIZE, page.getCalls().size());
+        assertThrows(IllegalArgumentException.class,
+                () -> gigwaGenoStorageService.retrieveGenotypeCalls(programId, germplasmId, callSetDbId, 0, 50));
+    }
+
+    @Test
+    public void testFetchGenotypeCallsRejectsCallSetFromOtherGermplasm() throws AuthorizationException, ApiException, DoesNotExistException {
+        UUID programId = UUID.fromString("7a3e9d51-6c0b-4e8f-a1d2-9b4c5e6f7a33");
+        String programKey = "TESTCALLSOTHER";
+        BrAPIGermplasm germplasm = setupGermplasmGenotype(programId, programKey);
+        UUID germplasmId = UUID.fromString(germplasm.getGermplasmDbId());
+
+        assertThrows(DoesNotExistException.class,
+                () -> gigwaGenoStorageService.retrieveGenotypeCalls(programId, germplasmId, programKey + "§does-not-belong", 1, 50));
+    }
+
+    private BrAPIGermplasm setupGermplasmGenotype(UUID programId, String programKey) throws ApiException, DoesNotExistException {
         UUID submissionId = UUID.randomUUID();
         UUID importId = UUID.randomUUID();
         assertTimeout(Duration.of(2, ChronoUnit.MINUTES), () -> uploadGenoData(programId, programKey, submissionId, importId), "Upload did not complete within the time period");
@@ -403,17 +482,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         doReturn(germplasm).when(germplasmDAO)
                 .getGermplasmByUUID(any(String.class), any(UUID.class));
 
-        GermplasmGenotype germplasmGenotype = gigwaGenoStorageService.retrieveGenotypeData(programId, UUID.fromString(germplasm.getGermplasmDbId()));
-
-        verify(sampleDAO).readSamplesByGermplasmIds(any(Program.class), eq(List.of(germplasm.getGermplasmDbId())));
-        verify(brAPIEndpointProvider, never()).get(any(BrAPIClient.class), eq(ObservationUnitsApi.class));
-        verify(mockSamplesApi).searchSamplesPost(argThat(searchRequest -> searchRequest.getGermplasmDbIds() != null &&
-                searchRequest.getGermplasmDbIds().contains(programKey + "§" + sample.getSampleName()) &&
-                (searchRequest.getObservationUnitDbIds() == null || searchRequest.getObservationUnitDbIds().isEmpty())));
-        assertNotNull(germplasmGenotype);
-        assertFalse(germplasmGenotype.getCalls().isEmpty());
-        assertFalse(germplasmGenotype.getCallSets().isEmpty());
-        assertFalse(germplasmGenotype.getVariants().isEmpty());
+        return germplasm;
     }
 
     @Test

@@ -218,6 +218,14 @@ gigwa:
   host: ${GIGWA_HOST}
   username: ${GIGWA_USER}
   password: ${GIGWA_PASSWORD}
+  visualization:
+    # Genotype call visualization pages calls per callset from Gigwa. Off by default because unbounded call
+    # fetches previously exhausted API memory (BI-3033).
+    enabled: ${GENOTYPE_VISUALIZATION_ENABLED:false}
+    # Hard cap on calls returned per page, regardless of the requested pageSize
+    max-page-size: ${GENOTYPE_VISUALIZATION_MAX_PAGE_SIZE:500}
+    # Read/call timeout for Gigwa genotype requests
+    timeout: ${GENOTYPE_VISUALIZATION_TIMEOUT:60s}
 
 aws:
   region: ${AWS_REGION:`us-east-1`}

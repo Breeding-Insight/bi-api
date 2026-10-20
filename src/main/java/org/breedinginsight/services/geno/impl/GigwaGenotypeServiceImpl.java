@@ -32,6 +32,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.mime.MimeTypeException;
 import org.brapi.client.v2.ApiResponse;
@@ -54,6 +55,7 @@ import org.brapi.v2.model.geno.request.BrAPICallSetsSearchRequest;
 import org.brapi.v2.model.geno.request.BrAPICallsSearchRequest;
 import org.brapi.v2.model.geno.request.BrAPISampleSearchRequest;
 import org.brapi.v2.model.geno.request.BrAPIVariantsSearchRequest;
+import org.brapi.v2.model.geno.response.BrAPICallsListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
@@ -88,6 +90,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -138,6 +141,10 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
     private final BrAPIGermplasmDAO germplasmDAO;
 
+    private final boolean callVisualizationEnabled;
+    private final int maxCallsPageSize;
+    private final Duration gigwaTimeout;
+
     @Inject
     public GigwaGenotypeServiceImpl(@Property(name = "gigwa.host") String gigwaHost,
                                     @Property(name = "gigwa.username") String username,
@@ -156,7 +163,10 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                                     MimeTypeParser mimeTypeParser,
                                     BrAPIDAOUtil brAPIDAOUtil,
                                     BrAPIEndpointProvider brAPIEndpointProvider,
-                                    BrAPIGermplasmDAO germplasmDAO) {
+                                    BrAPIGermplasmDAO germplasmDAO,
+                                    @Property(name = "gigwa.visualization.enabled") boolean callVisualizationEnabled,
+                                    @Property(name = "gigwa.visualization.max-page-size") int maxCallsPageSize,
+                                    @Property(name = "gigwa.visualization.timeout") Duration gigwaTimeout) {
         this.gigwaHost = gigwaHost.endsWith("/") ? gigwaHost : gigwaHost + "/";
         this.username = username;
         this.password = password;
@@ -176,6 +186,9 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.germplasmDAO = germplasmDAO;
+        this.callVisualizationEnabled = callVisualizationEnabled;
+        this.maxCallsPageSize = maxCallsPageSize;
+        this.gigwaTimeout = gigwaTimeout;
     }
 
     @Override
@@ -280,34 +293,101 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
         log.debug("fetching genotypes for " + germplasm.getGermplasmName());
         Program program = getProgram(programId);
+        BrAPIClient brAPIClient = getGigwaBrAPIClient(programId);
+
+        if(verifyProgramExists(brAPIClient, program)) {
+            // Calls are not fetched here; loading every call for a germplasm at once exhausted API memory (BI-3033).
+            // Clients page through calls for one callset at a time with retrieveGenotypeCalls.
+            List<BrAPICallSet> callSets = fetchGermplasmCallsets(brAPIClient, program, germplasmId);
+
+            return GermplasmGenotype.builder()
+                                    .germplasm(germplasm)
+                                    .callSets(callSets.stream().collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
+                                    .callsEnabled(callVisualizationEnabled)
+                                    .build();
+        } else {
+            return GermplasmGenotype.builder()
+                                    .callsEnabled(callVisualizationEnabled)
+                                    .build();
+        }
+    }
+
+    @Override
+    public boolean isCallVisualizationEnabled() {
+        return callVisualizationEnabled;
+    }
+
+    @Override
+    public GenotypeCallsPage retrieveGenotypeCalls(UUID programId, UUID germplasmId, String callSetDbId, int page, int pageSize) throws DoesNotExistException, AuthorizationException, ApiException {
+        if(!callVisualizationEnabled) {
+            throw new IllegalStateException("Genotype call visualization is disabled");
+        }
+        if(StringUtils.isBlank(callSetDbId)) {
+            throw new IllegalArgumentException("callSetDbId is required");
+        }
+        if(page < 1 || pageSize < 1) {
+            throw new IllegalArgumentException("page and pageSize must be 1 or greater");
+        }
+        int boundedPageSize = Math.min(pageSize, maxCallsPageSize);
+
+        Program program = getProgram(programId);
+        BrAPIClient brAPIClient = getGigwaBrAPIClient(programId);
+        if(!verifyProgramExists(brAPIClient, program)) {
+            throw new DoesNotExistException("No genotype data exists for this program");
+        }
+
+        // Only serve callsets belonging to this germplasm so calls can't be read across germplasm or programs
+        boolean callSetBelongsToGermplasm = fetchGermplasmCallsets(brAPIClient, program, germplasmId)
+                .stream()
+                .anyMatch(callSet -> callSetDbId.equals(callSet.getCallSetDbId()));
+        if(!callSetBelongsToGermplasm) {
+            throw new DoesNotExistException("Callset not found for germplasm");
+        }
+
+        BrAPICallsListResponse callsResponse = fetchCallsPage(brAPIClient, callSetDbId, page, boundedPageSize);
+        List<BrAPICall> calls = callsResponse.getResult() != null && callsResponse.getResult().getData() != null
+                ? callsResponse.getResult().getData()
+                : Collections.emptyList();
+        Integer totalCount = callsResponse.getMetadata() != null && callsResponse.getMetadata().getPagination() != null
+                ? callsResponse.getMetadata().getPagination().getTotalCount()
+                : null;
+
+        List<BrAPIVariant> variants = fetchVariants(brAPIClient, calls);
+
+        return GenotypeCallsPage.builder()
+                                .callSetDbId(callSetDbId)
+                                .calls(calls)
+                                .variants(variants.stream().collect(Collectors.toMap(BrAPIVariant::getVariantDbId, variant -> variant, (first, second) -> first)))
+                                .page(page)
+                                .pageSize(boundedPageSize)
+                                .totalCount(totalCount != null ? totalCount : calls.size())
+                                .build();
+    }
+
+    private BrAPIClient getGigwaBrAPIClient(UUID programId) throws AuthorizationException {
         BrAPIClient brAPIClient = programDAO.getCoreClient(programId);
         brAPIClient.setBasePath(gigwaHost + GIGWA_BRAPI_BASE_PATH);
+        // Bound Gigwa genotype requests so a slow query can't hold a request thread for the full BrAPI read timeout
+        brAPIClient.setHttpClient(brAPIClient.getHttpClient()
+                                             .newBuilder()
+                                             .readTimeout(gigwaTimeout)
+                                             .callTimeout(gigwaTimeout)
+                                             .build());
         Authentication authorizationToken = brAPIClient.getAuthentication("AuthorizationToken");
         if(authorizationToken instanceof OAuth) {
             ((OAuth)authorizationToken).setAccessToken(getAuthToken());
         }
+        return brAPIClient;
+    }
 
-        if(verifyProgramExists(brAPIClient, program)) {
+    private List<BrAPICallSet> fetchGermplasmCallsets(BrAPIClient brAPIClient, Program program, UUID germplasmId) throws ApiException {
+        // get sample names from brapi server
+        List<BrAPISample> samples = fetchSamples(program, germplasmId);
+        List<String> sampleNames = samples.stream().map(BrAPISample::getSampleName).collect(Collectors.toList());
 
-            // get sample names from brapi server
-            List<BrAPISample> samples = fetchSamples(program, germplasmId);
-            List<String> sampleNames = samples.stream().map(BrAPISample::getSampleName).collect(Collectors.toList());
-
-            // get samples from gigwa given sample names
-            List<BrAPISample> gigwaSamples = fetchGigwaSamples(brAPIClient, program, sampleNames);
-            List<BrAPICallSet> callSets = fetchCallsets(brAPIClient, gigwaSamples);
-            List<BrAPICall> calls = fetchCalls(brAPIClient, callSets);
-            List<BrAPIVariant> variants = fetchVariants(brAPIClient, calls);
-
-            return GermplasmGenotype.builder()
-                                    .germplasm(germplasm)
-                                    .calls(calls.stream().collect(Collectors.groupingBy(BrAPICall::getCallSetDbId)))
-                                    .callSets(callSets.stream().collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
-                                    .variants(variants.stream().collect(Collectors.toMap(BrAPIVariant::getVariantDbId, variant -> variant)))
-                                    .build();
-        } else {
-            return new GermplasmGenotype();
-        }
+        // get samples from gigwa given sample names
+        List<BrAPISample> gigwaSamples = fetchGigwaSamples(brAPIClient, program, sampleNames);
+        return fetchCallsets(brAPIClient, gigwaSamples);
     }
 
     @Override
@@ -585,23 +665,20 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         return brAPIDAOUtil.search(callSetsApi::searchCallsetsPost, callSetsApi::searchCallsetsSearchResultsDbIdGet, searchRequest);
     }
 
-    private List<BrAPICall> fetchCalls(BrAPIClient genoBrAPIClient, List<BrAPICallSet> callSets) throws ApiException {
-        log.debug("fetching calls for callsets");
-        if(callSets.isEmpty()) {
-            log.debug("No callsets were supplied, returning");
-            return Collections.emptyList();
-        }
+    private BrAPICallsListResponse fetchCallsPage(BrAPIClient genoBrAPIClient, String callSetDbId, int page, int pageSize) throws ApiException {
+        log.debug("fetching calls page " + page + " for callset " + callSetDbId);
         CallsApi callsApi = brAPIEndpointProvider.get(genoBrAPIClient, CallsApi.class);
 
-        List<BrAPICall> calls = new ArrayList<>();
-        for(BrAPICallSet callSet : callSets) {
-            BrAPICallsSearchRequest searchRequest = new BrAPICallsSearchRequest();
-            searchRequest.setCallSetDbIds(List.of(callSet.getCallSetDbId()));
+        BrAPICallsSearchRequest searchRequest = new BrAPICallsSearchRequest();
+        searchRequest.setCallSetDbIds(List.of(callSetDbId));
+        // Gigwa pages calls by 0-based page number and ignores pageToken
+        searchRequest.setPage(page - 1);
+        searchRequest.setPageSize(pageSize);
 
-            calls.addAll(brAPIDAOUtil.searchWithToken(callsApi::searchCallsPost, callsApi::searchCallsSearchResultsDbIdGet, searchRequest)); //breaking bc this uses a pageToken instead of page#
-        }
-
-        return calls;
+        return callsApi.searchCallsPost(searchRequest)
+                       .getBody()
+                       .getLeft()
+                       .orElseThrow(() -> new ApiException("Gigwa did not return calls for callset " + callSetDbId));
     }
 
     private List<BrAPIVariant> fetchVariants(BrAPIClient genoBrAPIClient, List<BrAPICall> calls) throws ApiException {
@@ -617,10 +694,19 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
         VariantsApi variantsApi = brAPIEndpointProvider.get(genoBrAPIClient, VariantsApi.class);
 
+        // One request sized to the page of calls; variantIds is bounded by the calls page size
         BrAPIVariantsSearchRequest searchRequest = new BrAPIVariantsSearchRequest();
         searchRequest.setVariantDbIds(variantIds);
+        searchRequest.setPage(0);
+        searchRequest.setPageSize(variantIds.size());
 
-        return brAPIDAOUtil.searchWithToken(variantsApi::searchVariantsPost, variantsApi::searchVariantsSearchResultsDbIdGet, searchRequest);
+        return variantsApi.searchVariantsPost(searchRequest)
+                          .getBody()
+                          .getLeft()
+                          .map(response -> response.getResult() != null && response.getResult().getData() != null
+                                  ? response.getResult().getData()
+                                  : Collections.<BrAPIVariant>emptyList())
+                          .orElseThrow(() -> new ApiException("Gigwa did not return variants"));
     }
 
     protected void processSubmission(String gigwaAuthToken, Program program, UUID submissionId, byte[] fileContents, String filename, ImportUpload upload, ImportProgress progress) throws MimeTypeException, IOException, ApiException {
