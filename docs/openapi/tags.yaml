@@ -1,0 +1,28 @@
+- name: users
+  description: User Management
+- name: programs
+  description: Program Management
+- name: roles
+  description: Role Information
+- name: traits
+  description: Trait Management
+- name: uploads
+  description: Upload Management
+- name: breeding methods
+  description: Breeding Method Management
+- name: jobs
+  description: Job Progress Management
+- name: ontology
+  description: Ontology Management
+- name: experiments
+  description: Experiment Management
+- name: species
+  description: Species Management
+- name: genotype data upload
+  description: Genotype Data Upload Management
+- name: sample submissions
+  description: Sample Submission Management
+- name: oidc
+  description: OIDC Management
+- name: importer
+  description: Importer Management
