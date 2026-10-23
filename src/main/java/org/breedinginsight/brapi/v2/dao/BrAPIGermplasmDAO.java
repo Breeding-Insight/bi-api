@@ -17,6 +17,8 @@
 
 package org.breedinginsight.brapi.v2.dao;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpStatus;
@@ -27,7 +29,9 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.germplasm.GermplasmQueryParams;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIListItemWithFullItem;
 import org.brapi.v2.model.core.BrAPIProgram;
+import org.brapi.v2.model.core.response.BrAPIListItemsListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
@@ -45,6 +49,7 @@ import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -56,6 +61,8 @@ public class BrAPIGermplasmDAO {
     private final ProgramDAO programDAO;
     private final ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
+    private final ObjectMapper objectMapper;
+    private final BrAPIListDAO brAPIListDAO;
 
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
@@ -72,12 +79,16 @@ public class BrAPIGermplasmDAO {
                              ImportDAO importDAO,
                              BrAPIDAOUtil brAPIDAOUtil,
                              BrAPIEndpointProvider brAPIEndpointProvider,
-                             @Property(name = "brapi.cache.fetch-page-size") int brapiFetchPageSize) {
+                             @Property(name = "brapi.cache.fetch-page-size") int brapiFetchPageSize,
+                             ObjectMapper objectMapper,
+                             BrAPIListDAO brAPIListDAO) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.brapiMaxPageSize = brapiFetchPageSize;
+        this.objectMapper = objectMapper;
+        this.brAPIListDAO = brAPIListDAO;
     }
 
     /**
@@ -427,13 +438,20 @@ public class BrAPIGermplasmDAO {
                 .collect(Collectors.toList());
     }
 
-    public BrAPIGermplasmListResponse searchGermplasmByRawName(List<String> germplasmNames, UUID programId, GermplasmQuery germplasmQuery) throws ApiException {
+    public BrAPIListItemsListResponse<BrAPIGermplasm> searchGermplasmByList(String listDbId, UUID programId, GermplasmQuery germplasmQuery) throws ApiException {
         Program program = new Program(programDAO.fetchOneById(programId));
 
-        BrAPIGermplasmSearchRequest searchRequest = new BrAPIGermplasmSearchRequest();
-        searchRequest.setGermplasmNames(germplasmNames);
+        BrAPIGermplasmSearchRequest searchRequest = buildSearchRequest(program, null, germplasmQuery);
 
-        return brapiGermplasmSearchReturnResponse(program, searchRequest, germplasmQuery);
+        // Because the list item search endpoint is generalized, a typed BrAPISearchRequest won't work, so convert it to JsonNode.
+        // The search request type is derived by the client/prod server based off of the type of the submitted list dbId.
+        JsonNode listRequestBody = objectMapper.valueToTree(searchRequest);
+
+        BrAPIListItemsListResponse<BrAPIGermplasm> response = brAPIListDAO.searchBrAPIListItemsByList(listDbId, programId, listRequestBody);
+
+        processGermplasmForDisplay(response.getResult().getData().stream().map(BrAPIListItemWithFullItem::getItem).collect(Collectors.toList()), program);
+
+        return response;
     }
 
     public List<BrAPIGermplasm> brapiGermplasmSearchReturnList(Program program,
