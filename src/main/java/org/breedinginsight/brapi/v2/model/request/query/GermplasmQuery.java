@@ -15,6 +15,7 @@ import java.util.Map;
 @Getter
 @Introspected
 public class GermplasmQuery extends BrapiQuery {
+    // Actual DB entry number stored in each germplasm.additional_info
     private String importEntryNumber;
     private String accessionNumber;
     private String defaultDisplayName;
@@ -26,49 +27,14 @@ public class GermplasmQuery extends BrapiQuery {
     private String createdDate;
     private String createdByUserName;
     private String synonym;
+    // This entry number depicts the sequential order of any given germplasm list.
+    // To be used only in the use case where listDbId is present and a search request is occurring on a germplasm list.
+    private String listEntryNumber;
     // This is a meta-parameter, it describes the display format of any date fields.
     private String dateDisplayFormat;
 
     // The list id used to get a collection of germplasm
     private String listDbId;
-
-    public SearchRequest constructSearchRequest() {
-        List<FilterRequest> filters = new ArrayList<>();
-        if (!StringUtils.isBlank(getImportEntryNumber())) {
-            filters.add(constructFilterRequest("importEntryNumber", getImportEntryNumber()));
-        }
-        if (!StringUtils.isBlank(getAccessionNumber())) {
-            filters.add(constructFilterRequest("accessionNumber", getAccessionNumber()));
-        }
-        if (!StringUtils.isBlank(getDefaultDisplayName())) {
-            filters.add(constructFilterRequest("defaultDisplayName", getDefaultDisplayName()));
-        }
-        if (!StringUtils.isBlank(getBreedingMethod())) {
-            filters.add(constructFilterRequest("breedingMethod", getBreedingMethod()));
-        }
-        if (!StringUtils.isBlank(getSeedSource())) {
-            filters.add(constructFilterRequest("seedSource", getSeedSource()));
-        }
-        if (!StringUtils.isBlank(getPedigree())) {
-            filters.add(constructFilterRequest("pedigree", getPedigree()));
-        }
-        if (!StringUtils.isBlank(getFemaleParentGID())) {
-            filters.add(constructFilterRequest("femaleParentGID", getFemaleParentGID()));
-        }
-        if (!StringUtils.isBlank(getMaleParentGID())) {
-            filters.add(constructFilterRequest("maleParentGID", getMaleParentGID()));
-        }
-        if (!StringUtils.isBlank(getCreatedDate())) {
-            filters.add(constructFilterRequest("createdDate", getCreatedDate()));
-        }
-        if (!StringUtils.isBlank(getCreatedByUserName())) {
-            filters.add(constructFilterRequest("createdByUserName", getCreatedByUserName()));
-        }
-        if (!StringUtils.isBlank(getSynonym())) {
-            filters.add(constructFilterRequest("synonyms", getSynonym()));
-        }
-        return new SearchRequest(filters);
-    }
 
     @Override
     public Map<String, String> getFilterValuesByBrAPIColumnName() {
@@ -85,6 +51,10 @@ public class GermplasmQuery extends BrapiQuery {
         filterValuesByBrAPIColumnName.put("createdDate", getCreatedDate());
         filterValuesByBrAPIColumnName.put("createdBy", getCreatedByUserName());
         filterValuesByBrAPIColumnName.put("synonyms", getSynonym());
+
+        if (!StringUtils.isBlank(listDbId)) {
+            filterValuesByBrAPIColumnName.put("listItemPosition", getListEntryNumber());
+        }
 
         return filterValuesByBrAPIColumnName;
     }
@@ -104,6 +74,11 @@ public class GermplasmQuery extends BrapiQuery {
         brAPIColumnNamesByBiColumnName.put("createdDate", "createdDate");
         brAPIColumnNamesByBiColumnName.put("createdByUserName", "createdBy");
         brAPIColumnNamesByBiColumnName.put("synonyms", "synonyms");
+
+        if (!StringUtils.isBlank(listDbId)) {
+            brAPIColumnNamesByBiColumnName.put("listEntryNumber", "listItemPosition");
+        }
+
 
         return brAPIColumnNamesByBiColumnName;
     }
