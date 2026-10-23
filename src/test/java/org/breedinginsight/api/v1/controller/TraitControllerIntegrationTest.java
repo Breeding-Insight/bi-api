@@ -30,7 +30,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.test.annotation.MockBean;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
-import junit.framework.AssertionFailedError;
+import org.opentest4j.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.BrAPIClient;
