@@ -5,7 +5,6 @@ import com.google.gson.JsonObject;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
 import lombok.SneakyThrows;
-import org.brapi.client.v2.model.queryParams.germplasm.GermplasmQueryParams;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
@@ -152,8 +151,8 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         when(programDAO.fetchOneById(any(UUID.class))).thenReturn(testProgram);
         when(programDAO.get(any(UUID.class))).thenReturn(Arrays.asList(testProgram));
         when(programDAO.getProgramBrAPI(any())).thenReturn(brapiProgram);
-        when(brAPIDAOUtil.get(any(Function.class),
-                any(GermplasmQueryParams.class))).thenReturn(germplasm);
+        when(brAPIDAOUtil.search(any(Function.class), any(Function3.class),
+                any(BrAPIGermplasmSearchRequest.class))).thenReturn(germplasm);
         when(brAPIDAOUtil.getBrAPIProgramDbId(any())).thenReturn(brapiProgramDbId);
 
         //Create test instance of service, injecting spy- and mock-dependencies
