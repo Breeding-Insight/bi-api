@@ -34,6 +34,7 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.*;
 import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
+import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponseResult;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.BiUserTable;
@@ -61,7 +62,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.breedinginsight.dao.db.Tables.*;
-import static org.jooq.impl.DSL.lower;
 
 @Singleton
 @Slf4j
@@ -143,15 +143,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
     public List<Trait> getTraitsFullByProgramIds(List<UUID> programIds) {
         List<Trait> saturatedTraits = new ArrayList<>();
         for(UUID id : programIds) {
-            Map<String, Trait> programTraits = null;
-            try {
-                programTraits = cache.get(id);
-            } catch (ApiException e) {
-                throw new RuntimeException(e);
-            }
-            if(programTraits != null) {
-                saturatedTraits.addAll(programTraits.values());
-            }
+            saturatedTraits.addAll(fetchTraitsFullByProgramId(id));
         }
 
         return saturatedTraits;
@@ -175,8 +167,8 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
 
         // Get brapi variables
         VariableQueryParams variablesRequest = new VariableQueryParams();
-        variablesRequest.programDbId(brapiProgramDbId);
-        variablesRequest.pageSize(10000);
+        variablesRequest.externalReferenceSource(referenceSource)
+                .pageSize(10000);
 
         ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
         try {
@@ -213,6 +205,53 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
         }
 
         return saturatedTraits;
+    }
+
+    private Trait fetchTraitFullByBiTraitAndProgramId(UUID traitId, UUID programId) {
+        // Get our db trait (equivalent to brapi variables)
+        Optional<Trait> biTraitOpt = getTrait(programId, traitId);
+        if (biTraitOpt.isEmpty()) {
+            throw new InternalServerException(String.format("Unable to find BI trait with id [%s]", traitId));
+        }
+
+        Trait trait = biTraitOpt.get();
+
+        String brapiProgramDbId;
+
+        try {
+            brapiProgramDbId = brAPIDAOUtil.getBrAPIProgramDbId(programId);
+        } catch (ApiException e) {
+            throw new InternalServerException(String.format("While fetching an individual trait in full, unable to retrieve brapi programDbId using bi program ID [%s]", programId), e);
+        }
+
+        // Get brapi variables
+        VariableQueryParams variablesRequest = new VariableQueryParams();
+        variablesRequest.programDbId(brapiProgramDbId);
+        variablesRequest.pageSize(1);
+
+        variablesRequest.setExternalReferenceId(traitId.toString());
+        variablesRequest.externalReferenceSource(referenceSource);
+
+        ApiResponse<BrAPIObservationVariableListResponse> brApiVariables = null;
+        BrAPIObservationVariable brAPIObservationVariable;
+        try {
+            brApiVariables = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationVariablesApi.class)
+                    .variablesGet(variablesRequest);
+        } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            throw new InternalServerException("Error making BrAPI call", e);
+        } finally {
+            brAPIObservationVariable = Optional.ofNullable(brApiVariables)
+                    .map(ApiResponse::getBody)
+                    .map(BrAPIObservationVariableListResponse::getResult)
+                    .map(BrAPIObservationVariableListResponseResult::getData)
+                    .orElseThrow()
+                    .get(0);
+        }
+
+        saturateTrait(trait, brAPIObservationVariable);
+
+        return trait;
     }
 
     @Override
@@ -260,13 +299,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
 
     @Override
     public Optional<Trait> getTraitFull(UUID programId, UUID traitId){
-
-        try {
-            return Optional.ofNullable(cache.get(programId).get(traitId.toString()));
-        } catch (ApiException e) {
-            log.warn(Utilities.generateApiExceptionLogMessage(e));
-            throw new InternalServerException("Error making BrAPI call", e);
-        }
+        return Optional.of(fetchTraitFullByBiTraitAndProgramId(traitId, programId));
     }
 
     // could be more efficient to do a single get instead of search in saved search case but less code this way
