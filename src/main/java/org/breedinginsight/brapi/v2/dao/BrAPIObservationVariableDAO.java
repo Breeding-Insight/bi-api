@@ -88,6 +88,14 @@ public class BrAPIObservationVariableDAO {
             if (observationVariable.getScale() != null && observationVariable.getScale().getScaleName() != null) {
                 observationVariable.getScale().setScaleName(Utilities.removeProgramKey(observationVariable.getScale().getScaleName(), program.getKey()));
             }
+
+            if (observationVariable.getMethod() != null && observationVariable.getMethod().getMethodName() != null) {
+                observationVariable.getMethod().setMethodName(Utilities.removeProgramKey(observationVariable.getMethod().getMethodName(), program.getKey()));
+            }
+
+            if (observationVariable.getTrait() != null && observationVariable.getTrait().getTraitName() != null) {
+                observationVariable.getTrait().setTraitName(Utilities.removeProgramKey(observationVariable.getTrait().getTraitName(), program.getKey()));
+            }
         });
     }
 
