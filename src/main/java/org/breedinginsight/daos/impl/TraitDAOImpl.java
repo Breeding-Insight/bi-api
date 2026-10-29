@@ -167,8 +167,8 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
 
         // Get brapi variables
         VariableQueryParams variablesRequest = new VariableQueryParams();
-        variablesRequest.externalReferenceSource(referenceSource)
-                .pageSize(10000);
+        variablesRequest.programDbId(brapiProgramDbId);
+        variablesRequest.pageSize(10000);
 
         ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
         try {
