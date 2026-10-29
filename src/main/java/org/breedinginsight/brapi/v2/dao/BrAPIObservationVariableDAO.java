@@ -16,10 +16,14 @@
  */
 package org.breedinginsight.brapi.v2.dao;
 
+import io.micronaut.http.server.exceptions.InternalServerException;
+import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
+import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
@@ -57,6 +61,18 @@ public class BrAPIObservationVariableDAO {
                 api::searchVariablesSearchResultsDbIdGet,
                 variableSearch
         );
+    }
+
+    public BrAPIObservationVariableSingleResponse getVariableByIdWithResponse(String observationVariableDbId, UUID programId) throws ApiException {
+        ObservationVariablesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationVariablesApi.class);
+
+        ApiResponse<BrAPIObservationVariableSingleResponse> apiResponse = api.variablesObservationVariableDbIdGet(observationVariableDbId);
+
+        if (apiResponse.getBody() != null && apiResponse.getStatusCode() == 200) {
+            return apiResponse.getBody();
+        }
+
+        throw new InternalServerException(String.format("Unable to retrieve BrAPI Observation Variable using id [%s] for BI Program with id: [%s]", observationVariableDbId, programId));
     }
 
 }

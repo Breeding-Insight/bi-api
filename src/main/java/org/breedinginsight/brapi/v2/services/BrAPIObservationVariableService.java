@@ -25,7 +25,9 @@ import org.brapi.v2.model.BrAPIOntologyReference;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.*;
+import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
+import org.breedinginsight.brapi.v2.dao.BrAPIObservationVariableDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.ProgramService;
@@ -43,12 +45,14 @@ import java.util.stream.Collectors;
 public class BrAPIObservationVariableService {
     private final ProgramService programService;
     private final BrAPITrialService trialService;
+    private final BrAPIObservationVariableDAO observationVariableDAO;
 
     @Inject
     public BrAPIObservationVariableService(
-            ProgramService programService, BrAPITrialService trialService){
+            ProgramService programService, BrAPITrialService trialService,  BrAPIObservationVariableDAO observationVariableDAO){
         this.programService = programService;
         this.trialService = trialService;
+        this.observationVariableDAO = observationVariableDAO;
     }
 
     // TODO: support sub-entity datasets.
@@ -115,8 +119,7 @@ public class BrAPIObservationVariableService {
                     Map<String, Pair<Optional<String>, String>> filterParams = new HashMap<>();
                     filterParams.put("observationVariableDbId",
                             Pair.of(observationVariableDbId,
-                                    trait.getId()
-                                            .toString()));
+                                    trait.getObservationVariableDbId()));
                     filterParams.put("observationVariableName", Pair.of(observationVariableName, trait.getObservationVariableName()));
                     filterParams.put("traitClass", Pair.of(traitClass, trait.getTraitClass()));
                     filterParams.put("methodDbId",
@@ -171,7 +174,7 @@ public class BrAPIObservationVariableService {
                 .toString());
         String status = trait.getActive() ? "active" : "inactive";
         List<String> synonyms = prepSynonyms(trait);
-        return new BrAPIObservationVariable().observationVariableDbId(trait.getId().toString())
+        return new BrAPIObservationVariable().observationVariableDbId(trait.getObservationVariableDbId())
                 .observationVariableName(trait.getObservationVariableName())
                 .defaultValue(trait.getDefaultValue())
                 .status(status)
@@ -226,5 +229,14 @@ public class BrAPIObservationVariableService {
             preppedSynonyms.add(trait.getObservationVariableName());
         }
         return preppedSynonyms;
+    }
+
+    public BrAPIObservationVariableSingleResponse getBrAPIObservationVariableByDbId(String observationVariableDbId, UUID programId) throws ApiException, DoesNotExistException {
+
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        return observationVariableDAO.getVariableByIdWithResponse(observationVariableDbId, programId);
     }
 }

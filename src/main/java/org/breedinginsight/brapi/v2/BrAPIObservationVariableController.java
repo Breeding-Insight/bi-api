@@ -150,27 +150,15 @@ public class BrAPIObservationVariableController {
     public HttpResponse<BrAPIObservationVariableSingleResponse> variablesObservationVariableDbIdGet(@PathVariable("programId") UUID programId,
                                                             @PathVariable("observationVariableDbId") String observationVariableDbId) {
         log.debug("fetching variable: " + observationVariableDbId);
-        UUID traitId;
-        try {
-            traitId = UUID.fromString(observationVariableDbId);
-        } catch (IllegalArgumentException e) {
-            return HttpResponse.notFound();
-        }
 
         try {
-            Optional<Trait> trait = traitService.getById(programId, traitId);
-
-            if(trait.isEmpty()) {
-                return HttpResponse.notFound();
-            }
-
-            BrAPIObservationVariableSingleResponse response = new BrAPIObservationVariableSingleResponse()
-                    .metadata(new BrAPIMetadata())
-                    .result(observationVariableService.convertToBrAPI(trait.get()));
+            BrAPIObservationVariableSingleResponse response = observationVariableService.getBrAPIObservationVariableByDbId(observationVariableDbId, programId);
 
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             return HttpResponse.notFound();
+        } catch (ApiException e) {
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "error fetching variables");
         }
     }
 
