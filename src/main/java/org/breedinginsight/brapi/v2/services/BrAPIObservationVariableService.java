@@ -237,6 +237,9 @@ public class BrAPIObservationVariableService {
             throw new DoesNotExistException("Program does not exist");
         }
 
-        return observationVariableDAO.getVariableByIdWithResponse(observationVariableDbId, programId);
+        // We know the program exists as of check above
+        Program program = programService.getById(programId).get();
+
+        return observationVariableDAO.getVariableByIdWithResponse(observationVariableDbId, program);
     }
 }
