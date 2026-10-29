@@ -16,13 +16,19 @@
  */
 package org.breedinginsight.brapi.v2.dao;
 
+import io.micronaut.http.server.exceptions.InternalServerException;
+import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
+import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -57,6 +63,40 @@ public class BrAPIObservationVariableDAO {
                 api::searchVariablesSearchResultsDbIdGet,
                 variableSearch
         );
+    }
+
+    public BrAPIObservationVariableSingleResponse getVariableByIdWithResponse(String observationVariableDbId, Program program) throws ApiException {
+        ObservationVariablesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationVariablesApi.class);
+
+        ApiResponse<BrAPIObservationVariableSingleResponse> apiResponse = api.variablesObservationVariableDbIdGet(observationVariableDbId);
+
+        if (apiResponse.getBody() != null && apiResponse.getBody().getResult() != null && apiResponse.getStatusCode() == 200) {
+            BrAPIObservationVariable returnedObsVar = apiResponse.getBody().getResult();
+
+            processObservationVariables(List.of(returnedObsVar), program);
+
+            return apiResponse.getBody();
+        }
+
+        throw new InternalServerException(String.format("Unable to retrieve BrAPI Observation Variable using id [%s] for BI Program with id: [%s]", observationVariableDbId, program.getId()));
+    }
+
+    private void processObservationVariables(List<BrAPIObservationVariable> observationVariables, Program program) {
+        observationVariables.forEach(observationVariable -> {
+            observationVariable.setObservationVariableName(Utilities.removeProgramKey(observationVariable.getObservationVariableName(), program.getKey()));
+
+            if (observationVariable.getScale() != null && observationVariable.getScale().getScaleName() != null) {
+                observationVariable.getScale().setScaleName(Utilities.removeProgramKey(observationVariable.getScale().getScaleName(), program.getKey()));
+            }
+
+            if (observationVariable.getMethod() != null && observationVariable.getMethod().getMethodName() != null) {
+                observationVariable.getMethod().setMethodName(Utilities.removeProgramKey(observationVariable.getMethod().getMethodName(), program.getKey()));
+            }
+
+            if (observationVariable.getTrait() != null && observationVariable.getTrait().getTraitName() != null) {
+                observationVariable.getTrait().setTraitName(Utilities.removeProgramKey(observationVariable.getTrait().getTraitName(), program.getKey()));
+            }
+        });
     }
 
 }
