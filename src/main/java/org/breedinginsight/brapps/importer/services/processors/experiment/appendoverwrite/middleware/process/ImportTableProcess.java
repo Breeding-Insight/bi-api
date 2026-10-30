@@ -49,6 +49,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.servic
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationVariableService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.StudyService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.validator.field.FieldValidator;
+import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
@@ -253,7 +254,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                         BrAPIObservation observation = gson.fromJson(gson.toJson(observationByObsHash.get(observationHash)), BrAPIObservation.class);
 
                         // Is there a change to the prior data?
-                        if (isChanged(cellData, observation, cell.timestamp, tsColByPheno.containsKey(phenoColumnName))) {
+                        if (isChanged(cellData, observation, cell.timestamp, tsColByPheno.containsKey(phenoColumnName), traitByPhenoColName.get(column.name()))) {
 
                             // Is prior data protected?
                             /**
@@ -337,6 +338,11 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                     // Construct a pending observation
                     Optional<PendingImportObject<BrAPIObservation>> pendingProcessedData = Optional.ofNullable(processedData.constructPendingObservation());
 
+                    //Ensures nominal category is saved with the same casing as defined in ontology
+                    if (pendingProcessedData.isPresent() && context.getImportContext().isCommit() && traitByPhenoColName.get(column.name()).getScale().getDataType() == DataType.NOMINAL) {
+                        ExperimentUtilities.matchToDBCategory(traitByPhenoColName.get(column.name()).getScale().getCategories(), column.getString(rowNum), pendingProcessedData.get().getBrAPIObject());
+                    }
+
                     // Set the new pending observation in the pending import for the row
                     pendingProcessedData.ifPresent(observation -> mappedImportRow.getObservations().add(observation));
 
@@ -363,9 +369,12 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
         }
     }
 
-    private boolean isChanged(String cellData, BrAPIObservation observation, String newTimestamp, boolean timestampColumnPresent) {
+    private boolean isChanged(String cellData, BrAPIObservation observation, String newTimestamp, boolean timestampColumnPresent, Trait trait) {
         if (!cellData.isBlank() && !cellData.equals(observation.getValue())){
-            return true;
+            //Nominal categories are case-insensitive since will be matched to database casing
+            if (!(trait != null && trait.getScale().getDataType() == DataType.NOMINAL) || !cellData.equalsIgnoreCase(observation.getValue())) {
+                return true;
+            }
         }
         // Only check timestamp if the TS:<trait> column was present in the uploaded file and there's a valid timestamp.
         if (timestampColumnPresent && !StringUtils.isBlank(newTimestamp)) {
