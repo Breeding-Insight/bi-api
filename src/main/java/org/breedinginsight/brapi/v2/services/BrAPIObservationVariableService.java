@@ -30,6 +30,7 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationVariableDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.DatasetUtil;
@@ -46,13 +47,15 @@ public class BrAPIObservationVariableService {
     private final ProgramService programService;
     private final BrAPITrialService trialService;
     private final BrAPIObservationVariableDAO observationVariableDAO;
+    private final OntologyService ontologyService;
 
     @Inject
     public BrAPIObservationVariableService(
-            ProgramService programService, BrAPITrialService trialService,  BrAPIObservationVariableDAO observationVariableDAO){
+            ProgramService programService, BrAPITrialService trialService, BrAPIObservationVariableDAO observationVariableDAO, OntologyService ontologyService){
         this.programService = programService;
         this.trialService = trialService;
         this.observationVariableDAO = observationVariableDAO;
+        this.ontologyService = ontologyService;
     }
 
     // TODO: support sub-entity datasets.
@@ -237,8 +240,10 @@ public class BrAPIObservationVariableService {
             throw new DoesNotExistException("Program does not exist");
         }
 
-        // We know the program exists as of check above
-        Program program = programService.getById(programId).get();
+        // This helper method retrieves the proper program that will be associated with the brapi observation variable that is being looked up.
+        UUID ontologyProgramLookupId = ontologyService.getSubscribedOntologyProgramId(programId);
+
+        Program program = programService.getById(ontologyProgramLookupId).get();
 
         return observationVariableDAO.getVariableByIdWithResponse(observationVariableDbId, program);
     }

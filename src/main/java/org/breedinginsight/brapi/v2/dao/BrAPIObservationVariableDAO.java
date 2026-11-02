@@ -19,7 +19,6 @@ package org.breedinginsight.brapi.v2.dao;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
@@ -27,6 +26,7 @@ import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 
@@ -65,25 +65,41 @@ public class BrAPIObservationVariableDAO {
         );
     }
 
-    public BrAPIObservationVariableSingleResponse getVariableByIdWithResponse(String observationVariableDbId, Program program) throws ApiException {
+    public BrAPIObservationVariableSingleResponse getVariableByIdWithResponse(String observationVariableDbId, Program program) throws DoesNotExistException {
         ObservationVariablesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationVariablesApi.class);
 
-        ApiResponse<BrAPIObservationVariableSingleResponse> apiResponse = api.variablesObservationVariableDbIdGet(observationVariableDbId);
+        try {
+            ApiResponse<BrAPIObservationVariableSingleResponse> apiResponse = api.variablesObservationVariableDbIdGet(observationVariableDbId);
 
-        if (apiResponse.getBody() != null && apiResponse.getBody().getResult() != null && apiResponse.getStatusCode() == 200) {
-            BrAPIObservationVariable returnedObsVar = apiResponse.getBody().getResult();
+            String brapiProgramDbId = brAPIDAOUtil.getBrAPIProgramDbId(program.getId());
 
-            processObservationVariables(List.of(returnedObsVar), program);
+            if (apiResponse.getBody() != null && apiResponse.getBody().getResult() != null && apiResponse.getStatusCode() == 200) {
+                BrAPIObservationVariable returnedObsVar = apiResponse.getBody().getResult();
 
-            return apiResponse.getBody();
+                if (returnedObsVar.getProgramDbId() == null || !returnedObsVar.getProgramDbId().equals(brapiProgramDbId)) {
+                    throw new DoesNotExistException(String.format("A observation variable with id [%s] was found but it does not belong to the submitted program with id: [%s]", observationVariableDbId, program.getId()));
+                }
+
+                processObservationVariables(List.of(returnedObsVar), program);
+
+                return apiResponse.getBody();
+            }
+        } catch (ApiException e) {
+            if (e.getCode() >= 400 && e.getCode() < 500) {
+                throw new DoesNotExistException(String.format("Observation variable with brapi db id [%s] was not found for program [%s]", observationVariableDbId, program.getId()));
+            }
         }
 
         throw new InternalServerException(String.format("Unable to retrieve BrAPI Observation Variable using id [%s] for BI Program with id: [%s]", observationVariableDbId, program.getId()));
     }
 
     private void processObservationVariables(List<BrAPIObservationVariable> observationVariables, Program program) {
+
         observationVariables.forEach(observationVariable -> {
-            observationVariable.setObservationVariableName(Utilities.removeProgramKey(observationVariable.getObservationVariableName(), program.getKey()));
+
+            if (observationVariable.getObservationVariableName() != null) {
+                observationVariable.setObservationVariableName(Utilities.removeProgramKey(observationVariable.getObservationVariableName(), program.getKey()));
+            }
 
             if (observationVariable.getScale() != null && observationVariable.getScale().getScaleName() != null) {
                 observationVariable.getScale().setScaleName(Utilities.removeProgramKey(observationVariable.getScale().getScaleName(), program.getKey()));
