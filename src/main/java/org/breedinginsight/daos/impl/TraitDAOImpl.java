@@ -49,6 +49,7 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.*;
@@ -207,11 +208,11 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
         return saturatedTraits;
     }
 
-    private Trait fetchTraitFullByBiTraitAndProgramId(UUID traitId, UUID programId) {
+    private Trait fetchTraitFullByBiTraitAndProgramId(UUID traitId, UUID programId) throws DoesNotExistException {
         // Get our db trait (equivalent to brapi variables)
         Optional<Trait> biTraitOpt = getTrait(programId, traitId);
         if (biTraitOpt.isEmpty()) {
-            throw new InternalServerException(String.format("Unable to find BI trait with id [%s]", traitId));
+            throw new DoesNotExistException(String.format("Unable to find BI trait with id [%s]", traitId));
         }
 
         Trait trait = biTraitOpt.get();
@@ -232,22 +233,9 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
         variablesRequest.setExternalReferenceId(traitId.toString());
         variablesRequest.externalReferenceSource(referenceSource);
 
-        ApiResponse<BrAPIObservationVariableListResponse> brApiVariables = null;
-        BrAPIObservationVariable brAPIObservationVariable;
-        try {
-            brApiVariables = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationVariablesApi.class)
-                    .variablesGet(variablesRequest);
-        } catch (ApiException e) {
-            log.warn(Utilities.generateApiExceptionLogMessage(e));
-            throw new InternalServerException("Error making BrAPI call", e);
-        } finally {
-            brAPIObservationVariable = Optional.ofNullable(brApiVariables)
-                    .map(ApiResponse::getBody)
-                    .map(BrAPIObservationVariableListResponse::getResult)
-                    .map(BrAPIObservationVariableListResponseResult::getData)
-                    .orElseThrow()
-                    .get(0);
-        }
+        ObservationVariablesApi variablesApi = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationVariablesApi.class);
+
+        BrAPIObservationVariable brAPIObservationVariable = getBrAPIVariable(variablesApi, traitId, programId);
 
         saturateTrait(trait, brAPIObservationVariable);
 
@@ -298,7 +286,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
     }
 
     @Override
-    public Optional<Trait> getTraitFull(UUID programId, UUID traitId){
+    public Optional<Trait> getTraitFull(UUID programId, UUID traitId) throws DoesNotExistException {
         return Optional.of(fetchTraitFullByBiTraitAndProgramId(traitId, programId));
     }
 
@@ -534,7 +522,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
         List<ObservationVariablesApi> variablesAPIS = brAPIProvider.getAllUniqueVariablesAPI();
         for (ObservationVariablesApi variablesAPI: variablesAPIS){
             // GET brapi trait
-            BrAPIObservationVariable existingVariable = getBrAPIVariable(variablesAPI, trait.getId());
+            BrAPIObservationVariable existingVariable = getBrAPIVariable(variablesAPI, trait.getId(), program.getId());
 
             // Change method
             existingVariable.getMethod().setMethodName(constructMethodName(trait, program));
@@ -594,11 +582,17 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
                 String.format("%s [%s]", trait.getMethod().getMethodClass(), program.getKey());
     }
 
-    private BrAPIObservationVariable getBrAPIVariable(ObservationVariablesApi variablesAPI, UUID traitId) {
+    private BrAPIObservationVariable getBrAPIVariable(ObservationVariablesApi variablesAPI,
+                                                      UUID traitId,
+                                                      UUID biProgramId) {
 
         BrAPIObservationVariable existingVariable;
         try {
-            VariableQueryParams queryParams = new VariableQueryParams();
+
+            String brapiProgramDbId = brAPIDAOUtil.getBrAPIProgramDbId(biProgramId);
+
+            VariableQueryParams queryParams = new VariableQueryParams()
+                    .programDbId(brapiProgramDbId);
             queryParams.externalReferenceID(traitId.toString());
             queryParams.externalReferenceSource(referenceSource);
             ApiResponse<BrAPIObservationVariableListResponse> existingVariableResponse =
