@@ -196,6 +196,8 @@ public class BrAPIObservationVariableService {
     }
 
     public BrAPIObservationVariable convertToBrAPI(Trait trait) {
+        // This data is not stored in BrAPI by DeltaBreed, which is why it is being set with the DeltaBreed dbIds instead.
+        // They can be filtered upon in BrAPIObservationVariableController.variablesGet()
         BrAPIOntologyReference brAPIOntologyReference = new BrAPIOntologyReference().ontologyDbId(trait.getProgramOntologyId()
                 .toString());
         String status = trait.getActive() ? "active" : "inactive";
