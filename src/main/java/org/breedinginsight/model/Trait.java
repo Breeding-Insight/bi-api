@@ -29,12 +29,10 @@ import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.jackson.Jacksonized;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
-import org.breedinginsight.api.deserializer.ArrayOfStringDeserializer;
 import org.breedinginsight.api.deserializer.ListOfStringDeserializer;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.jooq.Record;
 
-import javax.validation.Valid;
 import java.util.List;
 
 import static org.breedinginsight.dao.db.Tables.TRAIT;
@@ -64,6 +62,9 @@ public class Trait extends TraitEntity {
 
     // Properties from brapi
     private String observationVariableDbId;
+    // brapiTraitDbId is only used to convert the bi trait id to brapiTraitDbId for the BrAPIObservationVariableController GET endpoints
+    @JsonIgnore
+    private String brapiTraitDbId;
     private String traitClass;
     private String traitDescription;
     private String attribute;
@@ -122,6 +123,7 @@ public class Trait extends TraitEntity {
             this.setEntity(brApiVariable.getTrait().getEntity());
             this.setMainAbbreviation(brApiVariable.getTrait().getMainAbbreviation());
             this.setSynonyms(brApiVariable.getTrait().getSynonyms());
+            this.setBrapiTraitDbId(brApiVariable.getTrait().getTraitDbId());
         }
         this.setObservationVariableDbId(brApiVariable.getObservationVariableDbId());
         this.setDefaultValue(brApiVariable.getDefaultValue());

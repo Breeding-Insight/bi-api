@@ -150,23 +150,25 @@ public class BrAPIObservationVariableController {
     public HttpResponse<BrAPIObservationVariableSingleResponse> variablesObservationVariableDbIdGet(@PathVariable("programId") UUID programId,
                                                             @PathVariable("observationVariableDbId") String observationVariableDbId) {
         log.debug("fetching variable: " + observationVariableDbId);
-        UUID traitId;
         try {
-            traitId = UUID.fromString(observationVariableDbId);
+            // Check if submitted ID is valid UUID
+            UUID.fromString(observationVariableDbId);
         } catch (IllegalArgumentException e) {
             return HttpResponse.notFound();
         }
 
         try {
-            Optional<Trait> trait = traitService.getById(programId, traitId);
+            List<Trait> programTraits = traitService.getByProgramId(programId, true);
 
-            if(trait.isEmpty()) {
+            if(programTraits.isEmpty()) {
                 return HttpResponse.notFound();
             }
 
+            BrAPIObservationVariable observationVariable = observationVariableService.filterVariableById(programTraits, observationVariableDbId);
+
             BrAPIObservationVariableSingleResponse response = new BrAPIObservationVariableSingleResponse()
                     .metadata(new BrAPIMetadata())
-                    .result(observationVariableService.convertToBrAPI(trait.get()));
+                    .result(observationVariable);
 
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {

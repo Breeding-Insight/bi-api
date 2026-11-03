@@ -161,11 +161,16 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
         traits = createTraits(4);
         AuthenticatedUser user = new AuthenticatedUser(testUser.getName(), new ArrayList<>(), testUser.getId(), new ArrayList<>());
         try {
-            ontologyService.createTraits(program.getId(), traits, user, false);
+            // Re-assign to get obtain all brapi related data as well
+            traits = ontologyService.createTraits(program.getId(), traits, user, false);
         } catch (ValidatorException e) {
             System.err.println(e.getErrors());
             throw e;
         }
+
+        // Re-assignment returns the data in an indeterminate order.  Sort on variable name, which should be determinate.
+        // Tests below depend on the order being correct.
+        traits.sort(Comparator.comparing(Trait::getObservationVariableName));
 
         // Add germplasm to program
         List<BrAPIGermplasm> germplasm = createGermplasm(1, brapiProgramDbId);
@@ -305,7 +310,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
     @Test
     public void testGetVariableById() {
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET(String.format("/programs/%s/brapi/v2/variables/%s", program.getId(), traits.get(0).getId()))
+                GET(String.format("/programs/%s/brapi/v2/variables/%s", program.getId(), traits.get(0).getObservationVariableDbId()))
                         .bearerAuth("test-registered-user"),
                 String.class
         );
@@ -316,7 +321,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
         JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
         JsonObject variable = responseObj.getAsJsonObject("result");
         assertNotNull(variable);
-        assertEquals(traits.get(0).getId().toString(), variable.get("observationVariableDbId").getAsString());
+        assertEquals(traits.get(0).getObservationVariableDbId(), variable.get("observationVariableDbId").getAsString());
         assertEquals(traits.get(0).getObservationVariableName(), variable.get("observationVariableName").getAsString());
 
         JsonObject trait = variable.getAsJsonObject("trait");
@@ -404,6 +409,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
             String varName = "tt_test_" + (i + 1);
             traits.add(Trait.builder()
                     .observationVariableName(varName)
+                    .observationVariableDbId(UUID.randomUUID().toString())
                     .fullName(varName)
                     .entity("Plant " + i)
                     .attribute("height " + i)

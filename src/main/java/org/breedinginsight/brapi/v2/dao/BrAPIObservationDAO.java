@@ -98,15 +98,6 @@ public class BrAPIObservationDAO {
         }
     }
 
-    private List<BrAPIObservation> getProgramObservations(UUID programId) throws ApiException {
-        Program program = programDAO.get(programId)
-                .stream()
-                .findFirst()
-                .orElseThrow();
-
-        return getBrAPIObservationsUsingBrAPIProgramId(program);
-    }
-
     public List<BrAPIObservation> getObservationsByStudyName(List<String> studyNames, Program program) throws ApiException {
         if(studyNames.isEmpty()) {
             return Collections.emptyList();
@@ -219,15 +210,6 @@ public class BrAPIObservationDAO {
 
         List<BrAPIObservation> observations = brAPIDAOUtil.getListResult(brAPIResponse);
         processObservations(program.getKey(), observations);
-
-        // TODO: Investigate if this resetting of the observationVariableDbId can be undone when trait exrefs are examined [BI-2925]
-        HashMap<String, String> traitIdsByObservationVariableDbId = traitService.getIdsByObservationVariableDbIds(
-                program.getId(), observations.stream()
-                        .map(BrAPIObservation::getObservationVariableDbId).collect(Collectors.toList()));
-
-        observations.forEach(observation -> observation
-                .setObservationVariableDbId(traitIdsByObservationVariableDbId.get(observation.getObservationVariableDbId())));
-        brAPIResponse.getResult().setData(observations);
 
         return brAPIResponse;
     }
