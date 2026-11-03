@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapi.v2.services;
 
+import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -89,6 +90,31 @@ public class BrAPIObservationVariableService {
         }
 
         return new ArrayList<>();
+    }
+
+    @NotNull
+    public BrAPIObservationVariable filterVariableById(List<Trait> programTraits,
+                                                       String observationVariableDbId) throws DoesNotExistException {
+        List<BrAPIObservationVariable> filterResult = filterVariables(programTraits,
+                Optional.of(observationVariableDbId),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty()
+                );
+
+        if (filterResult.isEmpty()) {
+            throw new DoesNotExistException(String.format("No observation variables found for brapi observation variable dbId [%s]", observationVariableDbId));
+        } else if  (filterResult.size() > 1) {
+            throw new InternalServerException(String.format("Multiple observation variables found for brapi observation variable db id [%s].  This should not be possible considering this id is unique.", observationVariableDbId));
+        }
+
+        return filterResult.get(0);
     }
 
     @NotNull
@@ -229,19 +255,5 @@ public class BrAPIObservationVariableService {
             preppedSynonyms.add(trait.getObservationVariableName());
         }
         return preppedSynonyms;
-    }
-
-    public BrAPIObservationVariableSingleResponse getBrAPIObservationVariableByDbId(String observationVariableDbId, UUID programId) throws ApiException, DoesNotExistException {
-
-        if (!programService.exists(programId)) {
-            throw new DoesNotExistException("Program does not exist");
-        }
-
-        // This helper method retrieves the proper program that will be associated with the brapi observation variable that is being looked up.
-        UUID ontologyProgramLookupId = ontologyService.getSubscribedOntologyProgramId(programId);
-
-        Program program = programService.getById(ontologyProgramLookupId).get();
-
-        return observationVariableDAO.getVariableByIdWithResponse(observationVariableDbId, program);
     }
 }
