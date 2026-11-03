@@ -127,8 +127,7 @@ public class BrAPIObservationVariableService {
                     filterParams.put("traitClass", Pair.of(traitClass, trait.getTraitClass()));
                     filterParams.put("methodDbId",
                             Pair.of(methodDbId,
-                                    trait.getMethodId()
-                                            .toString()));
+                                    trait.getMethod().getBrapiMethodDbId()));
                     filterParams.put("methodName",
                             Pair.of(methodName,
                                     trait.getMethod()
@@ -136,16 +135,14 @@ public class BrAPIObservationVariableService {
                     filterParams.put("scaleDbId",
                             Pair.of(scaleDbId,
                                     trait.getScale()
-                                            .getId()
-                                            .toString()));
+                                            .getBrapiScaleDbId()));
                     filterParams.put("scaleName",
                             Pair.of(scaleName,
                                     trait.getScale()
                                             .getScaleName()));
                     filterParams.put("traitDbId",
                             Pair.of(traitDbId,
-                                    trait.getId()
-                                            .toString()));
+                                    trait.getBrapiTraitDbId()));
                     filterParams.put("traitName", Pair.of(traitName, trait.getObservationVariableName()));
                     filterParams.put("ontologyDbId",
                             Pair.of(ontologyDbId,
@@ -184,18 +181,18 @@ public class BrAPIObservationVariableService {
                 .synonyms(synonyms)
                 .trait(new BrAPITrait().ontologyReference(brAPIOntologyReference)
                         .traitName(trait.getObservationVariableName())
-                        .traitDbId(trait.getId().toString())
+                        .traitDbId(trait.getBrapiTraitDbId())
                         .entity(trait.getEntity())
                         .attribute(trait.getAttribute())
                         .status(status)
                         .synonyms(synonyms))
                 .method(new BrAPIMethod().ontologyReference(brAPIOntologyReference)
-                        .methodDbId(trait.getMethod().getId().toString())
+                        .methodDbId(trait.getMethod().getBrapiMethodDbId())
                         .methodClass(trait.getMethod().getMethodClass())
                         .description(trait.getMethod().getDescription())
                         .formula(trait.getMethod().getFormula()))
                 .scale(new BrAPIScale().ontologyReference(brAPIOntologyReference)
-                        .scaleDbId(trait.getScale().getId().toString())
+                        .scaleDbId(trait.getScale().getBrapiScaleDbId())
                         .scaleName(trait.getScale().getScaleName())
                         .dataType(BrAPITraitDataType.fromValue(trait.getScale().getDataType().getLiteral()))
                         .decimalPlaces(trait.getScale().getDecimalPlaces())

@@ -17,6 +17,7 @@
 
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
@@ -50,6 +51,9 @@ public class Scale extends ScaleEntity {
     private ProgramOntology programOntology;
 
     // BrAPI properties
+    @JsonIgnore
+    // brapiScaleDbId is only used to convert the bi scale id to brapiScaleDbId for the BrAPIObservationVariableController GET endpoints
+    private String brapiScaleDbId;
     private Integer validValueMax;
     private Integer validValueMin;
     private Integer decimalPlaces;
@@ -89,6 +93,7 @@ public class Scale extends ScaleEntity {
             this.setValidValueMin(validValues.getMin());
             this.setCategories(validValues.getCategories());
         }
+        this.setBrapiScaleDbId(brApiScale.getScaleDbId());
     }
 
 }
