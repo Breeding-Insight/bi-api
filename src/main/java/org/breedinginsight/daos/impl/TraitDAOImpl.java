@@ -23,7 +23,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializer;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.BrAPIClient;
@@ -34,7 +33,6 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.*;
 import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
-import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponseResult;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.BiUserTable;
@@ -43,8 +41,6 @@ import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.ObservationDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.TraitDAO;
-import org.breedinginsight.daos.cache.ProgramCache;
-import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.*;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
@@ -74,7 +70,6 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
     private final Boolean runScheduledTasks;
     private final ObservationDAO observationDao;
     private final BrAPIDAOUtil brAPIDAOUtil;
-    private final ProgramCache<Trait> cache;
     private final ProgramDAO programDAO;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
     private final Gson gson;
@@ -89,7 +84,6 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
                         ObservationDAO observationDao,
                         BrAPIDAOUtil brAPIDAOUtil,
                         ProgramDAO programDAO,
-                        ProgramCacheProvider programCacheProvider,
                         BrAPIEndpointProvider brAPIEndpointProvider,
                         @Property(name = "brapi.server.reference-source") String referenceSource,
                         @Property(name = "micronaut.bi.api.run-scheduled-tasks") Boolean runScheduledTasks) {
@@ -98,7 +92,6 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
         this.brAPIProvider = brAPIProvider;
         this.observationDao = observationDao;
         this.brAPIDAOUtil = brAPIDAOUtil;
-        this.cache = programCacheProvider.getProgramCache(this::populateCache, Trait.class);
         this.programDAO = programDAO;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
@@ -108,29 +101,6 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
 
         this.referenceSource = referenceSource;
         this.runScheduledTasks = runScheduledTasks;
-    }
-
-    @Scheduled(initialDelay = "${startup.delay.trait}")
-    public void setup() {
-        if(!runScheduledTasks) {
-            return;
-        }
-        // Populate trait cache for all programs on startup
-        log.debug("Populate traits cache");
-        List<Program> programs = programDAO.getActive();
-        if(programs != null) {
-            cache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
-        }
-    }
-
-    private Map<String, Trait> populateCache(UUID programId) {
-        List<Trait> programTraits = fetchTraitsFullByProgramId(programId);
-        Map<String, Trait> traits = new HashMap<>();
-        if (!programTraits.isEmpty()) {
-            programTraits.forEach(trait -> traits.put(trait.getId().toString(), trait));
-        }
-
-        return traits;
     }
 
     @Override
@@ -504,8 +474,6 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
                         if (brApiExternalReference.getReferenceSource().equals(referenceSource) &&
                                 brApiExternalReference.getReferenceID().equals(trait.getId().toString())){
                             saturateTrait(trait, variable);
-
-                            cache.set(program.getId(), trait.getId().toString(), trait);
                         }
                     }
                 }
@@ -568,9 +536,6 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
             // Retrieve our update trait from the db
             updatedTrait = getTrait(program.getId(), trait.getId()).get();
             saturateTrait(updatedTrait, updatedVariable);
-
-            //update cache
-            cache.set(program.getId(), updatedTrait.getId().toString(), updatedTrait);
         }
 
         return updatedTrait;
