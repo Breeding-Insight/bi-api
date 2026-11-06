@@ -353,7 +353,7 @@ public class BrAPIObservationUnitDAO {
 
     	HashMap<String, BrAPIGermplasm> germplasmByDbId = new HashMap<>();
     	if( withGID ){
-            // TODO: Optimize this to use germplasm information directly in BrAPIObservationUnit by searching on ou.germplasmDbIds in a GermplasmSearchRequest [BI-3006]
+            // TODO: Optimize this to use germplasm information directly in BrAPIObservationUnit by searching on ou.germplasmDbIds in a GermplasmSearchRequest [BI-3105]
             this.germplasmService.getGermplasm(program.getId()).forEach((germplasm -> germplasmByDbId.put(germplasm.getGermplasmDbId(), germplasm)));
         }
 
