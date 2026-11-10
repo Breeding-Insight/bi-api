@@ -34,6 +34,7 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.*;
 import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
+import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponseResult;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.BiUserTable;
@@ -48,6 +49,7 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.*;
@@ -61,7 +63,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.breedinginsight.dao.db.Tables.*;
-import static org.jooq.impl.DSL.lower;
 
 @Singleton
 @Slf4j
@@ -143,15 +144,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
     public List<Trait> getTraitsFullByProgramIds(List<UUID> programIds) {
         List<Trait> saturatedTraits = new ArrayList<>();
         for(UUID id : programIds) {
-            Map<String, Trait> programTraits = null;
-            try {
-                programTraits = cache.get(id);
-            } catch (ApiException e) {
-                throw new RuntimeException(e);
-            }
-            if(programTraits != null) {
-                saturatedTraits.addAll(programTraits.values());
-            }
+            saturatedTraits.addAll(fetchTraitsFullByProgramId(id));
         }
 
         return saturatedTraits;
@@ -215,6 +208,40 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
         return saturatedTraits;
     }
 
+    private Trait fetchTraitFullByBiTraitAndProgramId(UUID traitId, UUID programId) throws DoesNotExistException {
+        // Get our db trait (equivalent to brapi variables)
+        Optional<Trait> biTraitOpt = getTrait(programId, traitId);
+        if (biTraitOpt.isEmpty()) {
+            throw new DoesNotExistException(String.format("Unable to find BI trait with id [%s]", traitId));
+        }
+
+        Trait trait = biTraitOpt.get();
+
+        String brapiProgramDbId;
+
+        try {
+            brapiProgramDbId = brAPIDAOUtil.getBrAPIProgramDbId(programId);
+        } catch (ApiException e) {
+            throw new InternalServerException(String.format("While fetching an individual trait in full, unable to retrieve brapi programDbId using bi program ID [%s]", programId), e);
+        }
+
+        // Get brapi variables
+        VariableQueryParams variablesRequest = new VariableQueryParams();
+        variablesRequest.programDbId(brapiProgramDbId);
+        variablesRequest.pageSize(1);
+
+        variablesRequest.setExternalReferenceId(traitId.toString());
+        variablesRequest.externalReferenceSource(referenceSource);
+
+        ObservationVariablesApi variablesApi = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationVariablesApi.class);
+
+        BrAPIObservationVariable brAPIObservationVariable = getBrAPIVariable(variablesApi, traitId, programId);
+
+        saturateTrait(trait, brAPIObservationVariable);
+
+        return trait;
+    }
+
     @Override
     public List<Trait> getTraitsByProgramId(UUID programId) {
         return getTraitsByProgramIds(programId);
@@ -259,14 +286,8 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
     }
 
     @Override
-    public Optional<Trait> getTraitFull(UUID programId, UUID traitId){
-
-        try {
-            return Optional.ofNullable(cache.get(programId).get(traitId.toString()));
-        } catch (ApiException e) {
-            log.warn(Utilities.generateApiExceptionLogMessage(e));
-            throw new InternalServerException("Error making BrAPI call", e);
-        }
+    public Optional<Trait> getTraitFull(UUID programId, UUID traitId) throws DoesNotExistException {
+        return Optional.of(fetchTraitFullByBiTraitAndProgramId(traitId, programId));
     }
 
     // could be more efficient to do a single get instead of search in saved search case but less code this way
@@ -501,7 +522,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
         List<ObservationVariablesApi> variablesAPIS = brAPIProvider.getAllUniqueVariablesAPI();
         for (ObservationVariablesApi variablesAPI: variablesAPIS){
             // GET brapi trait
-            BrAPIObservationVariable existingVariable = getBrAPIVariable(variablesAPI, trait.getId());
+            BrAPIObservationVariable existingVariable = getBrAPIVariable(variablesAPI, trait.getId(), program.getId());
 
             // Change method
             existingVariable.getMethod().setMethodName(constructMethodName(trait, program));
@@ -561,11 +582,17 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
                 String.format("%s [%s]", trait.getMethod().getMethodClass(), program.getKey());
     }
 
-    private BrAPIObservationVariable getBrAPIVariable(ObservationVariablesApi variablesAPI, UUID traitId) {
+    private BrAPIObservationVariable getBrAPIVariable(ObservationVariablesApi variablesAPI,
+                                                      UUID traitId,
+                                                      UUID biProgramId) {
 
         BrAPIObservationVariable existingVariable;
         try {
-            VariableQueryParams queryParams = new VariableQueryParams();
+
+            String brapiProgramDbId = brAPIDAOUtil.getBrAPIProgramDbId(biProgramId);
+
+            VariableQueryParams queryParams = new VariableQueryParams()
+                    .programDbId(brapiProgramDbId);
             queryParams.externalReferenceID(traitId.toString());
             queryParams.externalReferenceSource(referenceSource);
             ApiResponse<BrAPIObservationVariableListResponse> existingVariableResponse =
