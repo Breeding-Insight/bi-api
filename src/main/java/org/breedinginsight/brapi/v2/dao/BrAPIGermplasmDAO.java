@@ -430,12 +430,25 @@ public class BrAPIGermplasmDAO {
     }
 
     public List<BrAPIGermplasm> getGermplasmByRawName(List<String> germplasmNames, UUID programId) throws ApiException {
-        // TODO: Optimize this method by utilizing a BrAPIGermplasmSearchRequest [BI-3028]
         Program program = new Program(programDAO.fetchOneById(programId));
-        return getGermplasm(programId)
-                .stream()
-                .filter(brAPIGermplasm -> germplasmNames.contains(Utilities.appendProgramKey(brAPIGermplasm.getGermplasmName(),program.getKey(),brAPIGermplasm.getAccessionNumber())))
-                .collect(Collectors.toList());
+
+        if (germplasmNames.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        BrAPIGermplasmSearchRequest searchRequest = new BrAPIGermplasmSearchRequest();
+        searchRequest.setGermplasmNames(germplasmNames);
+
+        searchRequest = buildSearchRequest(program, searchRequest, null);
+
+        GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), GermplasmApi.class);
+
+        List<BrAPIGermplasm> germplasm = brAPIDAOUtil.search(
+                api::searchGermplasmPost,
+                api::searchGermplasmSearchResultsDbIdGet,
+                searchRequest);
+
+        return processGermplasmForDisplay(germplasm, program);
     }
 
     public BrAPIListItemsListResponse<BrAPIGermplasm> searchGermplasmByList(String listDbId, UUID programId, GermplasmQuery germplasmQuery) throws ApiException {
