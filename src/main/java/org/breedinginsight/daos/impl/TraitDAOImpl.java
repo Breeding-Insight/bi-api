@@ -165,9 +165,17 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
             return new ArrayList<>();
         }
 
+        String brapiProgramDbId;
+
+        try {
+            brapiProgramDbId = brAPIDAOUtil.getBrAPIProgramDbId(programId);
+        } catch (ApiException e) {
+            throw new InternalServerException(String.format("While fetching traits, unable to retrieve brapi programDbId using bi program ID [%s]", programId), e);
+        }
+
         // Get brapi variables
         VariableQueryParams variablesRequest = new VariableQueryParams();
-        variablesRequest.externalReferenceSource(referenceSource);
+        variablesRequest.programDbId(brapiProgramDbId);
         variablesRequest.pageSize(10000);
 
         ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
@@ -354,6 +362,14 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
 
         //TODO: Pass ontology reference
 
+        String brapiProgramDbId;
+
+        try {
+            brapiProgramDbId = brAPIDAOUtil.getBrAPIProgramDbId(program.getId());
+        } catch (ApiException e) {
+            throw new InternalServerException(String.format("While creating traits, unable to fetch brapi programDbId using bi program with id [%s]", program.getId()), e);
+        }
+
         // Convert our traits into BrAPI traits
         List<BrAPIObservationVariable> brApiVariables = new ArrayList<>();
         for (Trait trait: traits) {
@@ -419,7 +435,8 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
                     .defaultValue(trait.getDefaultValue())
                     .synonyms(trait.getSynonyms())
                     .institution(program.getName())
-                    .commonCropName(program.getSpecies().getCommonName());
+                    .commonCropName(program.getSpecies().getCommonName())
+                    .programDbId(brapiProgramDbId);
             if (trait.getTags() != null) brApiVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
             if (trait.getFullName() != null) brApiVariable.putAdditionalInfoItem(FULLNAME_KEY, trait.getFullName());
 
