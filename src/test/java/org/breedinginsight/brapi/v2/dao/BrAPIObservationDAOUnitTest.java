@@ -269,6 +269,6 @@ public class BrAPIObservationDAOUnitTest {
         assertEquals(List.of("study-1"), request.getStudyDbIds());
         assertEquals(2, request.getPage());
         assertEquals(25, request.getPageSize());
-        assertEquals(traitId, result.getResult().getData().get(0).getObservationVariableDbId());
+        assertEquals(brapiVariableDbId, result.getResult().getData().get(0).getObservationVariableDbId());
     }
 }

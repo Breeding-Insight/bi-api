@@ -16,13 +16,19 @@
  */
 package org.breedinginsight.brapi.v2.dao;
 
+import io.micronaut.http.server.exceptions.InternalServerException;
+import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
+import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
