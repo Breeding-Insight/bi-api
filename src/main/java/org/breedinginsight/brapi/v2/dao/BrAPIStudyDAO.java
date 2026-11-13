@@ -23,7 +23,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.core.StudyQueryParams;
 import org.brapi.client.v2.modules.core.StudiesApi;
-import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
@@ -95,7 +94,7 @@ public class BrAPIStudyDAO {
 
         BrAPIStudySearchRequest brAPIStudySearchRequest = buildSearchRequest(program, brapiTrialIds, studyQuery);
 
-        BrAPIStudyListResponse brAPIResponse = brAPIDAOUtil.simpleSearch(api::searchStudiesPost, brAPIStudySearchRequest);
+        BrAPIStudyListResponse brAPIResponse = brAPIDAOUtil.searchReturnResponse(api::searchStudiesPost, api::searchStudiesSearchResultsDbIdGet, brAPIStudySearchRequest);
 
         List<BrAPIStudy> processedStudies = processStudyForDisplay(brAPIDAOUtil.getListResult(brAPIResponse), program.getKey());
 

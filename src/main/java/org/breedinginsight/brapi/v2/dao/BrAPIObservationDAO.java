@@ -188,19 +188,19 @@ public class BrAPIObservationDAO {
         return searchBrapiObservations(observationSearchRequest, program);
     }
 
-    public BrAPIObservationListResponse getObservationsByFilters(Program program, String studyDbId, Integer page, Integer pageSize) throws ApiException, DoesNotExistException {
+    public BrAPIObservationListResponse getObservationsByFilters(Program program, String studyDbId, Integer page, Integer pageSize) throws ApiException {
         BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest()
                 .programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
 
         if (studyDbId != null) {
             observationSearchRequest.setStudyDbIds(List.of(studyDbId));
         }
-        observationSearchRequest.setPage(page == null ? 0 : page);
-        observationSearchRequest.setPageSize(pageSize == null ? 1000 : pageSize);
+        observationSearchRequest.setPage(page);
+        observationSearchRequest.setPageSize(pageSize);
 
         ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
 
-        BrAPIObservationListResponse brAPIResponse = brAPIDAOUtil.simpleSearch(api::searchObservationsPost, observationSearchRequest);
+        BrAPIObservationListResponse brAPIResponse = brAPIDAOUtil.searchReturnResponse(api::searchObservationsPost, api::searchObservationsSearchResultsDbIdGet, observationSearchRequest);
 
         List<BrAPIObservation> observations = brAPIDAOUtil.getListResult(brAPIResponse);
         processObservations(program.getKey(), observations);

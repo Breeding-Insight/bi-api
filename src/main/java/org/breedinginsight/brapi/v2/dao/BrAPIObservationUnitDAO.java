@@ -139,8 +139,9 @@ public class BrAPIObservationUnitDAO {
         ObservationUnitsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationUnitsApi.class);
 
         BrAPIObservationUnitListResponse brAPIResponse =
-                brAPIDAOUtil.simpleSearch(
+                brAPIDAOUtil.searchReturnResponse(
                         api::searchObservationunitsPost,
+                        api::searchObservationunitsSearchResultsDbIdGet,
                         observationUnitSearchRequest
                 );
 

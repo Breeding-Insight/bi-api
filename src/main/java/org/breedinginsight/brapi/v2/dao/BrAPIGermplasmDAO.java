@@ -49,7 +49,6 @@ import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -334,7 +333,7 @@ public class BrAPIGermplasmDAO {
         // This will use CACHE_BRAPI_FETCH_PAGE_SIZE env variable to lookup at maximum 65k pedigree germplasm at once.
         // This should not be normal though, as we should try not to exceed 1k lookups at once using this code.
         // If there is a need to look up a large amount of germplasm records at once, alternative methods should be used.
-        List<BrAPIGermplasm> germplasmSearchedWithExRef = brAPIDAOUtil.searchNoPaging(
+        List<BrAPIGermplasm> germplasmSearchedWithExRef = brAPIDAOUtil.searchNoPageThru(
                         api::searchGermplasmPost,
                         api::searchGermplasmSearchResultsDbIdGet,
                         searchRequest);
@@ -357,14 +356,6 @@ public class BrAPIGermplasmDAO {
      * this method will retrieve it.
      */
     private List<BrAPIGermplasm> getBrAPIGermplasmUsingBrAPIProgramId(GermplasmQueryParams germplasmQueryParams, Program program) throws ApiException {
-        if (germplasmQueryParams.page() == null) {
-            germplasmQueryParams.setPage(0);
-        }
-
-        if (germplasmQueryParams.pageSize() == null) {
-            germplasmQueryParams.setPageSize(brapiMaxPageSize);
-        }
-
         GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), GermplasmApi.class);
 
         List<BrAPIGermplasm> result = brAPIDAOUtil.get(api::germplasmGet, germplasmQueryParams);
@@ -481,8 +472,9 @@ public class BrAPIGermplasmDAO {
         BrAPIGermplasmSearchRequest brAPIGermplasmSearchRequest = buildSearchRequest(program, searchRequest, germplasmQuery);
 
         BrAPIGermplasmListResponse brAPIResponse =
-                brAPIDAOUtil.simpleSearch(
+                brAPIDAOUtil.searchReturnResponse(
                         api::searchGermplasmPost,
+                        api::searchGermplasmSearchResultsDbIdGet,
                         brAPIGermplasmSearchRequest
                 );
 
@@ -527,7 +519,7 @@ public class BrAPIGermplasmDAO {
     }
 
     public List<BrAPIGermplasm> getGermplasmsByDBID(Collection<String> germplasmDbIds, UUID programId) throws ApiException {
-        // TODO: This method is mainly used by the download experiment export tool.  This method will fail until we address the parameter limit for async Germplasm requests for germplasmDbIds > 4.  Return to this use case during [BI-3021]
+        // This method is mainly used by the download experiment export tool.
         Program program = new Program(programDAO.fetchOneById(programId));
 
         BrAPIGermplasmSearchRequest searchRequest = new BrAPIGermplasmSearchRequest();
