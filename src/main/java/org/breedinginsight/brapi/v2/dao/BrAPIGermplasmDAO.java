@@ -71,21 +71,17 @@ public class BrAPIGermplasmDAO {
 
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
-    private final int brapiMaxPageSize;
-
     @Inject
     public BrAPIGermplasmDAO(ProgramDAO programDAO,
                              ImportDAO importDAO,
                              BrAPIDAOUtil brAPIDAOUtil,
                              BrAPIEndpointProvider brAPIEndpointProvider,
-                             @Property(name = "brapi.cache.fetch-page-size") int brapiFetchPageSize,
                              ObjectMapper objectMapper,
                              BrAPIListDAO brAPIListDAO) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
-        this.brapiMaxPageSize = brapiFetchPageSize;
         this.objectMapper = objectMapper;
         this.brAPIListDAO = brAPIListDAO;
     }
