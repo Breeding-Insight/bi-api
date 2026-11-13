@@ -2,6 +2,7 @@ package org.breedinginsight.services.impl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
@@ -46,7 +47,7 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
                                                                                  .stream()
                                                                                  .collect(Collectors.toMap(ProgramBreedingMethodEntity::getId, o -> o));
 
-        //TODO retest with new germplasm after updating the DAO to return the correct ID for a method
+        // TODO: Optimize this lookup by searching on the breeding method name on germplasm.  This could be further optimized with an exists check.  Revisit after [BI-2938]
         germplasmService.getGermplasm(programId).forEach(germplasm -> {
             UUID id = UUID.fromString(germplasm.getBreedingMethodDbId());
             if(programMethods.containsKey(id)) {

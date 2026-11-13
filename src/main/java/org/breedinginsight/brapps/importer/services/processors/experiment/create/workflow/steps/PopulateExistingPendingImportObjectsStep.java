@@ -29,6 +29,7 @@ import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
@@ -43,6 +44,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.create
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentStudyService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentTrialService;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.services.ProgramLocationService;
@@ -308,7 +310,7 @@ public class PopulateExistingPendingImportObjectsStep {
                 .collect(Collectors.toList());
 
         try {
-            existingGermplasms = new ArrayList<>(getGermplasmByAccessionNumber(uniqueGermplasmGIDs, program.getId()));
+            existingGermplasms = new ArrayList<>(getGermplasmByAccessionNumber(uniqueGermplasmGIDs, program));
         } catch (ApiException e) {
             log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
             throw new InternalServerException(e.toString(), e);
@@ -326,14 +328,15 @@ public class PopulateExistingPendingImportObjectsStep {
      * Retrieves a list of germplasm with the specified accession numbers.
      *
      * @param germplasmAccessionNumbers The list of accession numbers to search for.
-     * @param programId The ID of the program.
+     * @param program The program to lookup germplasm against
      * @return An ArrayList of BrAPIGermplasm objects that match the accession numbers.
      * @throws ApiException if there is an error retrieving the germplasm.
      */
     private ArrayList<BrAPIGermplasm> getGermplasmByAccessionNumber(
             List<String> germplasmAccessionNumbers,
-            UUID programId) throws ApiException {
-        List<BrAPIGermplasm> germplasmList = brAPIGermplasmDAO.getGermplasm(programId);
+            Program program) throws ApiException {
+        // TODO: Optimize with an exists check on accession number, or a filter brapi lookup on accession number. Revisit once BI-2938 is complete
+        List<BrAPIGermplasm> germplasmList = brAPIGermplasmDAO.brapiGermplasmSearchReturnList(program, new BrAPIGermplasmSearchRequest());
         ArrayList<BrAPIGermplasm> resultGermplasm = new ArrayList<>();
         // Search for accession number matches
         for (BrAPIGermplasm germplasm : germplasmList) {

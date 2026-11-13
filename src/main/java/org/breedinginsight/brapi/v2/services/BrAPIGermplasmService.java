@@ -60,10 +60,12 @@ public class BrAPIGermplasmService {
         this.germplasmDAO = germplasmDAO;
     }
 
-    public List<BrAPIGermplasm> getGermplasm(UUID programId) throws ApiException {
+    public List<BrAPIGermplasm> getGermplasm(UUID programId) throws ApiException{
         try {
-            return germplasmDAO.getGermplasm(programId);
-        } catch (ApiException e) {
+            Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException( String.format("No program user found for program %s", programId)));
+
+            return germplasmDAO.brapiGermplasmSearchReturnList(program, new BrAPIGermplasmSearchRequest());
+        } catch (ApiException | DoesNotExistException e) {
             throw new InternalServerException(e.getMessage(), e);
         }
     }

@@ -125,9 +125,9 @@ public class BrAPIGermplasmDAO {
      * @throws ApiException
      */
     public List<BrAPIGermplasm> getRawGermplasm(UUID programId) throws ApiException {
-        // TODO: This method is used for checking if germplasm already exist in the system. Once a generalized BrAPI exists check is made, we should update this method [BI-2938]
+        // TODO: This method is used for checking if germplasm already exist in the system. Once a generalized BrAPI exists check is made, we should update this method to optimize it [BI-2938]
         Program program = new Program(programDAO.fetchOneById(programId));
-        List<BrAPIGermplasm> programGermplasm = getGermplasm(programId);
+        List<BrAPIGermplasm> programGermplasm = brapiGermplasmSearchReturnList(program, new BrAPIGermplasmSearchRequest());
         return programGermplasm.stream().map(germplasm -> {
             germplasm.setGermplasmName(Utilities.appendProgramKey(germplasm.getDefaultDisplayName(), program.getKey(), germplasm.getAccessionNumber()));
             if(germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE)
