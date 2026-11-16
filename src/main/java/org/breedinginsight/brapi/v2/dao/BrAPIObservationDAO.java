@@ -223,37 +223,6 @@ public class BrAPIObservationDAO {
         }
     }
 
-    private List<BrAPIObservation> getBrAPIObservationsUsingBrAPIProgramId(Program program) throws ApiException {
-
-        if (program == null || program.getId() == null) {
-            throw new InternalServerException("BI-API Program or Program ID is null");
-        }
-
-        String brapiProgramDbId = Optional.of(program)
-                .map(Program::getBrapiProgram)
-                .map(BrAPIProgram::getProgramDbId)
-                .orElse(null);
-
-        if (brapiProgramDbId == null) {
-            brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
-        }
-
-        ObservationQueryParams observationQueryParams =
-                ObservationQueryParams.builder()
-                        .programDbId(brapiProgramDbId)
-                        .pageSize(brapiMaxPageSize)
-                        .page(0)
-                        .build();
-
-        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
-
-        List<BrAPIObservation> result = brAPIDAOUtil.get(api::observationsGet, observationQueryParams);
-
-        processObservations(program.getKey(), result);
-
-        return result;
-    }
-
     public List<BrAPIObservation> updateBrAPIObservation(Map<String, BrAPIObservation> mutatedObservationByDbId, UUID programId) throws ApiException {
         ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
         var program = programDAO.fetchOneById(programId);
