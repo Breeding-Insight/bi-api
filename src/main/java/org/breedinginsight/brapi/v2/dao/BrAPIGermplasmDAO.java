@@ -87,38 +87,6 @@ public class BrAPIGermplasmDAO {
     }
 
     /**
-     * Fetch the germplasm for this program, and process it to remove storage specific values
-     * @param programId
-     * @return this program's germplasm
-     * @throws ApiException
-     */
-    public List<BrAPIGermplasm> getGermplasm(UUID programId) throws ApiException {
-        Program program = programDAO.get(programId)
-                .stream()
-                .findFirst()
-                .orElseThrow();
-
-        if (program.getId() == null) {
-            throw new InternalServerException("BI-API Program or Program ID is null");
-        }
-
-        String brapiProgramDbId = Optional.of(program)
-                .map(Program::getBrapiProgram)
-                .map(BrAPIProgram::getProgramDbId)
-                .orElse(null);
-
-        if (brapiProgramDbId == null) {
-            brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
-        }
-
-        GermplasmQueryParams germplasmQueryParams = GermplasmQueryParams.builder()
-                .programDbId(brapiProgramDbId)
-                .build();
-
-        return getBrAPIGermplasmUsingBrAPIProgramId(germplasmQueryParams, program);
-    }
-
-    /**
      * Fetch the germplasm for this program as it was stored in the program's BrAPI server
      * @param programId
      * @return this program's germplasm as it is stored on its BrAPI server
@@ -345,19 +313,6 @@ public class BrAPIGermplasmDAO {
         }
 
         return germplasmDbIdByGeneratedExRef;
-    }
-
-    /**
-     * This method requires a BI-API program.  If the BrAPIProgram inside this data model is not set,
-     * this method will retrieve it.
-     */
-    private List<BrAPIGermplasm> getBrAPIGermplasmUsingBrAPIProgramId(GermplasmQueryParams germplasmQueryParams, Program program) throws ApiException {
-        GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), GermplasmApi.class);
-
-        List<BrAPIGermplasm> result = brAPIDAOUtil.get(api::germplasmGet, germplasmQueryParams);
-
-        // TODO: Once cache is removed for this class, fix processGermplasmForDisplay to return List<BrAPIGermplasm> [BI-2906]
-        return processGermplasmForDisplay(result, program);
     }
 
     // TODO: hack for now, probably should update breedbase
