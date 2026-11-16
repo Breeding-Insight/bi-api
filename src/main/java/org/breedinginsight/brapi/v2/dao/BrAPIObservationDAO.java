@@ -188,19 +188,19 @@ public class BrAPIObservationDAO {
         return searchBrapiObservations(observationSearchRequest, program);
     }
 
-    public BrAPIObservationListResponse getObservationsByFilters(Program program, String studyDbId, Integer page, Integer pageSize) throws ApiException, DoesNotExistException {
+    public BrAPIObservationListResponse getObservationsByFilters(Program program, String studyDbId, Integer page, Integer pageSize) throws ApiException {
         BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest()
                 .programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
 
         if (studyDbId != null) {
             observationSearchRequest.setStudyDbIds(List.of(studyDbId));
         }
-        observationSearchRequest.setPage(page == null ? 0 : page);
-        observationSearchRequest.setPageSize(pageSize == null ? 1000 : pageSize);
+        observationSearchRequest.setPage(page);
+        observationSearchRequest.setPageSize(pageSize);
 
         ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
 
-        BrAPIObservationListResponse brAPIResponse = brAPIDAOUtil.simpleSearch(api::searchObservationsPost, observationSearchRequest);
+        BrAPIObservationListResponse brAPIResponse = brAPIDAOUtil.searchReturnResponse(api::searchObservationsPost, api::searchObservationsSearchResultsDbIdGet, observationSearchRequest);
 
         List<BrAPIObservation> observations = brAPIDAOUtil.getListResult(brAPIResponse);
         processObservations(program.getKey(), observations);
@@ -221,37 +221,6 @@ public class BrAPIObservationDAO {
         } catch (Exception e) {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
         }
-    }
-
-    private List<BrAPIObservation> getBrAPIObservationsUsingBrAPIProgramId(Program program) throws ApiException {
-
-        if (program == null || program.getId() == null) {
-            throw new InternalServerException("BI-API Program or Program ID is null");
-        }
-
-        String brapiProgramDbId = Optional.of(program)
-                .map(Program::getBrapiProgram)
-                .map(BrAPIProgram::getProgramDbId)
-                .orElse(null);
-
-        if (brapiProgramDbId == null) {
-            brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
-        }
-
-        ObservationQueryParams observationQueryParams =
-                ObservationQueryParams.builder()
-                        .programDbId(brapiProgramDbId)
-                        .pageSize(brapiMaxPageSize)
-                        .page(0)
-                        .build();
-
-        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
-
-        List<BrAPIObservation> result = brAPIDAOUtil.get(api::observationsGet, observationQueryParams);
-
-        processObservations(program.getKey(), result);
-
-        return result;
     }
 
     public List<BrAPIObservation> updateBrAPIObservation(Map<String, BrAPIObservation> mutatedObservationByDbId, UUID programId) throws ApiException {

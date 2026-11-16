@@ -49,7 +49,6 @@ import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -72,55 +71,19 @@ public class BrAPIGermplasmDAO {
 
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
-    private final int brapiMaxPageSize;
-
     @Inject
     public BrAPIGermplasmDAO(ProgramDAO programDAO,
                              ImportDAO importDAO,
                              BrAPIDAOUtil brAPIDAOUtil,
                              BrAPIEndpointProvider brAPIEndpointProvider,
-                             @Property(name = "brapi.cache.fetch-page-size") int brapiFetchPageSize,
                              ObjectMapper objectMapper,
                              BrAPIListDAO brAPIListDAO) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
-        this.brapiMaxPageSize = brapiFetchPageSize;
         this.objectMapper = objectMapper;
         this.brAPIListDAO = brAPIListDAO;
-    }
-
-    /**
-     * Fetch the germplasm for this program, and process it to remove storage specific values
-     * @param programId
-     * @return this program's germplasm
-     * @throws ApiException
-     */
-    public List<BrAPIGermplasm> getGermplasm(UUID programId) throws ApiException {
-        Program program = programDAO.get(programId)
-                .stream()
-                .findFirst()
-                .orElseThrow();
-
-        if (program.getId() == null) {
-            throw new InternalServerException("BI-API Program or Program ID is null");
-        }
-
-        String brapiProgramDbId = Optional.of(program)
-                .map(Program::getBrapiProgram)
-                .map(BrAPIProgram::getProgramDbId)
-                .orElse(null);
-
-        if (brapiProgramDbId == null) {
-            brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
-        }
-
-        GermplasmQueryParams germplasmQueryParams = GermplasmQueryParams.builder()
-                .programDbId(brapiProgramDbId)
-                .build();
-
-        return getBrAPIGermplasmUsingBrAPIProgramId(germplasmQueryParams, program);
     }
 
     /**
@@ -130,9 +93,9 @@ public class BrAPIGermplasmDAO {
      * @throws ApiException
      */
     public List<BrAPIGermplasm> getRawGermplasm(UUID programId) throws ApiException {
-        // TODO: This method is used for checking if germplasm already exist in the system. Once a generalized BrAPI exists check is made, we should update this method [BI-2938]
+        // TODO: This method is used for checking if germplasm already exist in the system. Once a generalized BrAPI exists check is made, we should update this method to optimize it [BI-2938]
         Program program = new Program(programDAO.fetchOneById(programId));
-        List<BrAPIGermplasm> programGermplasm = getGermplasm(programId);
+        List<BrAPIGermplasm> programGermplasm = brapiGermplasmSearchReturnList(program, new BrAPIGermplasmSearchRequest());
         return programGermplasm.stream().map(germplasm -> {
             germplasm.setGermplasmName(Utilities.appendProgramKey(germplasm.getDefaultDisplayName(), program.getKey(), germplasm.getAccessionNumber()));
             if(germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE)
@@ -334,7 +297,7 @@ public class BrAPIGermplasmDAO {
         // This will use CACHE_BRAPI_FETCH_PAGE_SIZE env variable to lookup at maximum 65k pedigree germplasm at once.
         // This should not be normal though, as we should try not to exceed 1k lookups at once using this code.
         // If there is a need to look up a large amount of germplasm records at once, alternative methods should be used.
-        List<BrAPIGermplasm> germplasmSearchedWithExRef = brAPIDAOUtil.searchNoPaging(
+        List<BrAPIGermplasm> germplasmSearchedWithExRef = brAPIDAOUtil.searchNoPageThru(
                         api::searchGermplasmPost,
                         api::searchGermplasmSearchResultsDbIdGet,
                         searchRequest);
@@ -350,27 +313,6 @@ public class BrAPIGermplasmDAO {
         }
 
         return germplasmDbIdByGeneratedExRef;
-    }
-
-    /**
-     * This method requires a BI-API program.  If the BrAPIProgram inside this data model is not set,
-     * this method will retrieve it.
-     */
-    private List<BrAPIGermplasm> getBrAPIGermplasmUsingBrAPIProgramId(GermplasmQueryParams germplasmQueryParams, Program program) throws ApiException {
-        if (germplasmQueryParams.page() == null) {
-            germplasmQueryParams.setPage(0);
-        }
-
-        if (germplasmQueryParams.pageSize() == null) {
-            germplasmQueryParams.setPageSize(brapiMaxPageSize);
-        }
-
-        GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), GermplasmApi.class);
-
-        List<BrAPIGermplasm> result = brAPIDAOUtil.get(api::germplasmGet, germplasmQueryParams);
-
-        // TODO: Once cache is removed for this class, fix processGermplasmForDisplay to return List<BrAPIGermplasm> [BI-2906]
-        return processGermplasmForDisplay(result, program);
     }
 
     // TODO: hack for now, probably should update breedbase
@@ -481,8 +423,9 @@ public class BrAPIGermplasmDAO {
         BrAPIGermplasmSearchRequest brAPIGermplasmSearchRequest = buildSearchRequest(program, searchRequest, germplasmQuery);
 
         BrAPIGermplasmListResponse brAPIResponse =
-                brAPIDAOUtil.simpleSearch(
+                brAPIDAOUtil.searchReturnResponse(
                         api::searchGermplasmPost,
+                        api::searchGermplasmSearchResultsDbIdGet,
                         brAPIGermplasmSearchRequest
                 );
 
@@ -527,7 +470,7 @@ public class BrAPIGermplasmDAO {
     }
 
     public List<BrAPIGermplasm> getGermplasmsByDBID(Collection<String> germplasmDbIds, UUID programId) throws ApiException {
-        // TODO: This method is mainly used by the download experiment export tool.  This method will fail until we address the parameter limit for async Germplasm requests for germplasmDbIds > 4.  Return to this use case during [BI-3021]
+        // This method is mainly used by the download experiment export tool.
         Program program = new Program(programDAO.fetchOneById(programId));
 
         BrAPIGermplasmSearchRequest searchRequest = new BrAPIGermplasmSearchRequest();

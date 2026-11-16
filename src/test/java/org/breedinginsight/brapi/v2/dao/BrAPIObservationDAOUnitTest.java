@@ -213,7 +213,7 @@ public class BrAPIObservationDAOUnitTest {
 
         BrAPIObservationListResponse brAPIResponse = new BrAPIObservationListResponse().result(new BrAPIObservationListResponseResult().data(observations));
 
-        when(brAPIDAOUtil.simpleSearch(any(Function.class), any(BrAPIObservationSearchRequest.class))).thenReturn(brAPIResponse);
+        when(brAPIDAOUtil.searchReturnResponse(any(Function.class), any(Function4.class), any(BrAPIObservationSearchRequest.class))).thenReturn(brAPIResponse);
 
         doReturn(observations).when(brAPIDAOUtil).getListResult(brAPIResponse);
 
@@ -223,14 +223,14 @@ public class BrAPIObservationDAOUnitTest {
 
         ArgumentCaptor<BrAPIObservationSearchRequest> requestCaptor = ArgumentCaptor.forClass(BrAPIObservationSearchRequest.class);
 
-        verify(brAPIDAOUtil).simpleSearch(any(Function.class), requestCaptor.capture());
+        verify(brAPIDAOUtil).searchReturnResponse(any(Function.class), any(Function4.class), requestCaptor.capture());
 
         BrAPIObservationSearchRequest request = requestCaptor.getValue();
 
         assertEquals(List.of(BRAPI_PROGRAM_DB_ID), request.getProgramDbIds());
         assertEquals(null, request.getStudyDbIds());
-        assertEquals(0, request.getPage());
-        assertEquals(1000, request.getPageSize());
+        assertEquals(null, request.getPage());
+        assertEquals(null, request.getPageSize());
     }
 
     @Test
@@ -247,7 +247,7 @@ public class BrAPIObservationDAOUnitTest {
         List<BrAPIObservation> brapiObservations = List.of(observation);
         BrAPIObservationListResponse brAPIResponse = new BrAPIObservationListResponse().result(new BrAPIObservationListResponseResult().data(brapiObservations));
 
-        when(brAPIDAOUtil.simpleSearch(any(Function.class), any(BrAPIObservationSearchRequest.class))).thenReturn(brAPIResponse);
+        when(brAPIDAOUtil.searchReturnResponse(any(Function.class), any(Function4.class), any(BrAPIObservationSearchRequest.class))).thenReturn(brAPIResponse);
 
         doReturn(brapiObservations).when(brAPIDAOUtil).getListResult(brAPIResponse);
 
@@ -261,7 +261,7 @@ public class BrAPIObservationDAOUnitTest {
 
         ArgumentCaptor<BrAPIObservationSearchRequest> requestCaptor = ArgumentCaptor.forClass(BrAPIObservationSearchRequest.class);
 
-        verify(brAPIDAOUtil).simpleSearch(any(Function.class), requestCaptor.capture());
+        verify(brAPIDAOUtil).searchReturnResponse(any(Function.class), any(Function4.class), requestCaptor.capture());
 
         BrAPIObservationSearchRequest request = requestCaptor.getValue();
 

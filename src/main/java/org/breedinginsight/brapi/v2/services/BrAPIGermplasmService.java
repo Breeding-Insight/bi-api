@@ -14,6 +14,7 @@ import org.brapi.v2.model.core.response.BrAPIListItemsListResponse;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
+import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponseResult;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
@@ -59,10 +60,12 @@ public class BrAPIGermplasmService {
         this.germplasmDAO = germplasmDAO;
     }
 
-    public List<BrAPIGermplasm> getGermplasm(UUID programId) throws ApiException {
+    public List<BrAPIGermplasm> getGermplasm(UUID programId) throws ApiException{
         try {
-            return germplasmDAO.getGermplasm(programId);
-        } catch (ApiException e) {
+            Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException( String.format("No program user found for program %s", programId)));
+
+            return germplasmDAO.brapiGermplasmSearchReturnList(program, new BrAPIGermplasmSearchRequest());
+        } catch (ApiException | DoesNotExistException e) {
             throw new InternalServerException(e.getMessage(), e);
         }
     }
@@ -212,25 +215,30 @@ public class BrAPIGermplasmService {
     public DownloadFile exportGermplasm(UUID programId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException, DoesNotExistException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
 
+        Optional<Program> optionalProgram = programService.getById(programId);
+
+        if (optionalProgram.isEmpty()) {
+            throw new DoesNotExistException("BI Program with id " + programId + " does not exist");
+        }
+
+        Program program = optionalProgram.get();
+
         //Retrieve germplasm list data
-        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasm(programId);
+        List<BrAPIGermplasm> germplasm = germplasmDAO.brapiGermplasmSearchReturnList(program, new BrAPIGermplasmSearchRequest());
         germplasm.sort(Comparator.comparingInt(germ -> Integer.parseInt(germ.getAccessionNumber())));
 
         // make file Name
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
         String timestamp = formatter.format(OffsetDateTime.now());
         StringBuilder fileNameSB = new StringBuilder();
-        Optional<Program> optionalProgram = programService.getById(programId);
-        if (optionalProgram.isPresent()) {
-            Program program = optionalProgram.get();
-            fileNameSB.append( program.getName() );
-            fileNameSB.append("_");
-        }
+
+        fileNameSB.append( program.getName() );
+        fileNameSB.append("_");
+
         String fileName = fileNameSB.append("germplasm").append("_").append(timestamp).toString();
 
         StreamedFile downloadFile;
-        //Convert list data to List<Map<String, Object>> data to pass into file writer
-        Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Could not find program: " + programId));
+
         List<Map<String, Object>> processedData =  processListData(germplasm, null, program);
 
         if (fileExtension == FileType.CSV){
