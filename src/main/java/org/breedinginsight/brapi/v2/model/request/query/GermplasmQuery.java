@@ -25,6 +25,8 @@ public class GermplasmQuery extends BrapiQuery {
     private String femaleParentGID;
     private String maleParentGID;
     private String createdDate;
+    // TODO: externalUUID is broken until support on brapi server appears
+    private String externalUID;
     private String createdByUserName;
     private String synonym;
     // This entry number depicts the sequential order of any given germplasm list.
@@ -78,7 +80,6 @@ public class GermplasmQuery extends BrapiQuery {
         if (!StringUtils.isBlank(listDbId)) {
             brAPIColumnNamesByBiColumnName.put("listEntryNumber", "listItemPosition");
         }
-
 
         return brAPIColumnNamesByBiColumnName;
     }

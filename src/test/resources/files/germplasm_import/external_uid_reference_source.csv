@@ -1,0 +1,5 @@
+GID,Germplasm Name,Breeding Method,Source,Female Parent GID,Male Parent GID,Entry No,Female Parent Entry No,Male Parent Entry No,External UID,Synonyms
+,With Source And UID,BCR,USDA,,,1,,,ABC-123,
+,With UID Only,BCR,,,,2,,,ABC-456,
+,With Source Only,BCR,USDA,,,3,,,,
+,With Neither,BCR,,,,4,,,,
