@@ -399,14 +399,7 @@ public class ValidatePendingImportObjectsStep {
             } else if (existingObsByObsHash.containsKey(importHash) && !ExperimentUtilities.isObservationMatched(phenotypeData, pendingData, importHash, importObsValue, phenoCol, rowNum)) {
 
                 // different data means validations still need to happen
-                // TODO consider moving these two calls into a separate method since called twice together
-                ExperimentUtilities.validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(rowNum), phenoCol.name(), validationErrors, rowNum);
-
-                //Timestamp validation
-                if(timeStampColByPheno.containsKey(phenoCol.name())) {
-                    Column<?> timeStampCol = timeStampColByPheno.get(phenoCol.name());
-                    ExperimentUtilities.validateTimeStampValue(timeStampCol.getString(rowNum), timeStampCol.name(), validationErrors, rowNum);
-                }
+                ExperimentUtilities.obsValidationHelper(colVarMap, phenoCol, rowNum, validationErrors, commit, observationByHash, importHash, timeStampColByPheno);
 
                 // add a change log entry when updating the value of an observation
                 // only will update and thereby need change log entry if no error
@@ -416,7 +409,7 @@ public class ValidatePendingImportObjectsStep {
                     String timestamp = formatter.format(OffsetDateTime.now());
                     String reason = importRow.getOverwriteReason() != null ? importRow.getOverwriteReason() : "";
                     String prior = "";
-                    if (ExperimentUtilities.isValueMatched(pendingData, importHash, importObsValue)) {
+                    if (ExperimentUtilities.isValueMatched(pendingData, importHash, importObsValue, colVarMap.get(phenoCol.name()))) {
                         prior.concat(existingObsByObsHash.get(importHash).getValue());
                     }
                     if (timeStampColByPheno.containsKey(phenoCol.name()) && ExperimentUtilities.isTimestampMatched(pendingData, importHash, timeStampColByPheno.get(phenoCol.name()).getString(rowNum))) {
@@ -455,13 +448,7 @@ public class ValidatePendingImportObjectsStep {
             } else if(!existingObsByObsHash.containsKey(importHash) && (StringUtils.isBlank(phenoCol.getString(rowNum)))) {
                 observationByHash.get(importHash).setState(ImportObjectState.EXISTING);
             } else {
-                ExperimentUtilities.validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(rowNum), phenoCol.name(), validationErrors, rowNum);
-
-                //Timestamp validation
-                if(timeStampColByPheno.containsKey(phenoCol.name())) {
-                    Column<?> timeStampCol = timeStampColByPheno.get(phenoCol.name());
-                    ExperimentUtilities.validateTimeStampValue(timeStampCol.getString(rowNum), timeStampCol.name(), validationErrors, rowNum);
-                }
+                ExperimentUtilities.obsValidationHelper(colVarMap, phenoCol, rowNum, validationErrors, commit, observationByHash, importHash, timeStampColByPheno);
             }
         });
     }

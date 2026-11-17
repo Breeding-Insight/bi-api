@@ -604,7 +604,10 @@ public class PopulateNewPendingImportObjectsStep {
 
                 // prior observation with updated value
                 newObservation = gson.fromJson(gson.toJson(existingObsByObsHash.get(key)), BrAPIObservation.class);
-                if (!isValueMatched(pendingData, key, value)){
+                Optional<Trait> obsTraitOptional = phenotypeData.getReferencedTraits().stream().filter(trait -> trait.getObservationVariableName().equals(column.name())).findFirst();
+                Trait obsTrait = obsTraitOptional.orElse(null);
+
+                if (!isValueMatched(pendingData, key, value, obsTrait)){
                     newObservation.setValue(value);
                 } else if (!StringUtils.isBlank(timeStampValue) && !isTimestampMatched(pendingData, key, timeStampValue)) {
                     DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;

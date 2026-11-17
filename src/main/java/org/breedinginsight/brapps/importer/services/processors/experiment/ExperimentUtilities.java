@@ -46,6 +46,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.create
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.EntityNotFoundException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants;
+import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
@@ -518,22 +519,32 @@ public class ExperimentUtilities {
                                                Integer rowNum) {
         Map<String, Column<?>> timeStampColByPheno = phenotypeData.getTimeStampColByPheno();
 
+        Optional<Trait> obsTraitOptional = phenotypeData.getReferencedTraits().stream().filter(trait -> trait.getObservationVariableName().equals(phenoCol.name())).findFirst();
+        Trait obsTrait = obsTraitOptional.orElse(null);
+
         if (timeStampColByPheno.isEmpty() || !timeStampColByPheno.containsKey(phenoCol.name())) {
-            return isValueMatched(pendingData, observationHash, value);
+            return isValueMatched(pendingData, observationHash, value, obsTrait);
         } else {
             String importObsTimestamp = timeStampColByPheno.get(phenoCol.name()).getString(rowNum);
-            return isTimestampMatched(pendingData, observationHash, importObsTimestamp) && isValueMatched(pendingData, observationHash, value);
+            return isTimestampMatched(pendingData, observationHash, importObsTimestamp) && isValueMatched(pendingData, observationHash, value, obsTrait);
         }
     }
 
     // TODO: will have different pending data objects between workflows so not totally reusable as-is
     // could probably just pass in actual underlying maps
-    public static boolean isValueMatched(PendingData pendingData, String observationHash, String value) {
+    public static boolean isValueMatched(PendingData pendingData, String observationHash, String value, Trait trait) {
         Map<String, BrAPIObservation> existingObsByObsHash = pendingData.getExistingObsByObsHash();
 
         if (!existingObsByObsHash.containsKey(observationHash) || existingObsByObsHash.get(observationHash).getValue() == null) {
             return value == null;
         }
+
+        //Nominal observation with different casing should not be treated as a different value
+        //On commit nominal observations will be matched with casing stored in database, so there will be no change
+        if (trait != null && trait.getScale().getDataType() == DataType.NOMINAL) {
+            return existingObsByObsHash.get(observationHash).getValue().equalsIgnoreCase(value);
+        }
+
         return existingObsByObsHash.get(observationHash).getValue().equals(value);
     }
 
@@ -632,6 +643,40 @@ public class ExperimentUtilities {
                 .map(category -> category.getValue().toLowerCase())
                 .collect(Collectors.toSet());
         return categoryValues.contains(value.toLowerCase());
+    }
+
+    //Ensures nominal category is saved with the same casing as defined in ontology
+    public static void matchToDBCategory(List<BrAPIScaleValidValuesCategories> categories, String value, BrAPIObservation pendingObservation) {
+        for (BrAPIScaleValidValuesCategories category : categories) {
+            if (category.getValue().equalsIgnoreCase(value)) {
+                pendingObservation.setValue(category.getValue());
+            }
+        }
+    }
+
+    //Helper method for repeated code used in both create and overwrite workflows
+    public static void obsValidationHelper(CaseInsensitiveMap<String, Trait> colVarMap,
+                                           Column<?> phenoCol,
+                                           int rowNum,
+                                           ValidationErrors validationErrors,
+                                           boolean commit,
+                                           Map<String, PendingImportObject<BrAPIObservation>> observationByHash,
+                                           String importHash,
+                                           Map<String, Column<?>> timeStampColByPheno){
+
+        ExperimentUtilities.validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(rowNum), phenoCol.name(), validationErrors, rowNum);
+
+        //Match casing for nominal values to value stored in database
+        if(commit && colVarMap.get(phenoCol.name()).getScale().getDataType() == DataType.NOMINAL) {
+            ExperimentUtilities.matchToDBCategory(colVarMap.get(phenoCol.name()).getScale().getCategories(), phenoCol.getString(rowNum), observationByHash.get(importHash).getBrAPIObject());
+        }
+
+        //Timestamp validation
+        if(timeStampColByPheno.containsKey(phenoCol.name())) {
+            Column<?> timeStampCol = timeStampColByPheno.get(phenoCol.name());
+            ExperimentUtilities.validateTimeStampValue(timeStampCol.getString(rowNum), timeStampCol.name(), validationErrors, rowNum);
+        }
+
     }
 
     public static boolean isNAObservation(String value){
