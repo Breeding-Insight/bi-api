@@ -183,4 +183,9 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
                 HttpStatus.CONFLICT);
     }
 
+    @Override
+    public ValidationError getDuplicateNominalCategoriesMsg() {
+        return new ValidationError("Scale categories", "Categories for a nominal scale must be unique (case-insensitive).", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
 }
