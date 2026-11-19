@@ -26,7 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
@@ -38,7 +37,6 @@ import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
-import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.data.ProcessedDataFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.data.VisitedObservationData;
@@ -158,14 +156,8 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
             Set<String> varBrapiDbIds = sortedTraits.stream().map(t->t.getObservationVariableDbId()).collect(Collectors.toSet());
             List<BrAPIObservation> observations = brAPIObservationDAO.getObservationsByObservationUnitsAndVariables(ouBrapiDbIds, varBrapiDbIds, program);
 
-            // OU Exref Ids are what are displayed to users in the Obs Unit Id columns in experiments in DeltaBreed.
-            Map<String, String> OuExRefIdByObsBrAPIDbId = new HashMap<>();
-
-            for (BrAPIObservation observation : observations) {
-                Optional<BrAPIExternalReference> ouExref = Utilities.getExternalReference(observation.getExternalReferences(), brapiReferenceSource, ExternalReferenceSource.OBSERVATION_UNITS);
-                ouExref.ifPresent(exRef -> OuExRefIdByObsBrAPIDbId.put(observation.getObservationDbId(), exRef.getReferenceId().toString()));
-            }
-
+            // OU BrAPI DB Ids are what are displayed to users in the Obs Unit Id columns in experiments in DeltaBreed.
+            Map<String, String> OuBrAPIDbIdByObsBrAPIDbId = observations.stream().collect(Collectors.toMap(BrAPIObservation::getObservationDbId, BrAPIObservation::getObservationUnitDbId));
             // Construct helper lookup tables to use for hashing stored observation data
             Map<String, String> variableNameByDbId = sortedTraits.stream().collect(Collectors.toMap(Trait::getObservationVariableDbId, Trait::getObservationVariableName));
             Map<String, String> studyNameByDbId = context.getAppendOverwriteWorkflowContext().getStudyByNameNoScope().values().stream()
@@ -175,7 +167,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
 
             // Hash stored observation data using a signature of unit, variable, and study names
             Map<String, BrAPIObservation> observationByObsHash = observations.stream().collect(Collectors.toMap(o->{
-                return observationService.getObservationHash(OuExRefIdByObsBrAPIDbId.get(o.getObservationDbId()),
+                return observationService.getObservationHash(OuBrAPIDbIdByObsBrAPIDbId.get(o.getObservationDbId()),
                         variableNameByDbId.get(o.getObservationVariableDbId()),
                         studyNameByDbId.get(o.getStudyDbId()));
             }, o->o));

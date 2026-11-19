@@ -33,6 +33,7 @@ public class PendingImportObject<T> {
     public PendingImportObject(ImportObjectState state, T brAPIObject, UUID id) {
         this.state = state;
         this.brAPIObject = brAPIObject;
+        // TODO: With 1.5 work, this id is the BI-API generated ID that is set for external references in BrAPI.  It is different than the BrAPI DB ID of an entity. We may want to consider changing this at some point [BI-2933]
         this.id = id;
     }
     public PendingImportObject(ImportObjectState state, T brAPIObject) {

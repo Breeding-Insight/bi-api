@@ -31,6 +31,7 @@ import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.BrAPITest;
@@ -40,10 +41,14 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
+import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
+import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
@@ -88,6 +93,12 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
     private OntologyService ontologyService;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
+    @Inject
+    ProgramDAO programDAO;
+    @Inject
+    private BrAPITrialService brAPITrialService;
+    @Inject
+    private BrAPIStudyDAO brAPIStudyDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -129,6 +140,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
                 .key("TEST")
                 .build();
         program = TestUtils.insertAndFetchTestProgram(gson, client, programRequest);
+        String brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), program.getId());
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
@@ -149,14 +161,19 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
         traits = createTraits(4);
         AuthenticatedUser user = new AuthenticatedUser(testUser.getName(), new ArrayList<>(), testUser.getId(), new ArrayList<>());
         try {
-            ontologyService.createTraits(program.getId(), traits, user, false);
+            // Re-assign to get obtain all brapi related data as well
+            traits = ontologyService.createTraits(program.getId(), traits, user, false);
         } catch (ValidatorException e) {
             System.err.println(e.getErrors());
             throw e;
         }
 
+        // Re-assignment returns the data in an indeterminate order.  Sort on variable name, which should be determinate.
+        // Tests below depend on the order being correct.
+        traits.sort(Comparator.comparing(Trait::getObservationVariableName));
+
         // Add germplasm to program
-        List<BrAPIGermplasm> germplasm = createGermplasm(1);
+        List<BrAPIGermplasm> germplasm = createGermplasm(1, brapiProgramDbId);
         BrAPIExternalReference newReference = new BrAPIExternalReference();
         newReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
         newReference.setReferenceId(program.getId().toString());
@@ -187,7 +204,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
         rows.add(row2);
 
         // Import test experiment, environments, and any observations
-        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
+       importTestUtils.uploadAndFetchWorkflow(
                 writeDataToFile(rows, expTraits),
                 null,
                 true,
@@ -195,15 +212,17 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
                 program,
                 mappingId,
                 newExperimentWorkflowId);
-        experimentId = importResult
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(0).getAsJsonObject()
-                .get("trial").getAsJsonObject()
-                .get("id").getAsString();
-        // Add environmentIds.
-        envIds.add(getEnvId(importResult, 0));
-        envIds.add(getEnvId(importResult, 1));
+
+        BrAPITrial trial = brAPITrialService.getTrialsByProgramId(program.getId())
+                .stream()
+                .findFirst()
+                .orElseThrow();
+
+        experimentId = trial.getTrialDbId();
+
+        envIds.clear();
+        brAPIStudyDAO.getStudies(program.getId())
+                .forEach(study -> envIds.add(study.getStudyDbId()));
     }
 
     @Test
@@ -291,7 +310,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
     @Test
     public void testGetVariableById() {
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET(String.format("/programs/%s/brapi/v2/variables/%s", program.getId(), traits.get(0).getId()))
+                GET(String.format("/programs/%s/brapi/v2/variables/%s", program.getId(), traits.get(0).getObservationVariableDbId()))
                         .bearerAuth("test-registered-user"),
                 String.class
         );
@@ -302,7 +321,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
         JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
         JsonObject variable = responseObj.getAsJsonObject("result");
         assertNotNull(variable);
-        assertEquals(traits.get(0).getId().toString(), variable.get("observationVariableDbId").getAsString());
+        assertEquals(traits.get(0).getObservationVariableDbId(), variable.get("observationVariableDbId").getAsString());
         assertEquals(traits.get(0).getObservationVariableName(), variable.get("observationVariableName").getAsString());
 
         JsonObject trait = variable.getAsJsonObject("trait");
@@ -319,6 +338,25 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
         assertEquals(traits.get(0).getScale().getDataType().getLiteral().toLowerCase(), scale.get("dataType").getAsString().toLowerCase());
         assertEquals(traits.get(0).getScale().getValidValueMin(), scale.getAsJsonObject("validValues").get("min").getAsInt());
         assertEquals(traits.get(0).getScale().getValidValueMax(), scale.getAsJsonObject("validValues").get("max").getAsInt());
+    }
+
+    @Test
+    public void testGetVariablesByStudyDbId() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                        GET(String.format(
+                                "/programs/%s/brapi/v2/variables?studyDbId=%s",
+                                program.getId(), envIds.get(0)))
+                                .bearerAuth("test-registered-user"), String.class);
+
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+
+        JsonArray variables = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+
+        assertEquals(2, variables.size());
     }
 
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
@@ -339,19 +377,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
         return file;
     }
 
-    private String getEnvId(JsonObject result, int index) {
-        return result
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(index).getAsJsonObject()
-                .get("study").getAsJsonObject()
-                .get("brAPIObject").getAsJsonObject()
-                .get("externalReferences").getAsJsonArray()
-                .get(2).getAsJsonObject()
-                .get("referenceId").getAsString();
-    }
-
-    private List<BrAPIGermplasm> createGermplasm(int numToCreate) {
+    private List<BrAPIGermplasm> createGermplasm(int numToCreate, String brapiProgramDbId) {
         List<BrAPIGermplasm> germplasm = new ArrayList<>();
         for (int i = 0; i < numToCreate; i++) {
             String gid = ""+(i+1);
@@ -370,6 +396,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
             testReference.setReferenceId(UUID.randomUUID().toString());
             externalRef.add(testReference);
             testGermplasm.setExternalReferences(externalRef);
+            testGermplasm.setProgramDbId(brapiProgramDbId);
             germplasm.add(testGermplasm);
         }
 
@@ -382,6 +409,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
             String varName = "tt_test_" + (i + 1);
             traits.add(Trait.builder()
                     .observationVariableName(varName)
+                    .observationVariableDbId(UUID.randomUUID().toString())
                     .fullName(varName)
                     .entity("Plant " + i)
                     .attribute("height " + i)

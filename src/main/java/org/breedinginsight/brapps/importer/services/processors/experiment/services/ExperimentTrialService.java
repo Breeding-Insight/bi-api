@@ -149,11 +149,7 @@ public class ExperimentTrialService {
             Program program,
             Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope) {
 
-        //get TrialId from existingTrial
-        BrAPIExternalReference experimentIDRef = Utilities.getExternalReference(existingTrial.getExternalReferences(),
-                        String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()))
-                .orElseThrow(() -> new InternalServerException("An Experiment ID was not found in any of the external references"));
-        UUID experimentId = UUID.fromString(experimentIDRef.getReferenceId());
+        UUID experimentId = UUID.fromString(existingTrial.getTrialDbId());
 
         trialByNameNoScope.put(
                 Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey()),

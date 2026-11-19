@@ -40,10 +40,12 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
@@ -92,6 +94,10 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
     private OntologyService ontologyService;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
+    @Inject
+    private ProgramDAO programDAO;
+    @Inject
+    private BrAPIStudyDAO brAPIStudyDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -132,6 +138,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
                 .key("TEST")
                 .build();
         program = TestUtils.insertAndFetchTestProgram(gson, client, programRequest);
+        String brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), program.getId());
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
@@ -159,7 +166,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         }
 
         // Add germplasm to program
-        List<BrAPIGermplasm> germplasm = createGermplasm(1);
+        List<BrAPIGermplasm> germplasm = createGermplasm(1, brapiProgramDbId);
         BrAPIExternalReference newReference = new BrAPIExternalReference();
         newReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
         newReference.setReferenceID(program.getId().toString());
@@ -199,9 +206,10 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
                 .get(0).getAsJsonObject()
                 .get("trial").getAsJsonObject()
                 .get("id").getAsString();
-        // Add environmentIds.
-        envIds.add(getEnvId(importResult, 0));
-        envIds.add(getEnvId(importResult, 1));
+
+        envIds.clear();
+        brAPIStudyDAO.getStudies(program.getId())
+                   .forEach(study -> envIds.add(study.getStudyDbId()));
     }
 
     @Test
@@ -329,6 +337,10 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         JsonArray observations = responseObj.getAsJsonObject("result").getAsJsonArray("data");
         assertEquals(2, observations.size());
 
+        for (JsonElement observation : observations) {
+           assertEquals(envIds.get(0), observation.getAsJsonObject().get("studyDbId").getAsString());
+        }
+
         // Check the observation values, keep in mind the order of results is not guaranteed.
         Float value1 = observations.get(0).getAsJsonObject().get("value").getAsFloat();
         Float value2 = observations.get(1).getAsJsonObject().get("value").getAsFloat();
@@ -356,6 +368,58 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         checkPagination(1, 0, HttpStatus.BAD_REQUEST, null, null, null);
         checkPagination(10, 100, HttpStatus.BAD_REQUEST, null, null, null);
 
+        // Invalid negative values.
+        checkPagination(-1, 2, HttpStatus.BAD_REQUEST, null, null, null);
+        checkPagination(0, -1, HttpStatus.BAD_REQUEST, null, null, null);
+
+        // Invalid boundary when the final page is partial.
+        checkPagination(2, 3, HttpStatus.BAD_REQUEST, null, null, null);
+    }
+
+    @Test
+    public void testGetObsUnknownStudyReturnsEmptyFirstPage() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/observations" + "?studyDbId=%s&page=0&pageSize=2", program.getId(), UUID.randomUUID()))
+                        .bearerAuth("test-registered-user"), String.class);
+
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+        JsonArray observations = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+        JsonObject pagination = responseObj.getAsJsonObject("metadata").getAsJsonObject("pagination");
+
+        assertEquals(0, observations.size());
+        assertEquals(0, pagination.get("currentPage").getAsInt());
+        assertEquals(2, pagination.get("pageSize").getAsInt());
+        assertEquals(0, pagination.get("totalCount").getAsInt());
+        assertEquals(0, pagination.get("totalPages").getAsInt());
+    }
+
+    @Test
+    public void testGetObsByStudyDbIdWithPagination() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format(
+                        "/programs/%s/brapi/v2/observations?studyDbId=%s&page=0&pageSize=1",
+                        program.getId(),
+                        envIds.get(0)))
+                        .bearerAuth("test-registered-user"), String.class);
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+        JsonArray observations = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+        JsonObject pagination = responseObj.getAsJsonObject("metadata").getAsJsonObject("pagination");
+
+        assertEquals(1, observations.size());
+        assertEquals(envIds.get(0), observations.get(0).getAsJsonObject().get("studyDbId").getAsString());
+
+        assertEquals(0, pagination.get("currentPage").getAsInt());
+        assertEquals(1, pagination.get("pageSize").getAsInt());
+        assertEquals(2, pagination.get("totalCount").getAsInt());
+        assertEquals(2, pagination.get("totalPages").getAsInt());
     }
 
     private void checkPagination(Integer page, Integer pageSize, HttpStatus expectedStatus, Integer expectedSize, Integer expectedTotalCount, Integer expectedTotalPages) {
@@ -388,7 +452,8 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
             JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
             // Get metadata.
             JsonObject pagination = responseObj.getAsJsonObject("metadata").getAsJsonObject("pagination");
-            assertEquals(expectedSize, pagination.get("pageSize").getAsInt());
+            int expectedPageSize = pageSize == null ? 1000 : pageSize;
+            assertEquals(expectedPageSize, pagination.get("pageSize").getAsInt());
             int expectedPage = page == null ? 0 : page;
             assertEquals(expectedPage, pagination.get("currentPage").getAsInt());
             assertEquals(expectedTotalPages, pagination.get("totalPages").getAsInt());
@@ -422,19 +487,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         return file;
     }
 
-    private String getEnvId(JsonObject result, int index) {
-        return result
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(index).getAsJsonObject()
-                .get("study").getAsJsonObject()
-                .get("brAPIObject").getAsJsonObject()
-                .get("externalReferences").getAsJsonArray()
-                .get(2).getAsJsonObject()
-                .get("referenceId").getAsString();
-    }
-
-    private List<BrAPIGermplasm> createGermplasm(int numToCreate) {
+    private List<BrAPIGermplasm> createGermplasm(int numToCreate, String brapiProgramDbId) {
         List<BrAPIGermplasm> germplasm = new ArrayList<>();
         for (int i = 0; i < numToCreate; i++) {
             String gid = ""+(i+1);
@@ -453,6 +506,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
             testReference.setReferenceID(UUID.randomUUID().toString());
             externalRef.add(testReference);
             testGermplasm.setExternalReferences(externalRef);
+            testGermplasm.setProgramDbId(brapiProgramDbId);
             germplasm.add(testGermplasm);
         }
 

@@ -7,13 +7,18 @@ import io.micronaut.http.server.types.files.StreamedFile;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.v2.model.core.BrAPIListItemWithFullItem;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.brapi.v2.model.core.response.BrAPIListItemsListResponse;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponseResult;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
+import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
@@ -68,18 +73,6 @@ public class BrAPIGermplasmService {
         } catch (ApiException e) {
             throw new InternalServerException(e.getMessage(), e);
         }
-    }
-
-    public List<String> getGermplasmDbIdsForUUIDs(UUID programId, List<String> germplasmUUIDs) throws DoesNotExistException {
-        try {
-            return germplasmDAO.getGermplasmDbIdsForUUIDs(germplasmUUIDs, programId);
-        } catch (ApiException e) {
-            throw new InternalServerException(e.getMessage(), e);
-        }
-    }
-
-    public Optional<BrAPIGermplasm> getGermplasmByDBID(UUID programId, String germplasmId) throws ApiException {
-        return germplasmDAO.getGermplasmByDBID(germplasmId, programId);
     }
 
     public List<Map<String, Object>> processListData(List<BrAPIGermplasm> germplasm, List<String> listData, Program program){
@@ -189,47 +182,44 @@ public class BrAPIGermplasmService {
         return processedData;
     }
 
-    public List<BrAPIGermplasm> getGermplasmByList(UUID programId, String listDbId) throws ApiException {
+    public BrAPIGermplasmListResponse getGermplasmByList(UUID programId, GermplasmQuery germplasmQuery) throws ApiException, DoesNotExistException {
         // get list germplasm names
-        BrAPIListsSingleResponse listResponse = brAPIListDAO.getListById(listDbId, programId);
+        BrAPIListsSingleResponse listResponse = brAPIListDAO.getListById(germplasmQuery.getListDbId(), programId);
         if(Objects.nonNull(listResponse) && Objects.nonNull(listResponse.getResult())) {
 
             // get the list ID stored in the list external references
-            UUID listId = getGermplasmListId(listResponse.getResult());
+            // TODO: See if this can be removed/replaced with actual BrAPI list db id
+            UUID biGermplasmListId = getGermplasmListId(listResponse.getResult());
 
-            // get list BrAPI germplasm variables
-            List<String> germplasmNames = listResponse.getResult().getData();
-            List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
-            Map<String, BrAPIGermplasm> germplasmByGid = new HashMap<>();
+            // Required for the actual data search in BrAPI
+            String brapiListDbId = listResponse.getResult().getListDbId();
 
-            for (BrAPIGermplasm g : germplasm) {
-                // set the list ID in the germplasm additional info
-                g.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, listId);
-                // Add to map.
-                germplasmByGid.put(g.getAccessionNumber(), g);
+            BrAPIListItemsListResponse<BrAPIGermplasm> listSearchResponse = germplasmDAO.searchGermplasmByList(brapiListDbId, programId, germplasmQuery);
+
+            List<BrAPIListItemWithFullItem<BrAPIGermplasm>> listItemsWithFullItem = listSearchResponse.getResult().getData();
+
+            listItemsWithFullItem.forEach(li -> {
+                li.getItem().putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, biGermplasmListId);
+                // listItem.position start of index is 0 in BrAPI, but in DeltaBreed, it starts at 1.  increment result data to account for this.
+                // The actual sort/filter performs the search on a formula column created on the prod server, so no need to worry about that in the request above.
+                li.getItem().putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, li.getListItem().getPosition() + 1);
+            });
+
+            List<BrAPIGermplasm> germplasm = listItemsWithFullItem.stream().map(BrAPIListItemWithFullItem::getItem).collect(Collectors.toList());
+
+            BrAPIGermplasmListResponse germplasmSearchResponse = new BrAPIGermplasmListResponse();
+            BrAPIGermplasmListResponseResult germplasmListResponseResult = new BrAPIGermplasmListResponseResult();
+
+            germplasmSearchResponse.setMetadata(listSearchResponse.getMetadata());
+            germplasmListResponseResult.setData(germplasm);
+            germplasmSearchResponse.setResult(germplasmListResponseResult);
+
+            if (germplasm.isEmpty()) {
+                return germplasmSearchResponse;
             }
 
-            // Extract gids from list names
-            List<String> gids = germplasmNames.stream().map(Utilities::extractGid).collect(Collectors.toList());
-
-            // Build list from BrAPI list that preserves ordering and duplicates and assigns sequential entry numbers.
-            List<BrAPIGermplasm> germplasmList = new ArrayList<>();
-            int entryNumber = 0;
-            for (String gid : gids) {
-                ++entryNumber;
-                BrAPIGermplasm listEntry = cloneBrAPIGermplasm(germplasmByGid.get(gid));
-                // Set entry number.
-                listEntry.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNumber);
-                germplasmList.add(listEntry);
-            }
-
-            return germplasmList;
+            return germplasmSearchResponse;
         } else throw new ApiException();
-    }
-
-    private BrAPIGermplasm cloneBrAPIGermplasm(BrAPIGermplasm germplasm) {
-        // Serialize then deserialize to deep copy.
-        return (BrAPIGermplasm) gson.fromJson(gson.toJson(germplasm), BrAPIGermplasm.class);
     }
 
     public DownloadFile exportGermplasm(UUID programId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException, DoesNotExistException {
@@ -374,5 +364,12 @@ public class BrAPIGermplasmService {
             }
         }
         return matchingGermplasm;
+    }
+
+    public BrAPIGermplasmListResponse searchGermplasm(UUID programId,
+                                               GermplasmQuery germplasmQuery) throws ApiException, DoesNotExistException {
+        Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Could not find program: " + programId));
+
+        return germplasmDAO.brapiGermplasmSearchReturnResponse(program, null, germplasmQuery);
     }
 }

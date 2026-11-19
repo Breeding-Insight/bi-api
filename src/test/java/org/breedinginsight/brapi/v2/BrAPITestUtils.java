@@ -30,6 +30,7 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.reactivex.Flowable;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.auth.AuthenticatedUser;
@@ -37,10 +38,12 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
@@ -56,6 +59,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.GET;
 
@@ -75,6 +79,10 @@ public class BrAPITestUtils {
     private OntologyService ontologyService;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
+    @Inject
+    private BrAPITrialService brAPITrialService;
+    @Inject
+    ProgramDAO programDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -116,6 +124,7 @@ public class BrAPITestUtils {
                 .key("TEST")
                 .build();
         Program program = TestUtils.insertAndFetchTestProgram(gson, client, programRequest);
+        String brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
 
         // Add Program Administrator user.
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), program.getId());
@@ -147,7 +156,7 @@ public class BrAPITestUtils {
         }
 
         // Add germplasm to program
-        List<BrAPIGermplasm> germplasm = createGermplasm(1, BRAPI_REFERENCE_SOURCE);
+        List<BrAPIGermplasm> germplasm = createGermplasm(1, BRAPI_REFERENCE_SOURCE, brapiProgramDbId);
         BrAPIExternalReference newReference = new BrAPIExternalReference();
         newReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
         newReference.setReferenceId(program.getId().toString());
@@ -184,12 +193,6 @@ public class BrAPITestUtils {
                 program,
                 mappingId,
                 newExperimentWorkflowId);
-        String experiment1Id = importResult
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(0).getAsJsonObject()
-                .get("trial").getAsJsonObject()
-                .get("id").getAsString();
 
         // Import test experiment, environments, and any observations
         importResult = importTestUtils.uploadAndFetchWorkflow(
@@ -200,12 +203,15 @@ public class BrAPITestUtils {
                 program,
                 mappingId,
                 newExperimentWorkflowId);
-        String experiment2Id = importResult
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(0).getAsJsonObject()
-                .get("trial").getAsJsonObject()
-                .get("id").getAsString();
+
+        List<BrAPITrial> trials = brAPITrialService.getTrialsByProgramId(program.getId())
+                .stream()
+                // Ensure trial with title xyz is always second
+                .sorted(Comparator.comparing(BrAPITrial::getTrialName))
+                .collect(Collectors.toList());
+
+        String experiment1Id = trials.get(0).getTrialDbId();
+        String experiment2Id = trials.get(1).getTrialDbId();
 
         // Refetch collaborator, since we updated program_user_roles.
         collaborator = userDAO.getUserByOAuthId(TestTokenValidator.OTHER_TEST_USER_ORCID).orElseThrow(Exception::new);
@@ -246,7 +252,7 @@ public class BrAPITestUtils {
                 .get("referenceId").getAsString();
     }
 
-    public List<BrAPIGermplasm> createGermplasm(int numToCreate, String referenceSource) {
+    public List<BrAPIGermplasm> createGermplasm(int numToCreate, String referenceSource, String brapiProgramDbId) {
         List<BrAPIGermplasm> germplasm = new ArrayList<>();
         for (int i = 0; i < numToCreate; i++) {
             String gid = ""+(i+1);
@@ -265,6 +271,7 @@ public class BrAPITestUtils {
             testReference.setReferenceID(UUID.randomUUID().toString());
             externalRef.add(testReference);
             testGermplasm.setExternalReferences(externalRef);
+            testGermplasm.setProgramDbId(brapiProgramDbId);
             germplasm.add(testGermplasm);
         }
 

@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapi.v2.dao;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.micronaut.http.HttpResponse;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
@@ -27,14 +28,13 @@ import org.brapi.client.v2.modules.core.ListsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.BrAPIResponse;
 import org.brapi.v2.model.BrAPIResponseResult;
+import org.brapi.v2.model.core.BrAPIListItemWithFullItem;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
-import org.brapi.v2.model.core.response.BrAPIListDetails;
-import org.brapi.v2.model.core.response.BrAPIListsListResponse;
-import org.brapi.v2.model.core.response.BrAPIListsListResponseResult;
-import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
+import org.brapi.v2.model.core.response.*;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
@@ -71,7 +71,7 @@ public class BrAPIListDAO {
     }
 
     public List<BrAPIListSummary> getListsByName(List<String> listNames, UUID programId) throws ApiException {
-        if(listNames.isEmpty()) {
+        if (listNames.isEmpty()) {
             return Collections.emptyList();
         }
 
@@ -122,11 +122,11 @@ public class BrAPIListDAO {
         // check that all lists were created via the BI UI in case the BrAPI service silently ignores the search by
         // externalReference source and ID
         List<BrAPIListSummary> filteredLists = new ArrayList<>();
-        for (BrAPIListSummary list: programLists) {
+        for (BrAPIListSummary list : programLists) {
             if (list.getExternalReferences() == null || list.getExternalReferences().size() == 0) {
                 continue;
             } else {
-                for (BrAPIExternalReference ref: list.getExternalReferences()) {
+                for (BrAPIExternalReference ref : list.getExternalReferences()) {
                     if (ref.getReferenceID().equals(externalReferenceId.toString()) &&
                             ref.getReferenceSource().equals(externalReferenceSource)) {
                         filteredLists.add(list);
@@ -136,6 +136,7 @@ public class BrAPIListDAO {
         }
         return filteredLists;
     }
+
     public List<String> updateBrAPIList(String brAPIListDbId, BrAPIListDetails mutatedList, UUID programId) throws ApiException {
         ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
         BrAPIListNewRequest request = new BrAPIListNewRequest();
@@ -160,7 +161,7 @@ public class BrAPIListDAO {
             log.error(Utilities.generateApiExceptionLogMessage(e));
             throw e;
         }
-        if(response != null) {
+        if (response != null) {
             BrAPIListsSingleResponse body = response.getBody();
             if (body == null) {
                 throw new ApiException("Response is missing body", 0, response.getHeaders(), null);
@@ -188,7 +189,7 @@ public class BrAPIListDAO {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw e;
         }
-        if(response != null) {
+        if (response != null) {
             BrAPIResponse<BrAPIListsListResponseResult> body = response.getBody();
             if (body == null) {
                 throw new ApiException("Response is missing body", 0, response.getHeaders(), null);
@@ -220,4 +221,32 @@ public class BrAPIListDAO {
         return brAPIDAOUtil.makeCall(brapiRequest);
     }
 
+    public <T> BrAPIListItemsListResponse<T> searchBrAPIListItemsByList(String listDbId, UUID programId, JsonNode requestBody) throws ApiException {
+        ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
+        // Do manually, it doesn't like List<Object> to List<BrAPIListNewRequest> for some reason
+        ApiResponse<BrAPIListItemsListResponse<T>> response;
+        try {
+            response = api.searchListItemsByList(listDbId, requestBody);
+        } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            throw e;
+        }
+
+        if (response != null) {
+            BrAPIResponse<BrAPIListItemsListResponseResult<T>> body = response.getBody();
+            if (body == null) {
+                throw new ApiException("Response is missing body", 0, response.getHeaders(), null);
+            }
+            BrAPIResponseResult<BrAPIListItemWithFullItem<T>> result = body.getResult();
+            if (result == null) {
+                throw new ApiException("Response body is missing result", 0, response.getHeaders(), response.getBody().toString());
+            }
+            if (result.getData() == null) {
+                throw new ApiException("Response result is missing data", 0, response.getHeaders(), response.getBody().toString());
+            }
+            return response.getBody();
+        }
+
+        throw new ApiException("No response for BrAPI list item search");
+    }
 }

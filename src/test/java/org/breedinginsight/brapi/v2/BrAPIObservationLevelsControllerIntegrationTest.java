@@ -37,10 +37,12 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
@@ -60,8 +62,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 
 import static io.micronaut.http.HttpRequest.GET;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -87,6 +88,10 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
     private OntologyService ontologyService;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
+    @Inject
+    private ProgramDAO programDAO;
+    @Inject
+    private BrAPIStudyDAO brAPIStudyDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -127,6 +132,7 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
                 .key("TEST")
                 .build();
         program = TestUtils.insertAndFetchTestProgram(gson, client, programRequest);
+        String brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), program.getId());
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
@@ -154,7 +160,7 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
         }
 
         // Add germplasm to program
-        List<BrAPIGermplasm> germplasm = createGermplasm(1);
+        List<BrAPIGermplasm> germplasm = createGermplasm(1, brapiProgramDbId);
         BrAPIExternalReference newReference = new BrAPIExternalReference();
         newReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
         newReference.setReferenceID(program.getId().toString());
@@ -199,9 +205,10 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
                 .get(0).getAsJsonObject()
                 .get("trial").getAsJsonObject()
                 .get("id").getAsString();
-        // Add environmentIds.
-        envIds.add(getEnvId(importResult, 0));
-        envIds.add(getEnvId(importResult, 1));
+
+        envIds.clear();
+        brAPIStudyDAO.getStudies(program.getId())
+                .forEach(study -> envIds.add(study.getStudyDbId()));
     }
 
     @Test
@@ -225,6 +232,25 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
         assertTrue(levelNames.contains("plot"));
     }
 
+    @Test
+    public void testGetObservationLevelsByStudyDbId() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                        GET(String.format(
+                                "/programs/%s/brapi/v2/observationlevels?studyDbId=%s",
+                                program.getId(), envIds.get(0)))
+                                .bearerAuth("test-registered-user"), String.class);
+
+        HttpResponse<String> response = call.blockingFirst();
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject responseObj = gson.fromJson(
+                        response.body(),
+                        JsonObject.class);
+
+        assertNotNull(responseObj.getAsJsonObject("result"));
+    }
+
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
         File file = File.createTempFile("test", ".csv");
 
@@ -243,19 +269,7 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
         return file;
     }
 
-    private String getEnvId(JsonObject result, int index) {
-        return result
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(index).getAsJsonObject()
-                .get("study").getAsJsonObject()
-                .get("brAPIObject").getAsJsonObject()
-                .get("externalReferences").getAsJsonArray()
-                .get(2).getAsJsonObject()
-                .get("referenceId").getAsString();
-    }
-
-    private List<BrAPIGermplasm> createGermplasm(int numToCreate) {
+    private List<BrAPIGermplasm> createGermplasm(int numToCreate, String brapiProgramDbId) {
         List<BrAPIGermplasm> germplasm = new ArrayList<>();
         for (int i = 0; i < numToCreate; i++) {
             String gid = ""+(i+1);
@@ -274,6 +288,7 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
             testReference.setReferenceID(UUID.randomUUID().toString());
             externalRef.add(testReference);
             testGermplasm.setExternalReferences(externalRef);
+            testGermplasm.setProgramDbId(brapiProgramDbId);
             germplasm.add(testGermplasm);
         }
 

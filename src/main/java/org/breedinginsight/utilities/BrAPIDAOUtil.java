@@ -32,8 +32,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.core.BrAPIQueryParams;
 import org.brapi.v2.model.*;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
+import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
@@ -43,10 +45,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
@@ -75,6 +74,99 @@ public class BrAPIDAOUtil {
         this.postGroupSize = postGroupSize;
         this.brapiFetchPageSize = brapiFetchPageSize;
         this.programService = programService;
+    }
+
+    public <T extends BrAPIResponse, U extends BrAPIQueryParams, V> List<V> get(Function<U, ApiResponse<T>> getMethod,
+                                                                       U queryParams) throws ApiException {
+        T brapiResponseResult;
+
+        boolean paginationSet = queryParams.page() != null && queryParams.pageSize() != null;
+
+        if (!paginationSet) {
+            queryParams.setPage(0);
+            queryParams.setPageSize(pageSize);
+        }
+
+        try {
+            brapiResponseResult = Optional.ofNullable(getMethod.apply(queryParams))
+                    .map(ApiResponse::getBody)
+                    .orElseThrow();
+        } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            throw e;
+        } catch (NoSuchElementException e) {
+            log.debug("Unable to retrieve BrAPIResponse from POST search request", e);
+            throw new InternalServerException(e.toString(), e);
+        } catch (Exception e) {
+            log.debug("error", e);
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        BrAPIPagination responsePagination = Optional.of(brapiResponseResult)
+                .map(BrAPIResponse::getMetadata)
+                .map(BrAPIMetadata::getPagination)
+                .orElse(null);
+
+        if (responsePagination == null) {
+            throw new InternalServerException("Expected pagination metadata in BrAPI get response not present");
+        }
+
+        if (!paginationSet && responsePagination.getTotalPages() > 1) {
+            // Size of BrAPI entity GET data can not exceed configured pageSize.
+            // If it does, it is recommended the GET method not be used for this purpose.
+            // If you are trying to utilize this method to get a large amount of data for an entity, you can use
+            // searchInternal for now.  In the future, we need a more robust way of transmitting this data using
+            // compression client techniques to reduce strain on the server and avoid keeping all the database data
+            // in java memory.
+            throw new InternalServerException(String.format("More than one page found, meaning there is more data to be returned " +
+                    "with pageSize = [%s]", queryParams.pageSize()));
+        }
+
+        return getListResult(brapiResponseResult);
+    }
+
+    // Performs a POST brapi search on an entity without looping paging logic, utilizing filters and pagination provided in the searchBody.
+    // Also verifies response paging matches requested paging
+    public <T extends BrAPIResponse, U extends BrAPISearchRequestParametersPaging, V> T simpleSearch(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+                                                                                     U searchBody) throws ApiException {
+        T brapiResponseResult;
+
+        try {
+            // Traverse response with an optional to allow for free null checking with .map()
+            brapiResponseResult = Optional.ofNullable(searchMethod.apply(searchBody))
+                    .map(ApiResponse::getBody)
+                    .map(Pair::getLeft)
+                    // Deal with wrapped Optionals
+                    .flatMap(optional -> optional)
+                    .orElseThrow();
+        } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            throw e;
+        } catch (NoSuchElementException e) {
+            log.debug("Unable to retrieve BrAPIResponse from POST search request", e);
+            throw new InternalServerException(e.toString(), e);
+        } catch (Exception e) {
+            log.debug("error", e);
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        BrAPIPagination responsePagination = Optional.of(brapiResponseResult)
+                .map(BrAPIResponse::getMetadata)
+                .map(BrAPIMetadata::getPagination)
+                .orElse(null);
+
+        if (responsePagination == null) {
+            throw new InternalServerException("Expected pagination metadata in BrAPI search response not present");
+        }
+
+        var requestPageNumber = searchBody.getPage();
+        var requestPageSize = searchBody.getPageSize();
+
+        if (!responsePagination.getCurrentPage().equals(requestPageNumber) || !responsePagination.getPageSize().equals(requestPageSize)) {
+            throw new InternalServerException("Page number and/or page size do not match between BrAPI search request and response");
+        }
+
+        return brapiResponseResult;
     }
 
     public <T, U extends BrAPISearchRequestParametersPaging, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
@@ -301,12 +393,12 @@ public class BrAPIDAOUtil {
                 new ArrayList<>();
     }
 
-    // TODO: write generic put code
-    public <T> List<T> put(List<T> brapiObjects,
-                           ImportUpload upload,
-                           Function<List<T>, ApiResponse> putMethod,
-                           Consumer<ImportUpload> progressUpdateMethod) throws ApiException {
-        throw new UnsupportedOperationException();
+    public <T extends BrAPIResponse, V> List<V> getListResult(T response) {
+        return Optional.ofNullable(response)
+                .map(BrAPIResponse::getResult)
+                .map(result -> (BrAPIResponseResult<V>) result)
+                .map(BrAPIResponseResult::getData)
+                .orElseThrow();
     }
 
     public <T, R> List<R> post(List<T> brapiObjects,
@@ -453,5 +545,89 @@ public class BrAPIDAOUtil {
         var programBrAPIBaseUrl = programBrAPIEndpoints.getCoreUrl().get();
         programBrAPIBaseUrl = programBrAPIBaseUrl.endsWith("/") ? programBrAPIBaseUrl.substring(0, programBrAPIBaseUrl.length() - 1) : programBrAPIBaseUrl;
         return programBrAPIBaseUrl.endsWith(BrapiVersion.BRAPI_V2) ? programBrAPIBaseUrl : programBrAPIBaseUrl + BrapiVersion.BRAPI_V2;
+    }
+
+    private BrAPIFilterBy constructFilterBy(String filterOn, String value) {
+        var filterBy = new BrAPIFilterBy();
+
+        filterBy.setFilterOn(filterOn);
+        filterBy.setValue(value);
+        return filterBy;
+    }
+
+    private BrAPISortBy constructSortBy(String sortOn, String sortOrder) {
+        var sortBy = new BrAPISortBy();
+        sortBy.setSortedOn(sortOn);
+
+        BrAPISortOrder sortOrderEnum = BrAPISortOrder.valueOf(sortOrder.toUpperCase());
+
+        if (sortOrderEnum == null) {
+            sortOrderEnum = BrAPISortOrder.ASC;
+        }
+
+        sortBy.setSortOrder(sortOrderEnum);
+
+        return sortBy;
+    }
+
+    /**
+     * Sets three generic search parameters for an outgoing BrAPI Search Query:
+     * - Sorting
+     * - Filtering
+     * - Pagination
+     */
+    public <T extends BrAPISearchRequestParametersPaging, U extends BrapiQuery> void setGenericSearchParameters(T brapiSearchRequest, U biSearchQuery) {
+
+        if (biSearchQuery == null) {
+            // If the search query is not available, assume maximum size fetch is required and break out of this method.
+            brapiSearchRequest.setPage(0);
+            brapiSearchRequest.setPageSize(brapiFetchPageSize);
+            return;
+        }
+
+        // Set SortBy
+        List<BrAPISortBy> brAPISortBy = new ArrayList<>();
+
+        Map<String, String> brapiColNameByBiColName = biSearchQuery.getBrAPIColumnNamesByBiColumnName();
+
+        if (StringUtils.isNotBlank(biSearchQuery.getSortField()) && brapiColNameByBiColName.containsKey(biSearchQuery.getSortField())) {
+            brAPISortBy.add(constructSortBy(brapiColNameByBiColName.get(biSearchQuery.getSortField()), biSearchQuery.getSortOrder().toString()));
+        }
+
+        if (!brAPISortBy.isEmpty()) {
+            brapiSearchRequest.setSortBy(brAPISortBy);
+        }
+
+        // Set FilterBy
+        List<BrAPIFilterBy> brAPIFilterBy = new ArrayList<>();
+
+        Map<String, String> filterValuesByBrAPIColName = biSearchQuery.getFilterValuesByBrAPIColumnName();
+
+        filterValuesByBrAPIColName.forEach((brapiColumnName, value) -> {
+            if (StringUtils.isNotBlank(value)) {
+                brAPIFilterBy.add(constructFilterBy(brapiColumnName, value));
+            }
+        });
+
+        if (!brAPIFilterBy.isEmpty()) {
+            brapiSearchRequest.setFilterBy(brAPIFilterBy);
+        }
+
+        // Set Pagination
+        if (biSearchQuery.getPage() == null) {
+            brapiSearchRequest.setPage(biSearchQuery.getDefaultPage());
+        } else {
+            brapiSearchRequest.setPage(biSearchQuery.getPage());
+        }
+
+        if (biSearchQuery.getPageSize() == null) {
+            brapiSearchRequest.setPageSize(biSearchQuery.getDefaultPageSize());
+        } else  {
+            brapiSearchRequest.setPageSize(biSearchQuery.getPageSize());
+        }
+    }
+
+    public String getBrAPIProgramDbId(UUID biProgramId) throws ApiException {
+        return programService.getBrAPIProgramDbId(biProgramId);
     }
 }

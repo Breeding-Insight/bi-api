@@ -17,7 +17,7 @@
 
 package org.breedinginsight.brapi.v2.services;
 
-import io.micronaut.context.annotation.Property;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -26,13 +26,15 @@ import org.brapi.v2.model.BrAPIOntologyReference;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.*;
+import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
-import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.model.*;
+import org.breedinginsight.brapi.v2.dao.BrAPIObservationVariableDAO;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.DatasetUtil;
-import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
@@ -45,15 +47,16 @@ import java.util.stream.Collectors;
 public class BrAPIObservationVariableService {
     private final ProgramService programService;
     private final BrAPITrialService trialService;
-    private final String referenceSource;
+    private final BrAPIObservationVariableDAO observationVariableDAO;
+    private final OntologyService ontologyService;
 
     @Inject
     public BrAPIObservationVariableService(
-            ProgramService programService, BrAPITrialService trialService,
-            @Property(name = "brapi.server.reference-source") String referenceSource) {
+            ProgramService programService, BrAPITrialService trialService, BrAPIObservationVariableDAO observationVariableDAO, OntologyService ontologyService){
         this.programService = programService;
         this.trialService = trialService;
-        this.referenceSource = referenceSource;
+        this.observationVariableDAO = observationVariableDAO;
+        this.ontologyService = ontologyService;
     }
 
     // TODO: support sub-entity datasets.
@@ -73,11 +76,9 @@ public class BrAPIObservationVariableService {
         if(experimentId.isPresent()) {
             expId = UUID.fromString(experimentId.get());
         } else {
-            UUID envId = UUID.fromString(environmentId.orElseThrow(() -> new IllegalStateException("no environment id found")));
-            BrAPIStudy environment = trialService.getEnvironment(program.get(), envId);
-            expId = UUID.fromString(Utilities.getExternalReference(environment.getExternalReferences(),
-                    Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS))
-                    .orElseThrow(() -> new IllegalStateException("no external reference found")).getReferenceId());
+            String studyDbId = environmentId.orElseThrow(() -> new IllegalStateException("no study db id found"));
+            BrAPIStudy environment = trialService.getEnvironment(program.get(), studyDbId);
+            expId = UUID.fromString(environment.getTrialDbId());
         }
 
         BrAPITrial experiment = trialService.getExperiment(program.get(), expId);
@@ -89,6 +90,31 @@ public class BrAPIObservationVariableService {
         }
 
         return new ArrayList<>();
+    }
+
+    @NotNull
+    public BrAPIObservationVariable filterVariableById(List<Trait> programTraits,
+                                                       String observationVariableDbId) throws DoesNotExistException {
+        List<BrAPIObservationVariable> filterResult = filterVariables(programTraits,
+                Optional.of(observationVariableDbId),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty()
+                );
+
+        if (filterResult.isEmpty()) {
+            throw new DoesNotExistException(String.format("No observation variables found for brapi observation variable dbId [%s]", observationVariableDbId));
+        } else if  (filterResult.size() > 1) {
+            throw new InternalServerException(String.format("Multiple observation variables found for brapi observation variable db id [%s].  This should not be possible considering this id is unique.", observationVariableDbId));
+        }
+
+        return filterResult.get(0);
     }
 
     @NotNull
@@ -122,14 +148,12 @@ public class BrAPIObservationVariableService {
                     Map<String, Pair<Optional<String>, String>> filterParams = new HashMap<>();
                     filterParams.put("observationVariableDbId",
                             Pair.of(observationVariableDbId,
-                                    trait.getId()
-                                            .toString()));
+                                    trait.getObservationVariableDbId()));
                     filterParams.put("observationVariableName", Pair.of(observationVariableName, trait.getObservationVariableName()));
                     filterParams.put("traitClass", Pair.of(traitClass, trait.getTraitClass()));
                     filterParams.put("methodDbId",
                             Pair.of(methodDbId,
-                                    trait.getMethodId()
-                                            .toString()));
+                                    trait.getMethod().getBrapiMethodDbId()));
                     filterParams.put("methodName",
                             Pair.of(methodName,
                                     trait.getMethod()
@@ -137,16 +161,14 @@ public class BrAPIObservationVariableService {
                     filterParams.put("scaleDbId",
                             Pair.of(scaleDbId,
                                     trait.getScale()
-                                            .getId()
-                                            .toString()));
+                                            .getBrapiScaleDbId()));
                     filterParams.put("scaleName",
                             Pair.of(scaleName,
                                     trait.getScale()
                                             .getScaleName()));
                     filterParams.put("traitDbId",
                             Pair.of(traitDbId,
-                                    trait.getId()
-                                            .toString()));
+                                    trait.getBrapiTraitDbId()));
                     filterParams.put("traitName", Pair.of(traitName, trait.getObservationVariableName()));
                     filterParams.put("ontologyDbId",
                             Pair.of(ontologyDbId,
@@ -174,29 +196,31 @@ public class BrAPIObservationVariableService {
     }
 
     public BrAPIObservationVariable convertToBrAPI(Trait trait) {
+        // This data is not stored in BrAPI by DeltaBreed, which is why it is being set with the DeltaBreed dbIds instead.
+        // They can be filtered upon in BrAPIObservationVariableController.variablesGet()
         BrAPIOntologyReference brAPIOntologyReference = new BrAPIOntologyReference().ontologyDbId(trait.getProgramOntologyId()
                 .toString());
         String status = trait.getActive() ? "active" : "inactive";
         List<String> synonyms = prepSynonyms(trait);
-        return new BrAPIObservationVariable().observationVariableDbId(trait.getId().toString())
+        return new BrAPIObservationVariable().observationVariableDbId(trait.getObservationVariableDbId())
                 .observationVariableName(trait.getObservationVariableName())
                 .defaultValue(trait.getDefaultValue())
                 .status(status)
                 .synonyms(synonyms)
                 .trait(new BrAPITrait().ontologyReference(brAPIOntologyReference)
                         .traitName(trait.getObservationVariableName())
-                        .traitDbId(trait.getId().toString())
+                        .traitDbId(trait.getBrapiTraitDbId())
                         .entity(trait.getEntity())
                         .attribute(trait.getAttribute())
                         .status(status)
                         .synonyms(synonyms))
                 .method(new BrAPIMethod().ontologyReference(brAPIOntologyReference)
-                        .methodDbId(trait.getMethod().getId().toString())
+                        .methodDbId(trait.getMethod().getBrapiMethodDbId())
                         .methodClass(trait.getMethod().getMethodClass())
                         .description(trait.getMethod().getDescription())
                         .formula(trait.getMethod().getFormula()))
                 .scale(new BrAPIScale().ontologyReference(brAPIOntologyReference)
-                        .scaleDbId(trait.getScale().getId().toString())
+                        .scaleDbId(trait.getScale().getBrapiScaleDbId())
                         .scaleName(trait.getScale().getScaleName())
                         .dataType(BrAPITraitDataType.fromValue(trait.getScale().getDataType().getLiteral()))
                         .decimalPlaces(trait.getScale().getDecimalPlaces())

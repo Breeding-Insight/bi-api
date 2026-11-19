@@ -1,11 +1,13 @@
 package org.breedinginsight.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
 import lombok.SneakyThrows;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
@@ -50,7 +52,6 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
     private BrAPIGermplasmService germplasmService;
     private BrAPIDAOUtil brAPIDAOUtil;
     private String referenceSource;
-    private ProgramCacheProvider cacheProvider;
 
     @SneakyThrows
     @BeforeEach
@@ -60,8 +61,7 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         listDAO = mock(BrAPIListDAO.class);
         programDAO = mock(ProgramDAO.class);
         brAPIDAOUtil = mock(BrAPIDAOUtil.class);
-        cacheProvider = new ProgramCacheProvider(super.getRedisConnection());
-        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, cacheProvider, new BrAPIEndpointProvider());
+        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, new BrAPIEndpointProvider(), 65000, new ObjectMapper(), listDAO);
         programService = mock(ProgramService.class);
 
         Field externalReferenceSource = BrAPIGermplasmDAO.class.getDeclaredField("referenceSource");
@@ -78,6 +78,14 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         testProgram.setName("Test Program");
         testProgram.setKey("TEST");
         testProgram.setId(testProgramId);
+
+
+        BrAPIProgram brapiProgram = new BrAPIProgram();
+        String brapiProgramDbId = UUID.randomUUID().toString();
+        brapiProgram.setProgramDbId(brapiProgramDbId);
+        brapiProgram.setProgramName("Test Program [TEST]");
+
+        testProgram.setBrapiProgram(brapiProgram);
 
         //Create List
         BrAPIListsSingleResponse listResponse = new BrAPIListsSingleResponse();
@@ -101,6 +109,7 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         testGermplasm.setSeedSource("Wild");
         testGermplasm.setAccessionNumber("1");
         testGermplasm.setDefaultDisplayName("Germplasm A");
+        testGermplasm.setProgramDbId(brapiProgramDbId);
         JsonObject additionalInfo = new JsonObject();
         additionalInfo.addProperty(GERMPLASM_IMPORT_ENTRY_NUMBER, "2");
         additionalInfo.addProperty(GERMPLASM_BREEDING_METHOD, "Allopolyploid");
@@ -138,6 +147,7 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         externalUidReference2.setReferenceID("UID-2");
         externalRef.add(externalUidReference2);
         testGermplasm.setExternalReferences(externalRef);
+        testGermplasm.setProgramDbId(brapiProgramDbId);
         germplasm.add(testGermplasm);
 
         //Stub out the spies
@@ -147,17 +157,12 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         doReturn(Optional.of(testProgram)).when(programSpy).getById(testProgramId);
 
         //Stub out the mocks
-        when(programDAO.getAll()).thenReturn(Arrays.asList(Program.builder().id(testProgramId).name("Test Program").active(true).build()));
         when(programDAO.fetchOneById(any(UUID.class))).thenReturn(testProgram);
         when(programDAO.get(any(UUID.class))).thenReturn(Arrays.asList(testProgram));
-        when(brAPIDAOUtil.searchNoPaging(any(Function.class),
-                any(Function3.class),
+        when(programDAO.getProgramBrAPI(any())).thenReturn(brapiProgram);
+        when(brAPIDAOUtil.search(any(Function.class), any(Function3.class),
                 any(BrAPIGermplasmSearchRequest.class))).thenReturn(germplasm);
-
-        //Create germplasm cache of stub data
-        Method setupMethod = BrAPIGermplasmDAO.class.getDeclaredMethod("setup");
-        setupMethod.setAccessible(true);
-        setupMethod.invoke(germplasmDAO);
+        when(brAPIDAOUtil.getBrAPIProgramDbId(any())).thenReturn(brapiProgramDbId);
 
         //Create test instance of service, injecting spy- and mock-dependencies
         germplasmService = new BrAPIGermplasmService(brAPIListSpy, programSpy, germplasmDAO);

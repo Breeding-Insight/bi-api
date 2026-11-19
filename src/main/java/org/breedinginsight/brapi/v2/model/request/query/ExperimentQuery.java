@@ -2,13 +2,10 @@ package org.breedinginsight.brapi.v2.model.request.query;
 
 import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
-import org.breedinginsight.api.model.v1.request.query.FilterRequest;
-import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
-import org.jooq.tools.StringUtils;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Getter
 @Introspected
@@ -18,20 +15,27 @@ public class ExperimentQuery extends BrapiQuery {
     private String createdBy;
     private String createdDate;
 
-    public SearchRequest constructSearchRequest() {
-        List<FilterRequest> filters = new ArrayList<>();
-        if (!StringUtils.isBlank(getName())) {
-            filters.add(constructFilterRequest("name", getName()));
-        }
-        if (!StringUtils.isBlank(getActive())) {
-            filters.add(constructFilterRequest("active", getActive()));
-        }
-        if (!StringUtils.isBlank(getCreatedBy())) {
-            filters.add(constructFilterRequest("createdBy", getCreatedBy()));
-        }
-        if (!StringUtils.isBlank(getCreatedDate())) {
-            filters.add(constructFilterRequest("createdDate", getCreatedDate()));
-        }
-        return new SearchRequest(filters);
+    @Override
+    public Map<String, String> getFilterValuesByBrAPIColumnName() {
+        Map<String, String> filterValuesByBrAPIColumnName = new HashMap<>();
+
+        filterValuesByBrAPIColumnName.put("trialName", getName());
+        filterValuesByBrAPIColumnName.put("active", getActive());
+        filterValuesByBrAPIColumnName.put("createdBy", getCreatedBy());
+        filterValuesByBrAPIColumnName.put("createdDate", getCreatedDate());
+
+        return filterValuesByBrAPIColumnName;
+    }
+
+    @Override
+    public Map<String, String> getBrAPIColumnNamesByBiColumnName() {
+        Map<String, String> brAPIColumnNamesByBiColumnName = new HashMap<>();
+
+        brAPIColumnNamesByBiColumnName.put("name", "trialName");
+        brAPIColumnNamesByBiColumnName.put("active", "active");
+        brAPIColumnNamesByBiColumnName.put("createdBy", "createdBy");
+        brAPIColumnNamesByBiColumnName.put("createdDate", "createdDate");
+
+        return brAPIColumnNamesByBiColumnName;
     }
 }

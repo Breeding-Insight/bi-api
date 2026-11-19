@@ -151,9 +151,7 @@ public class SampleSubmissionImport implements BrAPIImport {
         if (ou != null) {
             brAPISample
                     .putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBS_UNIT_ID,
-                                           Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATION_UNITS))
-                                                    .get()
-                                                    .getReferenceId())
+                                           ou.getObservationUnitDbId())
                     .observationUnitDbId(ou.getObservationUnitDbId());
         }
 

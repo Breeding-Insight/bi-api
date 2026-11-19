@@ -45,12 +45,13 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.*;
-import org.breedinginsight.brapps.importer.daos.*;
+import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.imports.sample.SampleSubmissionImport.Columns;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Column;
@@ -143,6 +144,12 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
     @Inject
     private SampleSubmissionService sampleSubmissionService;
 
+    @Inject
+    BrAPITrialService brAPITrialService;
+
+    @Inject
+    private ProgramDAO programDAO;
+
     private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
                                                  (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
                                          .registerTypeAdapter(BrAPIPagination.class, new PaginationTypeAdapter())
@@ -174,7 +181,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
     @SneakyThrows
     public void importGIDSuccess() {
         log.debug("importGIDSuccess");
-        Program program = createProgram("Import GID Success", "GIDS", "GIDS", BRAPI_REFERENCE_SOURCE, createGermplasm(96), null);
+        Program program = createProgram("Import GID Success", "GIDS", "GIDS", BRAPI_REFERENCE_SOURCE, 96, null);
         List<Map<String, Object>> validFile = new ArrayList<>();
 
         int germGidCounter = 1;
@@ -221,14 +228,13 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
     @SneakyThrows
     public void importObsUnitIdSuccess() {
         log.debug("importObsUnitIdSuccess");
-        Program program = createProgram("Import ObsUnitID success", "OBSID", "OBSID", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
+        Program program = createProgram("Import ObsUnitID success", "OBSID", "OBSID", BRAPI_REFERENCE_SOURCE, 1, null);
 
         var experimentId = createExperiment(program);
 
         BrAPITrial trial = brAPITrialDAO.getTrialById(program.getId(), UUID.fromString(experimentId)).get();
 
-        List<BrAPIObservationUnit> ous = ouDAO.getObservationUnitsForTrialDbId(program.getId(), trial.getTrialDbId());
-        BrAPIExternalReference obsUnitId = Utilities.getExternalReference(ous.get(0).getExternalReferences(), Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS)).get();
+        BrAPIObservationUnit ou = ouDAO.getObservationUnitsForTrialDbId(program.getId(), trial.getTrialDbId()).get(0);
 
         List<Map<String, Object>> validFile = new ArrayList<>();
 
@@ -240,7 +246,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
         validRow.put(Columns.SPECIES, "TEST");
         validRow.put(Columns.GERMPLASM_NAME, "");
         validRow.put(Columns.GERMPLASM_GID, "");
-        validRow.put(Columns.OBS_UNIT_ID, obsUnitId.getReferenceId());
+        validRow.put(Columns.OBS_UNIT_ID, ou.getObservationUnitDbId());
         validRow.put(Columns.TISSUE, "TEST");
         validRow.put(Columns.COMMENTS, "Test sample");
         validFile.add(validRow);
@@ -296,7 +302,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
     @SneakyThrows
     public void verifyMissingDataThrowsError(boolean commit) {
         log.debug("verifyMissingDataThrowsError");
-        Program program = createProgram("Missing Req Cols "+(commit ? "C" : "P"), "MISS"+(commit ? "C" : "P"), "MISS"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(96), null);
+        Program program = createProgram("Missing Req Cols "+(commit ? "C" : "P"), "MISS"+(commit ? "C" : "P"), "MISS"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, 96, null);
         Map<String, Object> base = new HashMap<>();
         base.put(Columns.PLATE_ID, "valid_1");
         base.put(Columns.ROW, "A");
@@ -369,7 +375,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
     @SneakyThrows
     public void importConflictingWellsFailure(boolean commit) {
         log.debug("importConflictingWellsFailure");
-        Program program = createProgram("Conflicting Wells " + (commit ? "C" : "P"), "WELL"+ (commit ? "C" : "P"), "WELL"+ (commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(2), null);
+        Program program = createProgram("Conflicting Wells " + (commit ? "C" : "P"), "WELL"+ (commit ? "C" : "P"), "WELL"+ (commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, 2, null);
         List<Map<String, Object>> validFile = new ArrayList<>();
 
         Map<String, Object> validRow = new HashMap<>();
@@ -436,7 +442,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
         return ret;
     }
 
-    private Program createProgram(String name, String abbv, String key, String referenceSource, List<BrAPIGermplasm> germplasm, List<Trait> traits) throws ApiException, DoesNotExistException, ValidatorException, BadRequestException {
+    private Program createProgram(String name, String abbv, String key, String referenceSource, Integer numGermplasmToCreate, List<Trait> traits) throws ApiException, DoesNotExistException, ValidatorException, BadRequestException {
         SpeciesEntity validSpecies = speciesDAO.findAll().get(0);
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
                                                       .commonName(validSpecies.getCommonName())
@@ -456,10 +462,13 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
 
         // Get main program
         Program program = programService.getByKey(key).get();
+        String brapiProgramDbId = programDAO.getProgramBrAPI(program).getProgramDbId();
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), program.getId().toString());
 
-        if(germplasm != null && !germplasm.isEmpty()) {
+        if(numGermplasmToCreate != null && numGermplasmToCreate > 0) {
+            List<BrAPIGermplasm> germplasm = createGermplasm(numGermplasmToCreate, brapiProgramDbId);
+
             BrAPIExternalReference newReference = new BrAPIExternalReference();
             newReference.setReferenceSource(String.format("%s/programs", referenceSource));
             newReference.setReferenceID(program.getId().toString());
@@ -482,7 +491,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
         return program;
     }
 
-    private List<BrAPIGermplasm> createGermplasm(int numToCreate) {
+    private List<BrAPIGermplasm> createGermplasm(int numToCreate, String brapiProgramDbId) {
         List<BrAPIGermplasm> germplasm = new ArrayList<>();
         for (int i = 0; i < numToCreate; i++) {
             String gid = ""+(i+1);
@@ -501,6 +510,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
             testReference.setReferenceID(UUID.randomUUID().toString());
             externalRef.add(testReference);
             testGermplasm.setExternalReferences(externalRef);
+            testGermplasm.setProgramDbId(brapiProgramDbId);
             germplasm.add(testGermplasm);
         }
 
@@ -567,7 +577,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
                 .getAsJsonArray("data")
                 .get(0).getAsJsonObject().get("id").getAsString();
 
-        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
+        importTestUtils.uploadAndFetchWorkflow(
                 importTestUtils.writeExperimentDataToFile(List.of(makeExpImportRow("Env1")), null, false, false, null),
                 null,
                 true,
@@ -575,12 +585,23 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
                 program,
                 expMappingId,
                 newExperimentWorkflowId);
-        return importResult
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(0).getAsJsonObject()
-                .get("trial").getAsJsonObject()
-                .get("id").getAsString();
+
+
+        String result;
+
+        try {
+            // Assumes only one trial/experiment exists
+            BrAPITrial trial = brAPITrialService.getTrialsByProgramId(program.getId())
+                    .stream()
+                    .findFirst()
+                    .orElseThrow();
+
+            result = trial.getTrialDbId();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        return result;
     }
 
     private Map<String, Object> makeExpImportRow(String environment) {
