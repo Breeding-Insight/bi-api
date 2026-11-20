@@ -432,7 +432,7 @@ public class BrAPIGermplasmController {
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.NOT_FOUND, "Germplasm not found");
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         } catch (AuthorizationException | ApiException e) {
             log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving genotype data");
