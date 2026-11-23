@@ -141,12 +141,13 @@ public class TraitValidatorService {
                                 ValidationError error = traitValidatorErrors.getPopulatedNominalCategoryLabelMsg();
                                 categoryErrors.addError(k, error);
                             }
-                            //Can't have repeated values in the same nominal variable, case-insensitive
-                            if(existingNomCategories.stream().anyMatch(x -> x.equalsIgnoreCase(value))) {
-                                repeatedNominalCategory = true;
-                            }
-                            else {
-                                existingNomCategories.add(value);
+                            if(!isBlank(value)) {
+                                //Can't have repeated values in the same nominal variable, case-insensitive
+                                if (existingNomCategories.stream().anyMatch(x -> x.equalsIgnoreCase(value))) {
+                                    repeatedNominalCategory = true;
+                                } else {
+                                    existingNomCategories.add(value);
+                                }
                             }
                         }
 
