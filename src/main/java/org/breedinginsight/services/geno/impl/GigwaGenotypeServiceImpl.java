@@ -22,6 +22,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import htsjdk.samtools.util.CloseableIterator;
+import htsjdk.samtools.util.RuntimeIOException;
+import htsjdk.samtools.util.SortingCollection;
 import htsjdk.tribble.TribbleException;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFileReader;
@@ -83,10 +85,13 @@ import software.amazon.awssdk.services.s3.model.*;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -249,23 +254,42 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
             throw e;
         }
 
+        Path stagedFile = null;
+        boolean scheduled = false;
         try {
-            byte[] fileContents = uploadedFile.getBytes();
-            if (validateSamples(program, submissionId, fileContents, upload)
-                    && validateVariantRecords(fileContents, uploadedFile.getFilename(), upload)) {
+            stagedFile = Files.createTempFile("bi-genotype-", ".vcf");
+            try (InputStream input = uploadedFile.getInputStream()) {
+                Files.copy(input, stagedFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+            if (validateSamples(program, submissionId, stagedFile, upload)
+                    && validateVariantRecords(stagedFile, fileName, upload)) {
+                // Only the application-owned file crosses the request lifetime boundary.
+                Path importFile = stagedFile;
                 executor.execute(() -> {
                     try {
-                        processSubmission(gigwaAuthToken, program, submissionId, fileContents, uploadedFile.getFilename(), upload, progress);
+                        processSubmission(gigwaAuthToken, program, submissionId, importFile, fileName, upload, progress);
                     } catch (Exception e) {
                         log.error(e.getMessage(), e);
+                    } finally {
+                        deleteStagedFile(importFile);
                     }
                 });
+                scheduled = true;
             }
         } catch (IOException e) {
             progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
             progress.setMessage("An error occurred while trying to validate sample information");
             importDAO.updateProgress(progress);
             throw new RuntimeException(e);
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
+            progress.setMessage("An error occurred uploading the genotypic data");
+            importDAO.updateProgress(progress);
+            throw e;
+        } finally {
+            if (!scheduled) {
+                deleteStagedFile(stagedFile);
+            }
         }
 
         ImportResponse response = new ImportResponse();
@@ -372,7 +396,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                 .findFirst();
     }
 
-    private boolean validateSamples(Program program, UUID submissionId, byte[] fileContents, ImportUpload upload) throws DoesNotExistException, ApiException {
+    private boolean validateSamples(Program program, UUID submissionId, Path file, ImportUpload upload) throws DoesNotExistException, ApiException, IOException {
         log.debug("Validating samples in submitted VCF file for submission: " + submissionId);
 
         Set<String> submissionSampleNames = fetchSubmissionSamples(program, submissionId).stream()
@@ -382,14 +406,15 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
         log.debug("searching for the VCF header row");
         String[] headerParts = null;
-        Scanner sc = new Scanner(new ByteArrayInputStream(fileContents), "UTF-8");
         boolean foundHeader = false;
-        while (sc.hasNextLine() && !foundHeader) {
-            String line = sc.nextLine();
-            if(line.startsWith("#CHROM")) {
-                log.debug("Header row found! -> " + line);
-                foundHeader = true;
-                headerParts = line.split("\t");
+        try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("#CHROM")) {
+                    foundHeader = true;
+                    headerParts = line.split("\t");
+                    break;
+                }
             }
         }
 
@@ -407,7 +432,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
             if(validHeader) {
                 int sampleStart = 8;
 
-                if(headerParts[8].equals("FORMAT")) {
+                if(headerParts.length > 8 && headerParts[8].equals("FORMAT")) {
                     sampleStart++;
                 }
 
@@ -442,15 +467,14 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         return true;
     }
 
-    private boolean validateVariantRecords(byte[] fileContents, String filename, ImportUpload upload) {
-        Set<String> positionalKeys = new HashSet<>();
-        Path tempVcfFile = null;
+    private boolean validateVariantRecords(Path tempVcfFile, String filename, ImportUpload upload) {
+        // Spill positional keys to disk instead of retaining one entry per variant in heap.
+        SortingCollection<String> positionalKeys = SortingCollection.newInstance(
+                String.class, new VcfPositionCodec(), Comparator.naturalOrder(), 100_000,
+                tempVcfFile.getParent());
         int parsedVariantCount = 0;
 
         try {
-            tempVcfFile = Files.createTempFile("bi-vcf-validation-", ".vcf");
-            Files.write(tempVcfFile, fileContents);
-
             try (VCFFileReader reader = new VCFFileReader(tempVcfFile.toFile(), false);
                  CloseableIterator<VariantContext> variants = reader.iterator()) {
 
@@ -463,15 +487,22 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                                     variant.getContig() + ":" +
                                     variant.getStart();
 
-                    if (!positionalKeys.add(positionalKey)) {
-                        log.error("Duplicate Gigwa positional key detected during VCF validation for file '{}'. Parsed records: {}. Key: {}",
-                                filename, parsedVariantCount, positionalKey);
-
+                    positionalKeys.add(positionalKey);
+                }
+            }
+            positionalKeys.doneAdding();
+            try (CloseableIterator<String> keys = positionalKeys.iterator()) {
+                String previous = null;
+                while (keys.hasNext()) {
+                    String key = keys.next();
+                    if (key.equals(previous)) {
+                        log.error("Duplicate Gigwa positional key detected during VCF validation for file '{}': {}", filename, key);
                         upload.getProgress().setStatuscode((short) HttpStatus.BAD_REQUEST.getCode());
                         upload.getProgress().setMessage(DUPLICATE_POSITIONAL_KEY_MESSAGE);
                         importDAO.updateProgress(upload.getProgress());
                         return false;
                     }
+                    previous = key;
                 }
             }
 
@@ -485,22 +516,14 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
             upload.getProgress().setMessage(INVALID_REF_ALT_MESSAGE);
             importDAO.updateProgress(upload.getProgress());
             return false;
-        } catch (IOException e) {
-            log.error("I/O failure during VCF validation setup for file '{}'. Parsed {} variant record(s) before failure. Error: {}",
-                    filename, parsedVariantCount, e.getMessage(), e);
-
+        } catch (RuntimeIOException e) {
+            log.error("I/O failure during VCF validation for file '{}'", filename, e);
             upload.getProgress().setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
             upload.getProgress().setMessage("An error occurred while trying to validate VCF variant information");
             importDAO.updateProgress(upload.getProgress());
             return false;
         } finally {
-            if (tempVcfFile != null) {
-                try {
-                    Files.deleteIfExists(tempVcfFile);
-                } catch (IOException e) {
-                    log.warn("Unable to delete temporary VCF validation file {}", tempVcfFile, e);
-                }
-            }
+            positionalKeys.cleanup();
         }
 
         return true;
@@ -633,12 +656,12 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         return brAPIDAOUtil.searchWithToken(variantsApi::searchVariantsPost, variantsApi::searchVariantsSearchResultsDbIdGet, searchRequest);
     }
 
-    protected void processSubmission(String gigwaAuthToken, Program program, UUID submissionId, byte[] fileContents, String filename, ImportUpload upload, ImportProgress progress) throws MimeTypeException, IOException, ApiException {
+    protected void processSubmission(String gigwaAuthToken, Program program, UUID submissionId, Path file, String filename, ImportUpload upload, ImportProgress progress) throws MimeTypeException, IOException, ApiException {
         Pair<String, Long> uploadedFileResult;
         try {
             progress.setMessage("Uploading file");
             importDAO.updateProgress(progress);
-            uploadedFileResult = uploadGenotypeData(program.getId(), submissionId, upload.getId(), fileContents, filename);
+            uploadedFileResult = uploadGenotypeData(program.getId(), submissionId, upload.getId(), file, filename);
             log.debug("file saved to: " + uploadedFileResult.getLeft());
         } catch (Exception e) {
             progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
@@ -766,7 +789,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         }
     }
 
-    private Pair<String, Long> uploadGenotypeData(UUID programId, UUID submissionId, UUID uploadId, byte[] fileContents, String filename) throws IOException, MimeTypeException {
+    private Pair<String, Long> uploadGenotypeData(UUID programId, UUID submissionId, UUID uploadId, Path file, String filename) throws IOException, MimeTypeException {
         log.debug("saving genotype data to S3");
 
         if(!storageService.listBucketNames().contains(storageService.getDefaultBucketName())) {
@@ -774,50 +797,57 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
             storageService.createBucket();
         }
 
-        var mimeType = mimeTypeParser.getMimeType(fileContents, filename);
+        var mimeType = mimeTypeParser.getMimeType(file, filename);
 
         var key = programId.toString() + "/" + submissionId.toString() + "/" + uploadId + mimeType.getExtension();
-        var path = storeMultipartFile(key, fileContents, Map.of("originalFileName", filename));
+        var path = storeMultipartFile(key, file, Map.of("originalFileName", filename));
 
-        Long fileSize = Long.valueOf(fileContents.length);
+        Long fileSize = Files.size(file);
 
         return Pair.of(path, fileSize);
     }
 
-    private String storeMultipartFile(String key, byte[] fileContents, Map<String, String> metadata) throws IOException {
+    String storeMultipartFile(String key, Path file, Map<String, String> metadata) throws IOException {
         String bucketName = storageService.getDefaultBucketName();
+        String uploadId = s3Client.createMultipartUpload(CreateMultipartUploadRequest.builder()
+                .bucket(bucketName).key(key).metadata(metadata).build()).uploadId();
+        try (InputStream input = Files.newInputStream(file)) {
+            List<CompletedPart> parts = new ArrayList<>();
+            // S3 requires at least 5 MiB for every part except the final one.
+            byte[] buffer = new byte[8 * 1024 * 1024];
+            int length;
+            while ((length = input.readNBytes(buffer, 0, buffer.length)) > 0) {
+                int partNumber = parts.size() + 1;
+                String etag = s3Client.uploadPart(UploadPartRequest.builder()
+                                .bucket(bucketName).key(key).uploadId(uploadId)
+                                .partNumber(partNumber).build(),
+                        software.amazon.awssdk.core.sync.RequestBody.fromInputStream(
+                                new ByteArrayInputStream(buffer, 0, length), length)).eTag();
+                parts.add(CompletedPart.builder().partNumber(partNumber).eTag(etag).build());
+            }
+            return s3Client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
+                    .bucket(bucketName).key(key).uploadId(uploadId)
+                    .multipartUpload(CompletedMultipartUpload.builder().parts(parts).build())
+                    .build()).location();
+        } catch (Exception e) {
+            try {
+                s3Client.abortMultipartUpload(AbortMultipartUploadRequest.builder()
+                        .bucket(bucketName).key(key).uploadId(uploadId).build());
+            } catch (Exception abortError) {
+                e.addSuppressed(abortError);
+            }
+            throw e;
+        }
+    }
 
-        CreateMultipartUploadResponse response = s3Client.createMultipartUpload(CreateMultipartUploadRequest.builder()
-                                                                                                            .bucket(bucketName)
-                                                                                                            .key(key)
-                                                                                                            .metadata(metadata)
-                                                                                                            .build());
-        String uploadId = response.uploadId();
-
-        List<CompletedPart> parts = new ArrayList<>();
-        int partNumber = 1;
-        String etag = s3Client.uploadPart(UploadPartRequest.builder()
-                                                            .bucket(bucketName)
-                                                            .key(key)
-                                                            .uploadId(uploadId)
-                                                            .partNumber(partNumber)
-                                                            .build(),
-                                          software.amazon.awssdk.core.sync.RequestBody.fromBytes(fileContents))
-                              .eTag();
-
-        parts.add(CompletedPart.builder().partNumber(partNumber).eTag(etag).build());
-
-        log.debug("all parts have been uploaded, completing the upload");
-        CompleteMultipartUploadResponse completeMultipartUploadResponse = s3Client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
-                                                                                                                                         .bucket(bucketName)
-                                                                                                                                         .key(key)
-                                                                                                                                         .uploadId(uploadId)
-                                                                                                                                         .multipartUpload(CompletedMultipartUpload.builder()
-                                                                                                                                                                                  .parts(parts)
-                                                                                                                                                                                  .build())
-                                                                                                                                         .build());
-        log.debug("upload complete");
-        return completeMultipartUploadResponse.location();
+    private static void deleteStagedFile(Path file) {
+        if (file != null) {
+            try {
+                Files.deleteIfExists(file);
+            } catch (IOException e) {
+                log.warn("Unable to delete temporary genotype file {}", file, e);
+            }
+        }
     }
 
     private boolean getBooleanValue(JsonObject progress, String key, boolean defaultVal) {

@@ -373,6 +373,60 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     }
 
     @Test
+    public void testMultipartUploadStreamsAllPartsAndAbortsOnReadFailure() throws Exception {
+        java.nio.file.Path file = java.nio.file.Files.createTempFile("vcf-multipart-test-", ".vcf");
+        String key = "stream-test/" + UUID.randomUUID() + ".vcf";
+        String failedKey = key + "-failed";
+        if (!storageService.listBucketNames().contains(storageService.getDefaultBucketName())) {
+            storageService.createBucket();
+        }
+        try {
+            byte[] chunk = new byte[1024 * 1024];
+            new Random(2970).nextBytes(chunk);
+            try (java.io.OutputStream output = java.nio.file.Files.newOutputStream(file)) {
+                for (int i = 0; i < 9; i++) {
+                    output.write(chunk);
+                }
+                output.write(42);
+            }
+            String location = gigwaGenoStorageService.storeMultipartFile(key, file, Map.of("originalFileName", "large.vcf"));
+            assertNotNull(location);
+            assertTrue(location.contains(key));
+            try (java.io.InputStream stored = s3Client.getObject(
+                    software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
+                            .bucket(storageService.getDefaultBucketName()).key(key).build())) {
+                for (int i = 0; i < 9; i++) {
+                    assertArrayEquals(chunk, stored.readNBytes(chunk.length));
+                }
+                assertEquals(42, stored.read());
+                assertEquals(-1, stored.read());
+            }
+            java.nio.file.Files.delete(file);
+            assertThrows(IOException.class, () ->
+                    gigwaGenoStorageService.storeMultipartFile(failedKey, file, Collections.emptyMap()));
+            assertTrue(s3Client.listMultipartUploads(
+                    software.amazon.awssdk.services.s3.model.ListMultipartUploadsRequest.builder()
+                            .bucket(storageService.getDefaultBucketName()).prefix(failedKey).build())
+                    .uploads().isEmpty(), "Failed upload must be aborted");
+        } finally {
+            java.nio.file.Files.deleteIfExists(file);
+            s3Client.deleteObject(software.amazon.awssdk.services.s3.model.DeleteObjectRequest.builder()
+                    .bucket(storageService.getDefaultBucketName()).key(key).build());
+        }
+    }
+
+    @Test
+    public void testSubmitMissingHeader() throws Exception {
+        UUID programId = UUID.randomUUID();
+        UUID submissionId = UUID.randomUUID();
+        setupMocksForSubmitGenoData(programId, submissionId, Collections.emptyList());
+        ImportResponse response = submitGenoData(programId, "MISSINGHEADER", submissionId, "sample_missing_header.vcf");
+        assertEquals((short) HttpStatus.BAD_REQUEST.getCode(), response.getProgress().getStatuscode());
+        assertEquals("Could not find header row in file", response.getProgress().getMessage());
+        verify(genotypeImportDAO, never()).createGenotypeImportLink(eq(submissionId), any(), any());
+    }
+
+    @Test
     public void testFetchGermplasmGenotype() throws AuthorizationException, ApiException, DoesNotExistException {
         UUID programId = UUID.fromString("8b667063-480b-4b0a-862c-7eaa651dda28");
         String programKey = "TESTFETCH";
@@ -785,7 +839,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
         System.out.println("======================   program ID: " + program.getId() + " ===============");
         System.out.println("===================   submission ID: " + submissionId + " ===============");
-        gigwaGenoStorageService.processSubmission(gigwaGenoStorageService.getAuthToken(), program, submissionId, new TestFileUpload("src/test/resources/files/geno/sample.vcf", MediaType.of("application/vcard")).getBytes(), "sample.vcf", importUpload, progress);
+        gigwaGenoStorageService.processSubmission(gigwaGenoStorageService.getAuthToken(), program, submissionId, java.nio.file.Path.of("src/test/resources/files/geno/sample.vcf"), "sample.vcf", importUpload, progress);
     }
 
     private ImportResponse submitGenoData(UUID programId, String programKey, UUID submissionId, String file)
@@ -827,7 +881,12 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
                 user.getId(),
                 programId,
                 submissionId,
-                new TestFileUpload("src/test/resources/files/geno/" + file, MediaType.of("application/vcard"))
+                new TestFileUpload("src/test/resources/files/geno/" + file, MediaType.of("application/vcard")) {
+                    @Override
+                    public byte[] getBytes() {
+                        throw new AssertionError("Genotype imports must stream the upload");
+                    }
+                }
         );
     }
 
