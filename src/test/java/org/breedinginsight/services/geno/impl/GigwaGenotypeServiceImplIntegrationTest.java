@@ -27,6 +27,7 @@ import org.brapi.client.v2.modules.core.ProgramsApi;
 import org.brapi.client.v2.modules.core.StudiesApi;
 import org.brapi.client.v2.modules.genotype.SamplesApi;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.response.BrAPIProgramListResponse;
 import org.brapi.v2.model.core.response.BrAPIStudyListResponse;
 import org.brapi.v2.model.geno.BrAPISample;
@@ -382,13 +383,15 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
         String germplasmName = "USDAMSP1";
         String sampleName = germplasmName + "_A01";
-        BrAPIGermplasm germplasm = new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()).germplasmName(germplasmName);
+        // For the sample lookup, both the BrAPI germplasmDbId and BI exRefId is used because the sample table in BrAPI does not have an association with germplasm.
+        // The brAPI germplasmDbId is passed in by the frontend, and to find the sample, the exRefId is used.
+        BrAPIGermplasm germplasm = new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()).germplasmName(germplasmName).externalReferences(List.of(new BrAPIExternalReference().referenceSource(referenceSource).referenceId(UUID.randomUUID().toString())));
 
         SamplesApi mockSamplesApi = spy(new SamplesApi());
         BrAPISample sample = new BrAPISample().sampleName(sampleName)
                 .germplasmDbId(programKey + "§" + sampleName);
         doReturn(List.of(sample)).when(sampleDAO)
-                .readSamplesByGermplasmIds(any(Program.class), eq(List.of(germplasm.getGermplasmDbId())));
+                .readSamplesByGermplasmIds(any(Program.class), eq(List.of(germplasm.getExternalReferences().get(0).getReferenceId())));
         doReturn(new ApiResponse<>(200,
                 new HashMap<>(),
                 Pair.of(Optional.of(new BrAPISampleListResponse().result(new BrAPISampleListResponseResult().data(List.of(sample)))),
@@ -405,7 +408,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
         GermplasmGenotype germplasmGenotype = gigwaGenoStorageService.retrieveGenotypeData(programId, UUID.fromString(germplasm.getGermplasmDbId()));
 
-        verify(sampleDAO).readSamplesByGermplasmIds(any(Program.class), eq(List.of(germplasm.getGermplasmDbId())));
+        verify(sampleDAO).readSamplesByGermplasmIds(any(Program.class), eq(List.of(germplasm.getExternalReferences().get(0).getReferenceId())));
         verify(brAPIEndpointProvider, never()).get(any(BrAPIClient.class), eq(ObservationUnitsApi.class));
         verify(mockSamplesApi).searchSamplesPost(argThat(searchRequest -> searchRequest.getGermplasmDbIds() != null &&
                 searchRequest.getGermplasmDbIds().contains(programKey + "§" + sample.getSampleName()) &&

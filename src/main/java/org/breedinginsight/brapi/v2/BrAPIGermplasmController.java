@@ -15,10 +15,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
-import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
-import org.brapi.v2.model.BrAPIIndexPagination;
-import org.brapi.v2.model.BrAPIMetadata;
-import org.brapi.v2.model.BrAPIStatus;
+import org.brapi.v2.model.*;
 import org.brapi.v2.model.germ.*;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
@@ -35,6 +32,7 @@ import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.GermplasmGenotype;
@@ -428,15 +426,13 @@ public class BrAPIGermplasmController {
                                                                           @PathVariable("germplasmId") String germplasmId) {
 
         try {
-            BrAPIGermplasm germplasm = germplasmDAO.getGermplasmByUUID(germplasmId, programId);
-
             GermplasmGenotype germplasmGenotype = genoService.retrieveGenotypeData(programId, UUID.fromString(germplasmId));
 
             Response<GermplasmGenotype> response = new Response(germplasmGenotype);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.NOT_FOUND, "Germplasm not found");
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         } catch (AuthorizationException | ApiException e) {
             log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving genotype data");
