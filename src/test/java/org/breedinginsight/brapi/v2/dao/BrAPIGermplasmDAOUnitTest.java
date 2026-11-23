@@ -68,7 +68,6 @@ public class BrAPIGermplasmDAOUnitTest {
         germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class),
                 brAPIDAOUtil,
                 new BrAPIEndpointProvider(),
-                65000,
                 new ObjectMapper(),
                 mock(BrAPIListDAO.class)
         );

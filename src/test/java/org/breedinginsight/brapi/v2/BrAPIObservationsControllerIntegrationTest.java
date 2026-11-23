@@ -452,7 +452,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
             JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
             // Get metadata.
             JsonObject pagination = responseObj.getAsJsonObject("metadata").getAsJsonObject("pagination");
-            int expectedPageSize = pageSize == null ? 1000 : pageSize;
+            int expectedPageSize = pageSize == null ? expectedTotalCount : pageSize;
             assertEquals(expectedPageSize, pagination.get("pageSize").getAsInt());
             int expectedPage = page == null ? 0 : page;
             assertEquals(expectedPage, pagination.get("currentPage").getAsInt());

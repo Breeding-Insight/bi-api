@@ -190,14 +190,14 @@ public class BrAPIStudyDAOUnitTest {
                 study("2", "Environment 2 [TEST-2]"),
                 study("1", "Environment 1 [TEST-1]"));
 
-        when(brAPIDAOUtil.simpleSearch(any(Function.class), any(BrAPIStudySearchRequest.class))).thenReturn(brAPIResponse);
+        when(brAPIDAOUtil.searchReturnResponse(any(Function.class), any(Function3.class), any(BrAPIStudySearchRequest.class))).thenReturn(brAPIResponse);
         doReturn(serverOrderedStudies).when(brAPIDAOUtil).getListResult(brAPIResponse);
 
         BrAPIStudyListResponse result = studyDAO.brapiStudySearch(program, List.of(authorizedTrialId), studyQuery);
 
         ArgumentCaptor<BrAPIStudySearchRequest> requestCaptor =
                 ArgumentCaptor.forClass(BrAPIStudySearchRequest.class);
-        verify(brAPIDAOUtil).simpleSearch(any(Function.class), requestCaptor.capture());
+        verify(brAPIDAOUtil).searchReturnResponse(any(Function.class), any(Function3.class), requestCaptor.capture());
 
         BrAPIStudySearchRequest request = requestCaptor.getValue();
         assertEquals(List.of("brapi-program-1"), request.getProgramDbIds());

@@ -76,8 +76,8 @@ public class BrAPIDAOUtil {
         this.programService = programService;
     }
 
-    public <T extends BrAPIResponse, U extends BrAPIQueryParams, V> List<V> get(Function<U, ApiResponse<T>> getMethod,
-                                                                       U queryParams) throws ApiException {
+    public <T extends BrAPIResponse<U>, U extends BrAPIResponseResult<V>, V, W extends BrAPIQueryParams> List<V> get(Function<W, ApiResponse<T>> getMethod,
+                                                                       W queryParams) throws ApiException {
         T brapiResponseResult;
 
         boolean paginationSet = queryParams.page() != null && queryParams.pageSize() != null;
@@ -115,7 +115,7 @@ public class BrAPIDAOUtil {
             // Size of BrAPI entity GET data can not exceed configured pageSize.
             // If it does, it is recommended the GET method not be used for this purpose.
             // If you are trying to utilize this method to get a large amount of data for an entity, you can use
-            // searchInternal for now.  In the future, we need a more robust way of transmitting this data using
+            // searchInternalReturnList for now.  In the future, we need a more robust way of transmitting this data using
             // compression client techniques to reduce strain on the server and avoid keeping all the database data
             // in java memory.
             throw new InternalServerException(String.format("More than one page found, meaning there is more data to be returned " +
@@ -125,79 +125,88 @@ public class BrAPIDAOUtil {
         return getListResult(brapiResponseResult);
     }
 
-    // Performs a POST brapi search on an entity without looping paging logic, utilizing filters and pagination provided in the searchBody.
-    // Also verifies response paging matches requested paging
-    public <T extends BrAPIResponse, U extends BrAPISearchRequestParametersPaging, V> T simpleSearch(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
-                                                                                     U searchBody) throws ApiException {
-        T brapiResponseResult;
+    public <T extends BrAPIResponse<U>, U extends BrAPIResponseResult<V>, V, W extends BrAPISearchRequestParametersPaging> List<V> search(Function<W, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+                                                                               Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
+                                                                               W searchBody
+    ) throws ApiException {
+        return searchInternalReturnList(searchMethod, searchGetMethod, null, searchBody, true);
+    }
+
+    public <T extends BrAPIResponse<U>, U extends BrAPIResponseResult<V>, V, W extends BrAPISearchRequestParametersPaging> List<V> search(Function<W, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+                                                                               Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMimedGetMethod,
+                                                                               W searchBody
+    ) throws ApiException {
+        return searchInternalReturnList(searchMethod, null, searchMimedGetMethod, searchBody, true);
+    }
+
+    // Sends a boolean to prevent paging through the entire response to retrieve all data.  Necessary in cases where specific paging is required.
+    public <T extends BrAPIResponse<U>, U extends BrAPIResponseResult<V>, V, W extends BrAPISearchRequestParametersPaging> List<V> searchNoPageThru(Function<W, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+                                                                                                               Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
+                                                                                                               W searchBody
+    ) throws ApiException {
+        return searchInternalReturnList(searchMethod, searchGetMethod, null, searchBody, false);
+    }
+
+    private <T extends BrAPIResponse<U>, U extends BrAPIResponseResult<V>, V, W extends BrAPISearchRequestParametersPaging> List<V> searchInternalReturnList(Function<W, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+                                                                                                                                                             Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
+                                                                                                                                                             Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethodWithMimeType,
+                                                                                                                                                             W searchBody, boolean pageThru) throws ApiException {
+        return getListResult(searchInternalReturnResponse(searchMethod, searchGetMethod, searchGetMethodWithMimeType, searchBody, pageThru));
+    }
+
+    public <T extends BrAPIResponse<U>, U extends BrAPIResponseResult<V>, V, W extends BrAPISearchRequestParametersPaging> T searchReturnResponse(Function<W, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+                                                                                                                                                  Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
+                                                                                                                                                  W searchBody
+    ) throws ApiException {
+
+        boolean pageThru = (searchBody.getPage() == null || searchBody.getPage() == 0) && (searchBody.getPageSize() == null || searchBody.getPageSize() == 0);
+
+        return searchInternalReturnResponse(searchMethod, searchGetMethod, null, searchBody, pageThru);
+    }
+
+    public <T extends BrAPIResponse<U>, U extends BrAPIResponseResult<V>, V, W extends BrAPISearchRequestParametersPaging> T searchReturnResponse(Function<W, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+                                                                                                                                                  Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMimedGetMethod,
+                                                                                                                                                  W searchBody
+    ) throws ApiException {
+        boolean pageThru = (searchBody.getPage() == null || searchBody.getPage() == 0) && (searchBody.getPageSize() == null || searchBody.getPageSize() == 0);
+
+        return searchInternalReturnResponse(searchMethod, null, searchMimedGetMethod, searchBody, pageThru);
+    }
+
+    /**
+     * @param searchMethod The BrAPI API search post method, e.g. ObservationUnitsApi.searchObservationsPost()
+     *
+     * For the following two params, it should be noted some BrAPI APIs only support one of the following GET methods (e.g. ObservationUnitsApi)  In those cases, BI passes in the existing GET method.
+     * @param searchGetMethod The BrAPI API search GET by searchDbId method.  This is used when async search is triggered by > 5 params in BrAPI search method.
+     *                        The searchDbId is returned by the original postMethod if it is triggered. e.g. ObservationsApi.searchObservationsSearchResultsDbIdGet()
+     * @param searchGetMethodWithMimeType The BrAPI API search GET method that triggers an async response. This is used when async search is triggered by > 5 params in BrAPI search method, and no searchGetMethod exists.
+     *                                    The searchDbId is returned by the original postMethod if it is triggered. e.g. ObservationUnitsApi.searchObservationunitsSearchResultsDbIdGet.
+     *
+     * @param searchBody The BrAPI entity search request being supplied for this search
+     * @param pageThru Determines whether all existing data related to the request should be retrieved, ignoring pagination.
+     * For this method and all callers above, the parameters are described as follows:
+     * @param <T> A BrAPIResponse object
+     * @param <U> A BrAPIResponseResult object
+     * @param <V> The BrAPI model object contained in list returned by U.getData()
+     * @param <W> The specific BrAPI search request type
+     * An example in action, say GermplasmApi.searchGermplasmPost() is supplied as the search method. This returns a BrAPIGermplasmListResponse class, which is T.
+     * The U then, is BrAPIGermplasmListResponseResult, and V is BrAPIGermplasm.
+     * In this example, W should be a BrAPIGermplasmSearchRequest
+     * @return The full BrAPIResponse object from a completed BrAPI search request
+     */
+    private <T extends BrAPIResponse<U>, U extends BrAPIResponseResult<V>, V, W extends BrAPISearchRequestParametersPaging> T searchInternalReturnResponse(Function<W, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+                                                                                                                                                           Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
+                                                                                                                                                           Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethodWithMimeType,
+                                                                                                                                                           W searchBody, boolean pageThru) throws ApiException {
+        if (searchBody.getPageSize() != null && searchBody.getPageSize() > brapiFetchPageSize) {
+            // Currently support for pages over 65k is not supported, which at the time of writing is the configured size of brapiFetchPageSize, which in .env is paging.page-size.max-allowed
+            throw new ApiException(HttpStatus.BAD_REQUEST.getCode(), String.format("Maximum allowable pageSize for a BrAPI request is [%s].  If more data than this is required, send request without specifying page or page size to retrieve all of it.",  brapiFetchPageSize));
+        }
 
         try {
-            // Traverse response with an optional to allow for free null checking with .map()
-            brapiResponseResult = Optional.ofNullable(searchMethod.apply(searchBody))
-                    .map(ApiResponse::getBody)
-                    .map(Pair::getLeft)
-                    // Deal with wrapped Optionals
-                    .flatMap(optional -> optional)
-                    .orElseThrow();
-        } catch (ApiException e) {
-            log.warn(Utilities.generateApiExceptionLogMessage(e));
-            throw e;
-        } catch (NoSuchElementException e) {
-            log.debug("Unable to retrieve BrAPIResponse from POST search request", e);
-            throw new InternalServerException(e.toString(), e);
-        } catch (Exception e) {
-            log.debug("error", e);
-            throw new InternalServerException(e.toString(), e);
-        }
+            T listResponse = null;
 
-        BrAPIPagination responsePagination = Optional.of(brapiResponseResult)
-                .map(BrAPIResponse::getMetadata)
-                .map(BrAPIMetadata::getPagination)
-                .orElse(null);
-
-        if (responsePagination == null) {
-            throw new InternalServerException("Expected pagination metadata in BrAPI search response not present");
-        }
-
-        var requestPageNumber = searchBody.getPage();
-        var requestPageSize = searchBody.getPageSize();
-
-        if (!responsePagination.getCurrentPage().equals(requestPageNumber) || !responsePagination.getPageSize().equals(requestPageSize)) {
-            throw new InternalServerException("Page number and/or page size do not match between BrAPI search request and response");
-        }
-
-        return brapiResponseResult;
-    }
-
-    public <T, U extends BrAPISearchRequestParametersPaging, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
-                                                                               Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
-                                                                               U searchBody
-    ) throws ApiException {
-        return searchInternal(searchMethod, searchGetMethod, null, searchBody, true);
-    }
-
-    public <T, U extends BrAPISearchRequestParametersPaging, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
-                                                                               Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
-                                                                               U searchBody
-    ) throws ApiException {
-        return searchInternal(searchMethod, null, searchGetMethod, searchBody, true);
-    }
-
-    public <T, U extends BrAPISearchRequestParametersPaging, V> List<V> searchNoPaging(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
-                                                                               Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
-                                                                               U searchBody
-    ) throws ApiException {
-        return searchInternal(searchMethod, searchGetMethod, null, searchBody, false);
-    }
-
-    private <T, U extends BrAPISearchRequestParametersPaging, V> List<V> searchInternal(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
-                                                                                        Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
-                                                                                        Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethodWithMimeType,
-                                                                                        U searchBody, boolean sendPaging) throws ApiException {
-        try {
-            List<V> listResult = new ArrayList<>();
-
-            if (sendPaging) {
+            if (pageThru) {
                 // This should be set to whatever the maximum allowable value is configured in the brapi test server,
                 // perhaps it should be configurable on bi side as well.
                 // For reference, that prop name is paging.page-size.max-allowed
@@ -206,14 +215,13 @@ public class BrAPIDAOUtil {
 
             ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> response = searchMethod.apply(searchBody);
             if (response.getBody().getLeft().isPresent()) {
-                BrAPIResponse listResponse = (BrAPIResponse) response.getBody().getLeft().get();
-                listResult = getListResult(response);
+                listResponse = response.getBody().getLeft().get();
 
             /*  NOTE: may want to check for additional pages depending on whether BrAPI standard specifies how
                 pagination params are handled for POST search endpoints or the corresponding endpoints in Breedbase are
                 changed or updated
              */
-                if(sendPaging && hasMorePages(listResponse)) {
+                if (pageThru && hasMorePages(listResponse)) {
                     int currentPage = listResponse.getMetadata().getPagination().getCurrentPage() + 1;
                     int totalPages = listResponse.getMetadata().getPagination().getTotalPages();
 
@@ -221,7 +229,7 @@ public class BrAPIDAOUtil {
                         searchBody.setPage(currentPage);
                         response = searchMethod.apply(searchBody);
                         if (response.getBody().getLeft().isPresent()) {
-                            listResult.addAll(getListResult(response));
+                            listResponse.getResult().getData().addAll(getListResult(response));
                         }
 
                         currentPage++;
@@ -231,27 +239,26 @@ public class BrAPIDAOUtil {
                 // Hit the get endpoint until we get a response
                 Integer accruedWait = 0;
                 Boolean searchFinished = false;
-                int currentPage = 0;
+                int currentPage = pageThru ? 0 : searchBody.getPage();
                 while (!searchFinished) {
                     BrAPIAcceptedSearchResponse searchResult = response.getBody().getRight().get();
 
                     ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> searchGetResponse =
-                            searchGetResponse(searchGetMethod, searchGetMethodWithMimeType, searchResult, currentPage);
+                            searchGetResponse(searchGetMethod, searchGetMethodWithMimeType, searchResult, currentPage, searchBody.getPageSize());
                     if (searchGetResponse.getBody().getLeft().isPresent()) {
                         searchFinished = true;
-                        BrAPIResponse listResponse = (BrAPIResponse) searchGetResponse.getBody().getLeft().get();
-                        listResult = getListResult(searchGetResponse);
+                        listResponse = searchGetResponse.getBody().getLeft().get();
 
-                        if(sendPaging && hasMorePages(listResponse)) {
+                        if(pageThru && hasMorePages(listResponse)) {
                             currentPage++;
                             int totalPages = listResponse.getMetadata()
                                     .getPagination()
                                     .getTotalPages();
 
                             while (currentPage < totalPages) {
-                                searchGetResponse = searchGetResponse(searchGetMethod, searchGetMethodWithMimeType, searchResult, currentPage);
+                                searchGetResponse = searchGetResponse(searchGetMethod, searchGetMethodWithMimeType, searchResult, currentPage, searchBody.getPageSize());
                                 if (searchGetResponse.getBody().getLeft().isPresent()) {
-                                    listResult.addAll(getListResult(searchGetResponse));
+                                    listResponse.getResult().getData().addAll(getListResult(searchGetResponse));
                                 }
 
                                 currentPage++;
@@ -268,7 +275,20 @@ public class BrAPIDAOUtil {
                 }
             }
 
-            return listResult;
+            if (pageThru) {
+                BrAPIPagination pagination = listResponse.getMetadata().getPagination();
+
+                // If pageThru is true, all the data found with the search request was retrieved, rendering paging info useless.
+                // To accommodate for this, re-assign some of the metadata params.
+                // TODO: In this use case, align bi/brapi-server/client to return all nulls.
+                pagination.setPageSize(pagination.getTotalCount());
+                pagination.setTotalPages(1);
+                pagination.setCurrentPage(0);
+
+                listResponse.getMetadata().setPagination(pagination);
+            }
+
+            return listResponse;
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw e;
@@ -375,9 +395,10 @@ public class BrAPIDAOUtil {
     private <T> ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> searchGetResponse(Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
                                                                                                         Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethodWithMimeType,
                                                                                                         BrAPIAcceptedSearchResponse searchResult,
-                                                                                                        int currentPage) throws Exception{
-        return searchGetMethod != null ? searchGetMethod.apply(searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize) :
-                searchGetMethodWithMimeType.apply(APPLICATION_JSON, searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize);
+                                                                                                        int page,
+                                                                                                        int pageSize) throws Exception{
+        return searchGetMethod != null ? searchGetMethod.apply(searchResult.getResult().getSearchResultsDbId(), page, pageSize) :
+                searchGetMethodWithMimeType.apply(APPLICATION_JSON, searchResult.getResult().getSearchResultsDbId(), page, pageSize);
     }
 
     private boolean hasMorePages(BrAPIResponse listResponse) {
@@ -579,9 +600,10 @@ public class BrAPIDAOUtil {
     public <T extends BrAPISearchRequestParametersPaging, U extends BrapiQuery> void setGenericSearchParameters(T brapiSearchRequest, U biSearchQuery) {
 
         if (biSearchQuery == null) {
-            // If the search query is not available, assume maximum size fetch is required and break out of this method.
-            brapiSearchRequest.setPage(0);
-            brapiSearchRequest.setPageSize(brapiFetchPageSize);
+            // If the search query is not available, assume we want all data retrieved using the search request.
+            // This is accomplished by setting the page and pageSize to null.
+            brapiSearchRequest.setPage(null);
+            brapiSearchRequest.setPageSize(null);
             return;
         }
 

@@ -21,13 +21,9 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 import okhttp3.Request;
-import org.apache.commons.lang3.StringUtils;
-import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.core.TrialQueryParams;
 import org.brapi.client.v2.modules.core.TrialsApi;
-import org.brapi.v2.model.BrAPIFilterBy;
-import org.brapi.v2.model.BrAPISortBy;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
@@ -227,8 +223,9 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
         BrAPITrialSearchRequest brAPITrialSearchRequest = buildSearchRequest(program, brapiTrialIds, experimentQuery);
 
         BrAPITrialListResponse brAPIResponse =
-                brAPIDAOUtil.simpleSearch(
+                brAPIDAOUtil.searchReturnResponse(
                         api::searchTrialsPost,
+                        api::searchTrialsSearchResultsDbIdGet,
                         brAPITrialSearchRequest
                 );
 
