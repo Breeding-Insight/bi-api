@@ -41,7 +41,7 @@ BEGIN
         ('Strawberry'), ('Honey Bee'), ('Pecan'), ('Lettuce'),
         ('Cotton'), ('Sorghum'), ('Hemp'), ('Hop'),
         ('Hydrangea'), ('Red Clover'), ('Potato'), ('Blackberry'),
-        ('Raspberry'), ('Sugar Beet'), ('Coffee'), ('Sunflower')
+        ('Raspberry'), ('Sugar Beet'), ('Coffee'), ('Sunflower'), ('Llama')
     ) AS src(crop_name)
     ON CONFLICT (id) DO
         -- want case changes or space changes to overwrite existing

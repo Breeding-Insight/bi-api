@@ -54,6 +54,11 @@ import java.util.UUID;
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class SampleSubmissionController {
 
+    public static final String DELETE_STATUS_NOT_ALLOWED_ERROR_MESSAGE =
+            "Sample submission cannot be deleted because status is submitted or completed";
+    public static final String DELETE_GENOTYPE_DATA_NOT_ALLOWED_ERROR_MESSAGE =
+            "Sample submission cannot be deleted because associated genotype data exists";
+
     private final boolean brapiSubmissionEnabled;
     private final SampleSubmissionService sampleSubmissionService;
     private final ProgramService programService;
@@ -183,6 +188,33 @@ public class SampleSubmissionController {
         }
     }
 
+    @Get("/programs/{programId}/submissions/{submissionId}/export")
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
+    @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"})
+    public HttpResponse<StreamedFile> sampleSubmissionExport(@PathVariable UUID programId, @PathVariable UUID submissionId) {
+        try {
+            Optional<Program> program = programService.getById(programId);
+            if(program.isEmpty()) {
+                return HttpResponse.notFound();
+            }
+            Optional<DownloadFile> downloadFile = sampleSubmissionService.exportSubmission(program.get(), submissionId);
+            if(downloadFile.isEmpty()) {
+                return HttpResponse.notFound();
+            }
+            HttpResponse<StreamedFile> response = HttpResponse
+                    .ok(downloadFile.get().getStreamedFile())
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + downloadFile.get().getFileName());
+            return response;
+        } catch (ApiException e) {
+            log.error(Utilities.generateApiExceptionLogMessage(e), e);
+            return HttpResponse.serverError();
+        } catch (IOException e) {
+            log.error("Error exporting Sample Submission file", e);
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error exporting Sample Submission file").contentType(MediaType.TEXT_PLAIN).body("Error exporting Sample Submission file");
+            return response;
+        }
+    }
+
     @Get("/programs/{programId}/submissions/{submissionId}/lookup")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"})
@@ -303,20 +335,20 @@ public class SampleSubmissionController {
             return HttpResponse.notFound();
         }
 
-        // sample status validation
-        Optional<SampleSubmission> submissionOpt = sampleSubmissionService.getSampleSubmission(program.get(), submissionId, false);
-
-        if(submissionOpt.isEmpty()) {
-            return HttpResponse.notFound();
+        SampleSubmissionService.DeleteResult result = sampleSubmissionService.deleteSampleSubmission(program.get(), submissionId);
+        switch (result) {
+            case NOT_FOUND:
+                return HttpResponse.notFound();
+            case STATUS_NOT_ALLOWED:
+                return HttpResponse.notAllowed()
+                        .body(DELETE_STATUS_NOT_ALLOWED_ERROR_MESSAGE);
+            case GENOTYPE_DATA_NOT_ALLOWED:
+                return HttpResponse.notAllowed()
+                        .body(DELETE_GENOTYPE_DATA_NOT_ALLOWED_ERROR_MESSAGE);
+            case DELETED:
+            default:
+                return HttpResponse.ok();
         }
-        SampleSubmission submission = submissionOpt.get();
-        if (!submission.isDeletable()) {
-            return HttpResponse.notAllowed();
-        }
-
-        sampleSubmissionService.deleteSampleSubmission(program.get(), submissionId);
-
-        return HttpResponse.ok();
     }
 
 }

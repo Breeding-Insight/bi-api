@@ -27,10 +27,10 @@ micronaut:
     thread-selection: AUTO
     multipart:
       enabled: true
-      max-file-size: '100MB'
+      max-file-size: '800MB'
       mixed: true
       threshold: '10MB'
-    max-request-size: '100MB'
+    max-request-size: '800MB'
   bi:
     api:
       version: v1
