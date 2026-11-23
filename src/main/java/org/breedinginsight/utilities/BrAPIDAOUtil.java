@@ -239,12 +239,12 @@ public class BrAPIDAOUtil {
                 // Hit the get endpoint until we get a response
                 Integer accruedWait = 0;
                 Boolean searchFinished = false;
-                int currentPage = 0;
+                int currentPage = pageThru ? 0 : searchBody.getPage();
                 while (!searchFinished) {
                     BrAPIAcceptedSearchResponse searchResult = response.getBody().getRight().get();
 
                     ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> searchGetResponse =
-                            searchGetResponse(searchGetMethod, searchGetMethodWithMimeType, searchResult, currentPage);
+                            searchGetResponse(searchGetMethod, searchGetMethodWithMimeType, searchResult, currentPage, searchBody.getPageSize());
                     if (searchGetResponse.getBody().getLeft().isPresent()) {
                         searchFinished = true;
                         listResponse = searchGetResponse.getBody().getLeft().get();
@@ -256,7 +256,7 @@ public class BrAPIDAOUtil {
                                     .getTotalPages();
 
                             while (currentPage < totalPages) {
-                                searchGetResponse = searchGetResponse(searchGetMethod, searchGetMethodWithMimeType, searchResult, currentPage);
+                                searchGetResponse = searchGetResponse(searchGetMethod, searchGetMethodWithMimeType, searchResult, currentPage, searchBody.getPageSize());
                                 if (searchGetResponse.getBody().getLeft().isPresent()) {
                                     listResponse.getResult().getData().addAll(getListResult(searchGetResponse));
                                 }
@@ -395,9 +395,10 @@ public class BrAPIDAOUtil {
     private <T> ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> searchGetResponse(Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
                                                                                                         Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethodWithMimeType,
                                                                                                         BrAPIAcceptedSearchResponse searchResult,
-                                                                                                        int currentPage) throws Exception{
-        return searchGetMethod != null ? searchGetMethod.apply(searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize) :
-                searchGetMethodWithMimeType.apply(APPLICATION_JSON, searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize);
+                                                                                                        int page,
+                                                                                                        int pageSize) throws Exception{
+        return searchGetMethod != null ? searchGetMethod.apply(searchResult.getResult().getSearchResultsDbId(), page, pageSize) :
+                searchGetMethodWithMimeType.apply(APPLICATION_JSON, searchResult.getResult().getSearchResultsDbId(), page, pageSize);
     }
 
     private boolean hasMorePages(BrAPIResponse listResponse) {
