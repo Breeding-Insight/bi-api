@@ -124,6 +124,8 @@ public class TraitValidatorService {
                     ValidationErrors categoryErrors = new ValidationErrors();
 
                     // Check the categories to make sure they are formatted properly
+                    List<String> existingNomCategories = new ArrayList<>();
+                    boolean repeatedNominalCategory = false;
                     for (int k = 0; k < scale.getCategories().size(); k++) {
 
                         if (scale.getDataType() == DataType.ORDINAL) {
@@ -134,9 +136,18 @@ public class TraitValidatorService {
                         }
 
                         if (scale.getDataType() == DataType.NOMINAL) {
+                            String value = scale.getCategories().get(k).getValue();
                             if (!isBlank(scale.getCategories().get(k).getLabel())) {
                                 ValidationError error = traitValidatorErrors.getPopulatedNominalCategoryLabelMsg();
                                 categoryErrors.addError(k, error);
+                            }
+                            if(!isBlank(value)) {
+                                //Can't have repeated values in the same nominal variable, case-insensitive
+                                if (existingNomCategories.stream().anyMatch(x -> x.equalsIgnoreCase(value))) {
+                                    repeatedNominalCategory = true;
+                                } else {
+                                    existingNomCategories.add(value);
+                                }
                             }
                         }
 
@@ -150,6 +161,11 @@ public class TraitValidatorService {
                         ValidationError categoryError = traitValidatorErrors.getBadScaleCategory();
                         categoryError.setRowErrors(categoryErrors.getRowErrors());
                         errors.addError(traitValidatorErrors.getRowNumber(i), categoryError);
+                    }
+
+                    if (repeatedNominalCategory) {
+                        ValidationError error = traitValidatorErrors.getDuplicateNominalCategoriesMsg();
+                        errors.addError(traitValidatorErrors.getRowNumber(i), error);
                     }
 
                     //Check if sufficient categories if scale is ordinal (2) or nominal (1)
