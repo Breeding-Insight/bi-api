@@ -25,7 +25,6 @@ public class GermplasmQuery extends BrapiQuery {
     private String femaleParentGID;
     private String maleParentGID;
     private String createdDate;
-    // TODO: externalUUID is broken until support on brapi server appears
     private String externalUID;
     private String createdByUserName;
     private String synonym;
@@ -53,6 +52,7 @@ public class GermplasmQuery extends BrapiQuery {
         filterValuesByBrAPIColumnName.put("createdDate", getCreatedDate());
         filterValuesByBrAPIColumnName.put("createdBy", getCreatedByUserName());
         filterValuesByBrAPIColumnName.put("synonyms", getSynonym());
+        filterValuesByBrAPIColumnName.put("externalUID", getExternalUID());
 
         if (!StringUtils.isBlank(listDbId)) {
             filterValuesByBrAPIColumnName.put("listItemPosition", getListEntryNumber());
@@ -76,6 +76,7 @@ public class GermplasmQuery extends BrapiQuery {
         brAPIColumnNamesByBiColumnName.put("createdDate", "createdDate");
         brAPIColumnNamesByBiColumnName.put("createdByUserName", "createdBy");
         brAPIColumnNamesByBiColumnName.put("synonyms", "synonyms");
+        brAPIColumnNamesByBiColumnName.put("externalUID", "externalUID");
 
         if (!StringUtils.isBlank(listDbId)) {
             brAPIColumnNamesByBiColumnName.put("listEntryNumber", "listItemPosition");
