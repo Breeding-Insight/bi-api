@@ -7,6 +7,7 @@ import org.breedinginsight.dao.db.tables.records.TraitRecord;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jooq.DAO;
 
 import java.util.List;
@@ -24,7 +25,7 @@ public interface TraitDAO extends DAO<TraitRecord, TraitEntity, UUID> {
 
     List<Trait> getTraitsById(UUID... traitIds);
 
-    Optional<Trait> getTraitFull(UUID programId, UUID traitId);
+    Optional<Trait> getTraitFull(UUID programId, UUID traitId) throws DoesNotExistException;
 
     // could be more efficient to do a single get instead of search in saved search case but less code this way
     // and search stuff is working in breedbase

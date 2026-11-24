@@ -8,7 +8,9 @@ import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.jooq.tools.StringUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Introspected
@@ -24,38 +26,38 @@ public class StudyQuery extends BrapiQuery {
     private String externalReferenceSource;
     private String externalReferenceId;
 
-    public SearchRequest constructSearchRequest() {
-        List<FilterRequest> filters = new ArrayList<>();
-        if (!StringUtils.isBlank(getStudyType())) {
-            filters.add(constructFilterRequest("studyType", getStudyType()));
-        }
-        if (!StringUtils.isBlank(getLocationDbId())) {
-            filters.add(constructFilterRequest("locationDbId", getLocationDbId()));
-        }
-        if (!StringUtils.isBlank(getStudyCode())) {
-            filters.add(constructFilterRequest("studyCode", getStudyCode()));
-        }
-        if (!StringUtils.isBlank(getStudyPUI())) {
-            filters.add(constructFilterRequest("studyPUI", getStudyPUI()));
-        }
-        if (!StringUtils.isBlank(getCommonCropName())) {
-            filters.add(constructFilterRequest("commonCropName", getCommonCropName()));
-        }
-        if (!StringUtils.isBlank(getTrialDbId())) {
-            filters.add(constructFilterRequest("trialDbId", getTrialDbId()));
-        }
-        if (!StringUtils.isBlank(getStudyDbId())) {
-            filters.add(constructFilterRequest("studyDbId", getStudyDbId()));
-        }
-        if (!StringUtils.isBlank(getStudyName())) {
-            filters.add(constructFilterRequest("studyName", getStudyName()));
-        }
-        if (!StringUtils.isBlank(getExternalReferenceSource())) {
-            filters.add(constructFilterRequest("externalReferenceSource", getExternalReferenceSource()));
-        }
-        if (!StringUtils.isBlank(getExternalReferenceId())) {
-            filters.add(constructFilterRequest("externalReferenceId", getExternalReferenceId()));
-        }
-        return new SearchRequest(filters);
+    @Override
+    public Map<String, String> getFilterValuesByBrAPIColumnName() {
+        Map<String, String> filterValuesByBrAPIColumnName = new HashMap<>();
+
+        filterValuesByBrAPIColumnName.put("studyType", getStudyType());
+        filterValuesByBrAPIColumnName.put("locationDbId", getLocationDbId());
+        filterValuesByBrAPIColumnName.put("studyCode", getStudyCode());
+        filterValuesByBrAPIColumnName.put("studyPUI", getStudyPUI());
+        filterValuesByBrAPIColumnName.put("commonCropName", getCommonCropName());
+        filterValuesByBrAPIColumnName.put("trialDbId", getTrialDbId());
+        filterValuesByBrAPIColumnName.put("studyDbId", getStudyDbId());
+        filterValuesByBrAPIColumnName.put("studyName", getStudyName());
+        filterValuesByBrAPIColumnName.put("externalReferenceSource", getExternalReferenceSource());
+        filterValuesByBrAPIColumnName.put("externalReferenceId", getExternalReferenceId());
+
+        return filterValuesByBrAPIColumnName;
     }
+
+    @Override
+    public Map<String, String> getBrAPIColumnNamesByBiColumnName() {
+        Map<String, String> brAPIColumnNamesByBiColumnName = new HashMap<>();
+
+        brAPIColumnNamesByBiColumnName.put("studyType", "studyType");
+        brAPIColumnNamesByBiColumnName.put("locationDbId", "locationDbId");
+        brAPIColumnNamesByBiColumnName.put("studyCode", "studyCode");
+        brAPIColumnNamesByBiColumnName.put("studyPUI", "studyPUI");
+        brAPIColumnNamesByBiColumnName.put("commonCropName", "commonCropName");
+        brAPIColumnNamesByBiColumnName.put("trialDbId", "trialDbId");
+        brAPIColumnNamesByBiColumnName.put("studyDbId", "studyDbId");
+        brAPIColumnNamesByBiColumnName.put("studyName", "studyName");
+
+        return brAPIColumnNamesByBiColumnName;
+    }
+
 }

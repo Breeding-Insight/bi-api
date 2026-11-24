@@ -44,6 +44,7 @@ import org.breedinginsight.brapps.importer.model.imports.experimentObservation.E
 import org.breedinginsight.brapps.importer.model.imports.sample.SampleSubmissionImport.Columns;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.GenotypeImportDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
@@ -100,6 +101,8 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
 
     private String newExperimentWorkflowId;
     private final Gson gson = new BrAPIClient().getJSON().getGson();
+    @Inject
+    private ProgramDAO programDao;
 
     @BeforeAll
     void setup() throws Exception {
@@ -135,7 +138,9 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), program.getId());
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
-        List<BrAPIGermplasm> germplasm = createGermplasm(96);
+        String brapiProgramDbId = programDao.getProgramBrAPI(program).getProgramDbId();
+
+        List<BrAPIGermplasm> germplasm = createGermplasm(96, brapiProgramDbId);
         BrAPIExternalReference newReference = new BrAPIExternalReference();
         newReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
         newReference.setReferenceID(program.getId().toString());
@@ -579,7 +584,7 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
         return file;
     }
 
-    private List<BrAPIGermplasm> createGermplasm(int numToCreate) {
+    private List<BrAPIGermplasm> createGermplasm(int numToCreate, String brapiProgramDbId) {
         List<BrAPIGermplasm> germplasm = new ArrayList<>();
         for (int i = 0; i < numToCreate; i++) {
             String gid = ""+(i+1);
@@ -598,6 +603,7 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
             testReference.setReferenceID(UUID.randomUUID().toString());
             externalRef.add(testReference);
             testGermplasm.setExternalReferences(externalRef);
+            testGermplasm.setProgramDbId(brapiProgramDbId);
             germplasm.add(testGermplasm);
         }
 

@@ -11,11 +11,11 @@ import org.brapi.client.v2.JSON;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.BrAPIObservationTreatment;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
-import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -143,7 +143,7 @@ public class BrAPIObservationUnitDAOTest extends BrAPITest {
     @SneakyThrows
     @Order(2)
     public void testGetObservationUnitAdditionalInfoSingleTreatmentFactor() {
-        List<BrAPIObservationUnit> createdOus = obsUnitDAO.getObservationUnitByName(List.of("test1"), validProgram);
+        List<BrAPIObservationUnit> createdOus = obsUnitDAO.searchBrapiObservationUnits(new BrAPIObservationUnitSearchRequest(), validProgram);
         singleTreatmentAsserts(createdOus, testTreatment);
     }
 

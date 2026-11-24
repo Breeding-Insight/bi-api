@@ -1,6 +1,5 @@
 package org.breedinginsight.brapi.v2;
 
-import com.drew.lang.annotations.Nullable;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
@@ -16,10 +15,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
-import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
-import org.brapi.v2.model.BrAPIIndexPagination;
-import org.brapi.v2.model.BrAPIMetadata;
-import org.brapi.v2.model.BrAPIStatus;
+import org.brapi.v2.model.*;
 import org.brapi.v2.model.germ.*;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
@@ -27,7 +23,6 @@ import org.brapi.v2.model.germ.response.BrAPIGermplasmPedigreeResponse;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmProgenyResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
-import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
@@ -37,6 +32,7 @@ import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.GermplasmGenotype;
@@ -108,17 +104,8 @@ public class BrAPIGermplasmController {
             return HttpResponse.notFound();
         }
 
-        // Can't use BrAPI server programDbId filtering, think germplasm are linked to program through observation
-        // units and doesn't work if don't have any loaded, use external refs instead for now
-        // Just use DeltaBreed program UUID
-        String extRefId = program.get().getId().toString();
-        body.externalReferenceIds(List.of(extRefId));
-
-        // convert request filter dbIds from DeltaBreed UUID to BrAPI service dbIds
-        if (body.getGermplasmDbIds() != null && !body.getGermplasmDbIds().isEmpty()) {
-            List<String> convertedDbIds = germplasmService.getGermplasmDbIdsForUUIDs(program.get().getId(), body.getGermplasmDbIds());
-            body.setGermplasmDbIds(convertedDbIds);
-        }
+        String brapiProgramDbId = programService.getBrAPIProgramDbId(program.get().getId());
+        body.setProgramDbIds(List.of(brapiProgramDbId));
 
         ApiResponse<Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>>> brapiGermplasm;
         brapiGermplasm = brAPIEndpointProvider
@@ -179,10 +166,6 @@ public class BrAPIGermplasmController {
         // Prepare a regex pattern for program key removal
         Pattern programKeyPattern = Utilities.getRegexPatternMatchAllProgramKeysAnyAccession(programKey);
         germplasmList.parallelStream().forEach(germplasm -> {
-            // Set dbId
-            germplasm.germplasmDbId(Utilities.getExternalReference(germplasm.getExternalReferences(), "breedinginsight.org")
-                    .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
-                    .getReferenceId());
             // Process synonyms
             if (germplasm.getSynonyms() != null) {
                 germplasm.getSynonyms().forEach(synonym -> {
@@ -199,7 +182,7 @@ public class BrAPIGermplasmController {
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
-    public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> getGermplasm(
+    public HttpResponse<Response<DataResponse<BrAPIGermplasm>>> getGermplasm(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid GermplasmQuery queryParams) {
         try {
@@ -212,15 +195,19 @@ public class BrAPIGermplasmController {
             }
 
             // Fetch all germplasm in the program unless a list id is supplied to return only germplasm in that collection
-            List<BrAPIGermplasm> germplasm = queryParams.getListDbId() == null ? germplasmService.getGermplasm(programId) : germplasmService.getGermplasmByList(programId, queryParams.getListDbId());
-            SearchRequest searchRequest = queryParams.constructSearchRequest();
-            return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams, searchRequest);
+            BrAPIGermplasmListResponse brapiResponse = queryParams.getListDbId() == null ? germplasmService.searchGermplasm(programId, queryParams) : germplasmService.getGermplasmByList(programId, queryParams);
+
+            List<BrAPIGermplasm> foundGermplasm = brapiResponse.getResult().getData();
+            return ResponseUtils.getBrapiQueryResponse(foundGermplasm, brapiResponse);
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
         } catch (IllegalArgumentException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.NOT_FOUND, "Supplied programId does not exist");
         }
     }
 
@@ -322,8 +309,7 @@ public class BrAPIGermplasmController {
                 metadata.setPagination(pagination);
                 response = new BrAPIGermplasmPedigreeResponse();
             } else {
-                BrAPIGermplasm germplasm = germplasmService.getGermplasmByDBID(programId, germplasmId)
-                                                                             .orElseThrow(() -> new DoesNotExistException("DBID for this germplasm does not exist"));
+                BrAPIGermplasm germplasm = germplasmService.getGermplasmByUUID(programId, germplasmId);
 
                 //Forward the pedigree call to the backing BrAPI system of the program passing the germplasmDbId that came in the request
                 GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
@@ -440,15 +426,13 @@ public class BrAPIGermplasmController {
                                                                           @PathVariable("germplasmId") String germplasmId) {
 
         try {
-            BrAPIGermplasm germplasm = germplasmDAO.getGermplasmByUUID(germplasmId, programId);
-
             GermplasmGenotype germplasmGenotype = genoService.retrieveGenotypeData(programId, UUID.fromString(germplasmId));
 
             Response<GermplasmGenotype> response = new Response(germplasmGenotype);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.NOT_FOUND, "Germplasm not found");
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         } catch (AuthorizationException | ApiException e) {
             log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving genotype data");

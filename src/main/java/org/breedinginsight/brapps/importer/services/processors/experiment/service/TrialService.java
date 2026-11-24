@@ -273,11 +273,7 @@ public class TrialService {
             Program program,
             Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope) {
 
-        //get TrialId from existingTrial
-        BrAPIExternalReference experimentIDRef = Utilities.getExternalReference(existingTrial.getExternalReferences(),
-                        String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()))
-                .orElseThrow(() -> new InternalServerException("An Experiment ID was not found in any of the external references"));
-        UUID experimentId = UUID.fromString(experimentIDRef.getReferenceId());
+        UUID experimentId = UUID.fromString(existingTrial.getTrialDbId());
 
         trialByNameNoScope.put(
                 Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey()),
@@ -288,20 +284,14 @@ public class TrialService {
      * Constructs a PendingImportObject containing a BrAPITrial object based on the input BrAPITrial.
      *
      * This function takes a BrAPITrial object as input and constructs a PendingImportObject which
-     * encapsulates the trial along with its associated experiment ID. The experiment ID is retrieved
-     * from the external references of the trial object using utility method getExternalReference.
-     * If the experiment ID is not found in the external references, an InternalServerException is thrown.
+     * encapsulates the trial along with its associated experiment ID, which is the trialDbId from the BrAPI DB.
      *
      * @param trial the BrAPITrial object for which the PendingImportObject is to be constructed
      * @return a PendingImportObject containing the BrAPITrial object and its associated experiment ID
-     * @throws InternalServerException if the experiment ID is not found in the external references of the trial
      */
-    public PendingImportObject<BrAPITrial> constructPIOFromBrapiTrial(BrAPITrial trial) throws InternalServerException {
-        PendingImportObject<BrAPITrial> pio = null;
-        BrAPIExternalReference experimentIDRef = Utilities.getExternalReference(trial.getExternalReferences(),
-                        String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()))
-                .orElseThrow(() -> new InternalServerException("An Experiment ID was not found in any of the external references"));
-        UUID experimentId = UUID.fromString(experimentIDRef.getReferenceId());
+    public PendingImportObject<BrAPITrial> constructPIOFromBrapiTrial(BrAPITrial trial) {
+        PendingImportObject<BrAPITrial> pio;
+        UUID experimentId = UUID.fromString(trial.getTrialDbId());
         pio = new PendingImportObject<>(ImportObjectState.EXISTING, trial, experimentId);
         return pio;
     }

@@ -30,18 +30,16 @@ import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import org.breedinginsight.BrAPITest;
-import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
+import org.breedinginsight.brapi.v2.dao.BrAPIProgramDAO;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.enums.TermType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
-import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
-import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
@@ -59,7 +57,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.*;
-import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
 import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
@@ -79,6 +76,8 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     private TraitDAO traitDAO;
     @Inject
     private SpeciesService speciesService;
+    @Inject
+    private BrAPIProgramDAO programDAO;
 
     private Species validSpecies;
 
@@ -135,7 +134,6 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         //dsl.execute(fp.get("InsertProgramOntology"));
         dsl.execute(fp.get("InsertMethod"));
         dsl.execute(fp.get("InsertScale"));
-        dsl.execute(fp.get("InsertTrait"));
 
     }
 

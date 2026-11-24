@@ -75,6 +75,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.geno.GenotypeService;
 import org.breedinginsight.services.parsers.MimeTypeParser;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
 import org.jooq.DSLContext;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -290,7 +291,12 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         if(verifyProgramExists(brAPIClient, program)) {
 
             // get sample names from brapi server
-            List<BrAPISample> samples = fetchSamples(program, germplasmId);
+
+            String exrefId = Utilities.getExternalReference(germplasm.getExternalReferences(), referenceSource)
+                    .orElseThrow(() -> new DoesNotExistException("Germplasm does not have external reference source.  Unable to lookup associated sample data."))
+                    .getReferenceId();
+
+            List<BrAPISample> samples = fetchSamples(program, UUID.fromString(exrefId));
             List<String> sampleNames = samples.stream().map(BrAPISample::getSampleName).collect(Collectors.toList());
 
             // get samples from gigwa given sample names
@@ -565,8 +571,8 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     }
 
 
-    private List<BrAPISample> fetchSamples(Program program, @NotNull UUID germplasmId) throws ApiException {
-        String germplasmIdString = germplasmId.toString();
+    private List<BrAPISample> fetchSamples(Program program, @NotNull UUID germplasmExRefId) throws ApiException {
+        String germplasmIdString = germplasmExRefId.toString();
         java.util.List<String> germplasmIdList = List.of(germplasmIdString);
         List<BrAPISample> sampleNames = sampleDAO.readSamplesByGermplasmIds(program, germplasmIdList);
         return sampleNames;

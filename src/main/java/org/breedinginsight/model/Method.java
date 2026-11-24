@@ -17,6 +17,7 @@
 
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
@@ -48,6 +49,9 @@ public class Method extends MethodEntity {
     private ProgramOntology programOntology;
 
     // BrAPI Properties
+    @JsonIgnore
+    // brapiMethodDbId is only used to convert the bi method id to brapiMethodDbId for the BrAPIObservationVariableController GET endpoints
+    private String brapiMethodDbId;
     private String methodClass;
     private String description;
     private String formula;
@@ -76,5 +80,6 @@ public class Method extends MethodEntity {
         this.setMethodClass(brApiMethod.getMethodClass());
         this.setDescription(brApiMethod.getDescription());
         this.setFormula(brApiMethod.getFormula());
+        this.setBrapiMethodDbId(brApiMethod.getMethodDbId());
     }
 }

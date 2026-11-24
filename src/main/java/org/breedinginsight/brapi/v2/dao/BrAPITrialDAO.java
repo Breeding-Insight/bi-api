@@ -19,6 +19,9 @@ package org.breedinginsight.brapi.v2.dao;
 
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
+import org.brapi.v2.model.core.response.BrAPITrialListResponse;
+import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -40,13 +43,14 @@ public interface BrAPITrialDAO {
 
     Optional<BrAPITrial> getTrialById(UUID programId, UUID trialId) throws ApiException, DoesNotExistException;
 
-    Optional<BrAPITrial> getTrialByDbId(String trialDbId, Program program) throws ApiException;
-
     List<BrAPITrial> getTrialsByDbIds(Collection<String> trialDbIds, Program program) throws ApiException;
 
     List<BrAPITrial> getTrialsByExperimentIds(Collection<UUID> experimentIds, Program program) throws ApiException;
 
     void deleteBrAPITrial(Program program, BrAPITrial trial, boolean hard) throws ApiException;
 
-    void repopulateCache(UUID programId);
+    BrAPITrialListResponse brapiTrialSearch(Program program, ExperimentQuery experimentQuery) throws ApiException;
+
+    BrAPITrialListResponse brapiTrialSearch(Program program, List<UUID> brapiTrialIds, ExperimentQuery experimentQuery) throws ApiException;
+
 }

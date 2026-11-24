@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class ExperimentController {
     private final BrAPITrialService experimentService;
-    private final ExperimentQueryMapper experimentQueryMapper;
     private final ProgramService programService;
     private final ExperimentalCollaboratorService experimentalCollaboratorService;
     private final SecurityService securityService;
@@ -54,9 +53,8 @@ public class ExperimentController {
     private final RoleService roleService;
 
     @Inject
-    public ExperimentController(BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, ProgramService programService, ExperimentalCollaboratorService experimentalCollaboratorService, SecurityService securityService, ProgramUserService programUserService, RoleService roleService) {
+    public ExperimentController(BrAPITrialService experimentService, ProgramService programService, ExperimentalCollaboratorService experimentalCollaboratorService, SecurityService securityService, ProgramUserService programUserService, RoleService roleService) {
         this.experimentService = experimentService;
-        this.experimentQueryMapper = experimentQueryMapper;
         this.programService = programService;
         this.experimentalCollaboratorService = experimentalCollaboratorService;
         this.securityService = securityService;

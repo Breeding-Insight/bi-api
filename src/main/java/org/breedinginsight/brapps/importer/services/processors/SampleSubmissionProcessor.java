@@ -27,6 +27,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.geno.BrAPIPlate;
 import org.brapi.v2.model.geno.BrAPISample;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
@@ -97,7 +98,8 @@ public class SampleSubmissionProcessor implements Processor {
                                      .map(row -> ((SampleSubmissionImport) row).getGid())
                                      .collect(Collectors.toSet());
 
-        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasm(program.getId());
+        // TODO: Optimize this method with a lookup on germplasm by DbId, or an exists check once [BI-2938] is complete.
+        List<BrAPIGermplasm> germplasm = germplasmDAO.brapiGermplasmSearchReturnList(program, new BrAPIGermplasmSearchRequest());
 
         List<String> obsUnitIds = importRows.stream()
                                             .filter((row -> StringUtils.isNotBlank(((SampleSubmissionImport) row).getObsUnitId())))
@@ -107,11 +109,8 @@ public class SampleSubmissionProcessor implements Processor {
 
         List<BrAPIObservationUnit> observationUnits = observationUnitDAO.getObservationUnitsById(obsUnitIds, program);
         Set<String> germDbIds = new HashSet<>();
-        String ouRefSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATION_UNITS);
         observationUnits.forEach(ou -> {
-            observationUnitsById.put(Utilities.getExternalReference(ou.getExternalReferences(), ouRefSource)
-                                              .get()
-                                              .getReferenceId(), ou);
+            observationUnitsById.put(ou.getObservationUnitDbId(), ou);
             germDbIds.add(ou.getGermplasmDbId());
         });
         germplasm.stream()

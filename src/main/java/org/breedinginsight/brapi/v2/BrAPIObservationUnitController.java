@@ -149,7 +149,7 @@ public class BrAPIObservationUnitController {
     @Get("/observationunits/{observationUnitDbId}")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.PROGRAM_SCOPED_ROLES})
     public HttpResponse<BrAPIObservationUnitSingleResponse> observationunitsObservationUnitDbIdGet(@PathVariable("programId") UUID programId, @PathVariable("observationUnitDbId") String observationUnitDbId) {
-        log.debug("observationunitsObservationUnitDbIdGet: fetching ou by externalReferenceId: " + observationUnitDbId);
+        log.debug("observationunitsObservationUnitDbIdGet: fetching ou by dbId: " + observationUnitDbId);
         Optional<Program> program = programService.getById(programId);
         if(program.isEmpty()) {
             log.warn("Program id: " + programId + " not found");
@@ -158,7 +158,7 @@ public class BrAPIObservationUnitController {
         try {
             List<BrAPIObservationUnit> ous = observationUnitDAO.getObservationUnitsById(List.of(observationUnitDbId), program.get());
             if(ous.size() != 1) {
-                log.warn("did not find a single ou with externalReferenceId: " + observationUnitDbId);
+                log.warn("did not find a single ou with dbId: " + observationUnitDbId);
                 return HttpResponse.notFound();
             }
             setDbIds(ous.get(0));
@@ -220,18 +220,10 @@ public class BrAPIObservationUnitController {
     }
 
     private void setDbIds(BrAPIObservationUnit ou) {
-        ou.observationUnitDbId(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATION_UNITS))
-                              .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
-                              .getReferenceID());
-        ou.studyDbId(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES))
-                              .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
-                              .getReferenceID());
-        ou.trialDbId(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS))
-                                 .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
-                                 .getReferenceID());
         ou.programDbId(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS))
                                    .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
                                    .getReferenceID());
+        // TODO: Remove this as part of [BI-3006]
         if (ou.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_UUID)) {
             ou.setGermplasmDbId(ou.getAdditionalInfo()
                                   .get(BrAPIAdditionalInfoFields.GERMPLASM_UUID)
